@@ -45,7 +45,7 @@ async function refreshRecent() {
   if (key === recentKey) return;
   recentKey = key;
   recent = next;
-  if (bubble.isExpanded()) bubble.expand(recent);
+  if (bubble.isExpanded()) bubble.expand(recent, false);
 }
 
 // Facebook issues session cookies; re-issue them with a 1-year expiry so login survives restarts.

@@ -48,13 +48,34 @@ function inboxEl() {
   return el;
 }
 
-// fan = null collapses; otherwise { direction: 'up' | 'down', items: [...] }.
+const STAGGER_MS = 30;
+
+// Each fan message is { animate: 'in', direction, items } to open or { animate: 'out' } to close.
+// On 'in' we build the items in the tucked `enter` state, then release them next frame so they
+// spring outward, staggered from the main bubble. On 'out' we tuck them back; the main process
+// shrinks the window after the matching delay.
 window.bubbleApi.onFan((data) => {
+  if (!data || data.animate === 'out') {
+    for (const el of fan.children) el.classList.add('enter');
+    return;
+  }
+
   fan.replaceChildren();
-  document.body.classList.toggle('down', Boolean(data && data.direction === 'down'));
-  if (!data) return;
+  document.body.classList.toggle('down', data.direction === 'down');
   // items arrive newest-first; render oldest nearest the main bubble so the newest chat
   // ends up farthest out, with the Open Messenger item beyond it.
-  for (const item of [...data.items].reverse()) fan.appendChild(itemEl(item));
-  fan.appendChild(inboxEl());
+  const els = [...data.items].reverse().map(itemEl);
+  els.push(inboxEl());
+  const animate = data.animate === 'in';
+  els.forEach((el, i) => {
+    if (animate) {
+      el.classList.add('enter');
+      el.style.transitionDelay = i * STAGGER_MS + 'ms';
+    }
+    fan.appendChild(el);
+  });
+  if (!animate) return; // 'update': show the new contents without replaying the entrance
+  // Force layout so the browser registers the `enter` start state before we remove it.
+  void fan.offsetHeight;
+  requestAnimationFrame(() => els.forEach((el) => el.classList.remove('enter')));
 });

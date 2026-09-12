@@ -33,6 +33,7 @@ function createBubble({ position, onClick, onMoved, onContextMenu, onOpenChat, o
 
   const bounds = () => ({ x: anchor.x, y: anchor.y, width: SIZE, height: SIZE });
   let expanded = false;
+  let animGen = 0; // guards the deferred collapse shrink against a rapid re-expand
 
   function moveTo(x, y) {
     anchor.x = x;
@@ -56,23 +57,30 @@ function createBubble({ position, onClick, onMoved, onContextMenu, onOpenChat, o
     }, 12);
   }
 
+  // Longest possible out-animation: stagger (30ms) across up to 6 items plus the transition.
+  const COLLAPSE_MS = 260;
+
   function collapse() {
     if (!expanded) return;
     expanded = false;
-    win.webContents.send('bubble:fan', null);
-    win.setBounds(bounds());
+    const gen = ++animGen;
+    // Let the items animate back toward the bubble, then shrink the window once they're gone.
+    win.webContents.send('bubble:fan', { animate: 'out' });
+    setTimeout(() => { if (gen === animGen && !expanded) win.setBounds(bounds()); }, COLLAPSE_MS);
   }
 
   // Show `items` as a column next to the main bubble by growing the (non-activating) window.
   // Clicking the bubble again collapses it — handled by `collapsedOnPress` in the drag logic,
   // so we deliberately don't focus the window (a transparent panel can't hold focus, and the
   // resulting blur would collapse the fan the instant it opened).
-  function expand(items) {
+  function expand(items, animate = true) {
+    animGen += 1; // cancel any pending collapse-shrink
     const area = screen.getDisplayMatching(bounds()).workArea;
     const { direction, bounds: fanBounds } = fanLayout(bounds(), items.length + 1, area);
     expanded = true;
     win.setBounds(fanBounds);
-    win.webContents.send('bubble:fan', { direction, items });
+    // 'in' plays the entrance; 'update' just swaps the contents (used by the periodic refresh).
+    win.webContents.send('bubble:fan', { animate: animate ? 'in' : 'update', direction, items });
   }
 
   // While the mouse button is down we poll the cursor and move the window under it.
