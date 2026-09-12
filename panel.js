@@ -44,6 +44,14 @@ function createPanel({ onUnread }) {
     if (target) shell.openExternal(target);
   });
 
+  // A single open thread needs less width than the full inbox.
+  const SIZES = { full: [420, 640], compact: [360, 560] };
+
+  function resize(mode) {
+    const [w, h] = SIZES[mode];
+    win.setSize(w, h);
+  }
+
   function place(bubbleBounds) {
     const area = screen.getDisplayMatching(bubbleBounds).workArea;
     const [width, height] = win.getSize();
@@ -73,10 +81,12 @@ function createPanel({ onUnread }) {
     async openThread(href, bubbleBounds) {
       await scrape.openThread(win.webContents, href);
       await scrape.setCompact(win.webContents, true);
+      resize('compact');
       api.showAt(bubbleBounds);
     },
     async openInbox(bubbleBounds) {
       await scrape.setCompact(win.webContents, false);
+      resize('full');
       await scrape.openInbox(win.webContents);
       api.showAt(bubbleBounds);
     },

@@ -53,6 +53,8 @@ window.bubbleApi.onFan((data) => {
   fan.replaceChildren();
   document.body.classList.toggle('down', Boolean(data && data.direction === 'down'));
   if (!data) return;
-  for (const item of data.items) fan.appendChild(itemEl(item));
+  // items arrive newest-first; render oldest nearest the main bubble so the newest chat
+  // ends up farthest out, with the Open Messenger item beyond it.
+  for (const item of [...data.items].reverse()) fan.appendChild(itemEl(item));
   fan.appendChild(inboxEl());
 });

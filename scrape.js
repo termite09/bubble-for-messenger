@@ -44,9 +44,13 @@ async function openThread(wc, href) {
   if (!clicked) wc.loadURL('https://www.messenger.com' + href);
 }
 
-// Compact mode hides Messenger's left icon rail so the panel shows only the open thread.
-// A <style> tag is toggled rather than removed so it survives SPA re-renders while on.
-const COMPACT_CSS = '[role="navigation"][aria-label="Inbox switcher"]{display:none!important}';
+// Compact mode strips Messenger down to just the open thread: hide the left icon rail and the
+// per-thread voice/video/info buttons. A <style> tag is toggled (not removed) so it survives
+// the SPA's re-renders while compact mode is on.
+const COMPACT_CSS = [
+  '[role="navigation"][aria-label="Inbox switcher"]{display:none!important}',
+  '[aria-label="Start a voice call"],[aria-label="Start a video call"],[aria-label="Conversation information"]{display:none!important}',
+].join('');
 
 function setCompact(wc, on) {
   return wc.executeJavaScript(`(() => {
