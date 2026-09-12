@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    html, body { margin: 0; background: transparent; overflow: hidden; user-select: none; -webkit-user-select: none; }
+    #bubble {
+      position: absolute; left: 4px; top: 4px; width: 56px; height: 56px; border-radius: 50%;
+      overflow: hidden; box-shadow: 0 2px 8px rgba(0, 0, 0, .35); cursor: default;
+    }
+    #bubble img { width: 100%; height: 100%; display: block; -webkit-user-drag: none; pointer-events: none; }
+    #badge {
+      position: absolute; right: 0; top: 0; min-width: 20px; height: 20px; padding: 0 6px; box-sizing: border-box;
+      border-radius: 10px; background: #ff3b30; color: #fff; font: 600 12px/16px -apple-system, sans-serif;
+      text-align: center; border: 2px solid #fff; display: none; pointer-events: none;
+    }
+    #badge.visible { display: block; }
+  </style>
+</head>
+<body>
+  <div id="bubble"><img src="icon.png" alt=""></div>
+  <div id="badge"></div>
+  <script>
+    const bubble = document.getElementById('bubble');
+    const badge = document.getElementById('badge');
+
+    // Drag/click are resolved in the main process (it polls the cursor while the button is down);
+    // CSS drag regions can't be used because they swallow click events on macOS.
+    bubble.addEventListener('mousedown', (e) => { if (e.button === 0) window.bubble.dragStart(); });
+    window.addEventListener('mouseup', (e) => { if (e.button === 0) window.bubble.dragEnd(); });
+    window.addEventListener('blur', () => window.bubble.dragEnd());
+    bubble.addEventListener('contextmenu', (e) => { e.preventDefault(); window.bubble.contextMenu(); });
+
+    window.bubble.onBadge((n) => {
+      badge.textContent = n > 9 ? '9+' : String(n);
+      badge.classList.toggle('visible', n > 0);
+    });
+  </script>
+</body>
+</html>
