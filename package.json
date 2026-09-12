@@ -1,31 +1,31 @@
 {
   "name": "messenger-app",
   "version": "1.3.0",
-  "description": "Standalone Facebook Messenger app for macOS",
+  "description": "Facebook Messenger as a floating chat-head bubble for macOS",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "test": "node --test",
     "build": "electron-builder --mac"
   },
-  "author": "Stefan",
+  "author": "Termite (fork of stefanminch/messenger-mac)",
   "license": "MIT",
   "devDependencies": {
     "electron": "^33.0.0",
     "electron-builder": "^25.0.0"
   },
   "build": {
-    "appId": "com.stefan.messenger",
-    "productName": "MessengerApp",
+    "appId": "com.termite.messenger-bubble",
+    "productName": "MessengerBubble",
     "mac": {
       "category": "public.app-category.social-networking",
       "icon": "icon.icns",
-      "target": ["dmg", "zip"],
+      "target": [
+        "dmg",
+        "zip"
+      ],
       "hardenedRuntime": true,
-      "gatekeeperAssess": false,
-      "notarize": {
-        "teamId": "X5F8PB64J5"
-      }
+      "gatekeeperAssess": false
     }
   }
 }

@@ -1,120 +1,87 @@
-# Messenger for Mac
+# Messenger Bubble for Mac
 
-A standalone desktop app for Facebook Messenger on macOS. Chat with friends without opening a browser.
+Facebook Messenger as a floating "chat head" on macOS: a small always-on-top bubble that
+opens a compact Messenger panel beside it. No dock icon, no browser tab.
 
-**Why this exists:** Meta discontinued the official Messenger desktop app. This is a lightweight replacement that lets you use Messenger without keeping a browser tab open.
+Forked from [stefanminch/messenger-mac](https://github.com/stefanminch/messenger-mac), which
+wraps messenger.com in a normal Electron window. This fork replaces the window with the bubble.
 
-<img src="icon.png" width="128" alt="Messenger for Mac">
+<img src="icon.png" width="128" alt="Messenger Bubble">
 
-## Download
+## How it works
 
-**[Download Messenger for Mac v1.3.0 (DMG)](https://github.com/stefanminch/messenger-mac/releases/download/v1.3.0/MessengerApp-1.3.0.dmg)** | macOS 10.13+
+- **Bubble** — a 56 px round Messenger logo that floats over every app and every Space
+  (including full-screen apps). Drag it anywhere; its position is remembered.
+- **Click the bubble** to open Messenger in a compact panel next to it (it flips to the other
+  side near a screen edge). Click the bubble again, or anywhere else, to hide it. Messenger
+  stays loaded in the background, so messages keep arriving.
+- **Unread badge** — a red count appears on the bubble when you have unread chats.
+- **Right-click the bubble** for *Open Messenger*, *Reload Messenger*, *Reset Bubble Position*
+  and *Quit*.
+- Persistent login, native notifications, dark mode, and links opening in your default browser
+  all carry over from the original app.
 
-[![GitHub Release](https://img.shields.io/github/v/release/stefanminch/messenger-mac)](https://github.com/stefanminch/messenger-mac/releases)
-
-> Signed and notarized by Apple for your security.
-
-## Features
-
-- **Native macOS App** - Runs as a standalone application in your dock
-- **No Browser Required** - Access Messenger without opening Chrome, Safari, or Firefox
-- **Persistent Login** - Stay logged in between app restarts
-- **Native Notifications** - Get notified of new messages
-- **Minimal & Fast** - Lightweight app with low memory footprint
-- **Privacy Focused** - No tracking, no analytics, no data collection
-- **Dark Mode Support** - Follows your macOS appearance settings
-- **External Links** - Shared links open in your default browser
-- **Power Saving Mode** - Automatically throttles when in background to reduce CPU/battery usage
-- **Auto-Update Check** - Get notified when a new version is available
-- **Keyboard Shortcuts** - Quick navigation with custom shortcuts
-
-## Keyboard Shortcuts
+## Keyboard shortcuts (while the panel is open)
 
 | Shortcut | Action |
 |----------|--------|
 | `Cmd + N` | New message |
 | `Cmd + 1-9` | Switch to conversation 1-9 |
-| `Cmd + Shift + S` | Toggle sidebar visibility |
+| `Cmd + Shift + S` | Toggle Messenger's inbox sidebar |
 
-All settings (sidebar visibility) are persisted across app restarts.
+## Build from source
 
-## Screenshots
-
-| Chat View | Login |
-|-----------|-------|
-| Native macOS window | Secure Facebook login |
-
-## Installation
-
-1. Download the [DMG file](https://github.com/stefanminch/messenger-mac/releases/download/v1.3.0/MessengerApp-1.3.0.dmg)
-2. Open the DMG
-3. Drag **MessengerApp** to your **Applications** folder
-4. Launch from Applications or Spotlight
-
-## Build from Source
-
-### Prerequisites
-
-- Node.js 18+
-- npm or yarn
-
-### Steps
+Prerequisites: Node.js 18+ and npm.
 
 ```bash
-# Clone the repository
-git clone https://github.com/stefanminch/messenger-mac.git
+git clone <this repo>
 cd messenger-mac
-
-# Install dependencies
 npm install
 
 # Run in development mode
 npm start
 
-# Build for production
+# Unit tests (layout, unread parsing, link handling)
+npm test
+
+# Build a .app / DMG into dist/
 npm run build
 ```
 
-The built app will be in the `dist/` folder.
+The app keeps its own profile in `~/Library/Application Support/MessengerBubble`, so it can run
+alongside the original MessengerApp without sharing (or corrupting) its login data. You log in
+once inside the bubble.
 
-## Tech Stack
+## Project layout
 
-- [Electron](https://www.electronjs.org/) - Cross-platform desktop apps
-- JavaScript/Node.js
+| File | Responsibility |
+|------|----------------|
+| `main.js` | App lifecycle, settings, cookie persistence, menu, wiring bubble ↔ panel |
+| `bubble.js` / `bubble.html` / `bubble-renderer.js` / `bubble-preload.js` | The floating bubble window: drag, click, badge, context menu |
+| `panel.js` | The Messenger panel: placement beside the bubble, show/hide, unread detection, link handling |
+| `lib/` | Pure helpers (`layout.js`, `unread.js`, `links.js`) covered by `test/` |
+
+## Differences from the original
+
+- Runs as a bubble instead of a dock window (no dock icon).
+- Removed the daily usage ping to `counterapi.dev`, the GitHub update check, and the welcome window.
+- External links are only opened when they are real `http(s)` URLs on a non-messenger.com host.
 
 ## FAQ
 
-### Is this the official Messenger app?
-No, this is an unofficial wrapper around messenger.com. It's not affiliated with Meta/Facebook.
+**Is this the official Messenger app?** No — it's an unofficial wrapper around messenger.com,
+not affiliated with Meta/Facebook.
 
-### Is it safe?
-Yes. The app is signed and notarized by Apple. It simply loads messenger.com in a native window - no modifications to Messenger itself.
+**Does it support voice/video calls?** Everything messenger.com supports works, since it *is*
+messenger.com in the panel.
 
-### Why use this instead of the browser?
-- Dedicated app in your dock
-- Separate from browser tabs
-- Stays logged in
-- Cleaner experience
-- Less resource usage than a full browser
-
-### Does it support voice/video calls?
-Yes, all Messenger features work including voice and video calls.
-
-### My login isn't persisting?
-Make sure to quit the app with `Cmd+Q` (not just close the window) to save your session.
-
-## Keywords
-
-Facebook Messenger Mac, Messenger Desktop App, Messenger macOS, Facebook Chat Mac App, Messenger without browser, Standalone Messenger Mac, Messenger Mac download, Facebook Messenger native app, Messenger Electron app, Mac Messenger client
+**How do I quit?** Right-click the bubble → Quit (there is no dock icon).
 
 ## License
 
-MIT License - feel free to modify and distribute.
+MIT License — feel free to modify and distribute.
 
 ## Disclaimer
 
-This project is not affiliated with, authorized, maintained, sponsored, or endorsed by Meta/Facebook or any of its affiliates or subsidiaries. This is an independent and unofficial app. Use at your own risk.
-
----
-
-**Star this repo if you find it useful!**
+This project is not affiliated with, authorized, maintained, sponsored, or endorsed by
+Meta/Facebook or any of its affiliates or subsidiaries. Use at your own risk.
