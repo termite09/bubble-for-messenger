@@ -34,17 +34,27 @@ async function readRecentChats(wc) {
   }
 }
 
-// Find the conversation's list row and return the viewport point at its centre, or null if no
-// row is on screen (e.g. a thread is open, so the list isn't showing). Several links can share
-// the thread href (avatar, hidden prefetch); pick the largest one actually within the viewport.
+// Find the conversation's list row and return the viewport point to click, or null if no row is
+// actually clickable right now. Several links can share the thread href (avatar, hidden prefetch),
+// and when a thread is open the list rows are still in the DOM at their old positions but sit
+// *behind* the thread pane — so we require the point to hit-test to the row itself (topmost),
+// which makes a covered list fall through to the reload path used for switching.
 function rowPoint(wc, href) {
   return wc.executeJavaScript(`(() => {
-    const cands = [...document.querySelectorAll('a[role="link"][href^=${JSON.stringify(href)}]')]
-      .map((a) => a.getBoundingClientRect())
-      .filter((r) => r.width > 60 && r.height > 20 && r.top >= 0 && r.bottom <= innerHeight)
-      .sort((a, b) => b.width * b.height - a.width * a.height);
-    const r = cands[0];
-    return r ? { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) } : null;
+    const links = [...document.querySelectorAll('a[role="link"][href^=${JSON.stringify(href)}]')]
+      .sort((a, b) => {
+        const ra = a.getBoundingClientRect(); const rb = b.getBoundingClientRect();
+        return rb.width * rb.height - ra.width * ra.height;
+      });
+    for (const a of links) {
+      const r = a.getBoundingClientRect();
+      if (r.width <= 60 || r.height <= 20 || r.top < 0 || r.bottom > innerHeight) continue;
+      const x = Math.round(r.left + r.width / 2);
+      const y = Math.round(r.top + r.height / 2);
+      const hit = document.elementFromPoint(x, y);
+      if (hit && (hit === a || a.contains(hit))) return { x, y };
+    }
+    return null;
   })()`, true).catch(() => null);
 }
 
