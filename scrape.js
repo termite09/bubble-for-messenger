@@ -12,7 +12,8 @@ const RECENT_CHATS_SCRIPT = `(() => {
     const spans = [...row.querySelectorAll('span[dir="auto"]')].map((s) => s.textContent.trim()).filter(Boolean);
     const unread = [...row.querySelectorAll('span')].some((s) => parseInt(getComputedStyle(s).fontWeight, 10) >= 600);
     out.push({
-      href: link.getAttribute('href'),
+      // Use the clean pathname (/t/123/) — the DOM href can carry a ?focus_target=1 query.
+      href: new URL(link.href).pathname,
       name: (img && img.alt) || spans[0] || '',
       avatarUrl: img ? img.src : null,
       unread,
@@ -34,9 +35,10 @@ async function readRecentChats(wc) {
 }
 
 // Open a thread with an in-page click (keeps Messenger's SPA state); fall back to a full load.
+// Match by href prefix so a row's ?focus_target=1 query still resolves to the right link.
 async function openThread(wc, href) {
   const clicked = await wc.executeJavaScript(`(() => {
-    const a = document.querySelector('a[role="link"][href=${JSON.stringify(href)}]');
+    const a = document.querySelector('a[role="link"][href^=${JSON.stringify(href)}]');
     if (!a) return false;
     a.click();
     return true;
@@ -45,8 +47,10 @@ async function openThread(wc, href) {
 }
 
 // Compact mode strips Messenger down to just the open thread: hide the left icon rail and the
-// per-thread voice/video/info buttons. A <style> tag is toggled (not removed) so it survives
-// the SPA's re-renders while compact mode is on.
+// per-thread voice/video/info buttons. (The conversation-list column is NOT hidden — at this
+// width Messenger's narrow layout sizes the thread through that container, so removing it
+// collapses the message area.) A <style> tag is toggled (not removed) so it survives the SPA's
+// re-renders while compact mode is on.
 const COMPACT_CSS = [
   '[role="navigation"][aria-label="Inbox switcher"]{display:none!important}',
   '[aria-label="Start a voice call"],[aria-label="Start a video call"],[aria-label="Conversation information"]{display:none!important}',
