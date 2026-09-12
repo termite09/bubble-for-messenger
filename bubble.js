@@ -1,6 +1,6 @@
 const { BrowserWindow, ipcMain, screen } = require('electron');
 const path = require('path');
-const { isClick, clampToArea, fanLayout } = require('./lib/layout');
+const { isClick, clampToArea, fanLayout, snapToEdge } = require('./lib/layout');
 
 const SIZE = 64;
 const MARGIN = 16;
@@ -12,7 +12,7 @@ function defaultPosition() {
 
 // The main bubble's position (`anchor`) is the source of truth; the window grows around it
 // when the fan of recent chats is expanded and shrinks back to SIZE×SIZE when collapsed.
-function createBubble({ position, onClick, onMoved, onContextMenu, onOpenChat, onOpenInbox }) {
+function createBubble({ position, onClick, onMoved, onContextMenu, onOpenChat, onOpenInbox, onDismiss, dismiss }) {
   const start = position || defaultPosition();
   const anchor = clampToArea({ ...start, width: SIZE, height: SIZE }, screen.getDisplayNearestPoint(start).workArea);
 
@@ -33,6 +33,28 @@ function createBubble({ position, onClick, onMoved, onContextMenu, onOpenChat, o
 
   const bounds = () => ({ x: anchor.x, y: anchor.y, width: SIZE, height: SIZE });
   let expanded = false;
+
+  function moveTo(x, y) {
+    anchor.x = x;
+    anchor.y = y;
+    win.setPosition(x, y);
+    onMoved({ x, y });
+  }
+
+  // Ease the bubble to a resting x (edge snap) over a few frames.
+  function animateTo(targetX) {
+    const startX = anchor.x;
+    const y = anchor.y;
+    const steps = 8;
+    let i = 0;
+    const timer = setInterval(() => {
+      i += 1;
+      const t = i / steps;
+      const eased = 1 - (1 - t) * (1 - t);
+      moveTo(Math.round(startX + (targetX - startX) * eased), y);
+      if (i >= steps) clearInterval(timer);
+    }, 12);
+  }
 
   function collapse() {
     if (!expanded) return;
@@ -62,17 +84,17 @@ function createBubble({ position, onClick, onMoved, onContextMenu, onOpenChat, o
     const collapsedOnPress = expanded;
     collapse();
     const cursor = screen.getCursorScreenPoint();
-    drag = { offsetX: cursor.x - anchor.x, offsetY: cursor.y - anchor.y, startX: anchor.x, startY: anchor.y, collapsedOnPress, timer: null };
+    drag = { offsetX: cursor.x - anchor.x, offsetY: cursor.y - anchor.y, startX: anchor.x, startY: anchor.y, collapsedOnPress, moved: false, timer: null };
     drag.timer = setInterval(() => {
       const c = screen.getCursorScreenPoint();
       // Keep the bubble fully on whichever display the cursor is over.
       const area = screen.getDisplayNearestPoint(c).workArea;
       const { x: nx, y: ny } = clampToArea({ x: c.x - drag.offsetX, y: c.y - drag.offsetY, width: SIZE, height: SIZE }, area);
       if (nx !== anchor.x || ny !== anchor.y) {
-        anchor.x = nx;
-        anchor.y = ny;
-        win.setPosition(nx, ny);
-        onMoved({ x: nx, y: ny });
+        if (!drag.moved && dismiss) dismiss.show(bounds()); // first real movement: reveal the ✕ target
+        drag.moved = true;
+        moveTo(nx, ny);
+        if (dismiss) dismiss.setHot(dismiss.isOver(bounds()));
       }
     }, 16);
   });
@@ -81,8 +103,18 @@ function createBubble({ position, onClick, onMoved, onContextMenu, onOpenChat, o
     if (!owns(e) || !drag) return;
     clearInterval(drag.timer);
     const wasClick = isClick(anchor.x - drag.startX, anchor.y - drag.startY);
-    const { collapsedOnPress } = drag;
+    const { collapsedOnPress, moved } = drag;
     drag = null;
+
+    if (moved) {
+      const dropped = dismiss && dismiss.isOver(bounds());
+      if (dismiss) dismiss.hide();
+      if (dropped) { onDismiss(); return; }
+      // Rest against the nearer screen edge.
+      const area = screen.getDisplayMatching(bounds()).workArea;
+      animateTo(snapToEdge(bounds(), area).x);
+      return;
+    }
     // A click that closed an open fan is done; otherwise it's a request to open one.
     if (wasClick && !collapsedOnPress) onClick();
   });

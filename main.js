@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const { createBubble } = require('./bubble');
 const { createPanel } = require('./panel');
+const { createDismissTarget } = require('./dismiss');
 const { fetchAvatar } = require('./avatars');
 
 const RECENT_POLL_MS = 5000;
@@ -188,13 +189,17 @@ app.whenReady().then(() => {
   panel.win.webContents.on('did-finish-load', () => setTimeout(applySidebarState, 1000));
   setInterval(refreshRecent, RECENT_POLL_MS);
 
+  const dismiss = createDismissTarget();
+
   let saveTimer;
   bubble = createBubble({
     position: settings.bubble,
+    dismiss,
     onClick: () => bubble.expand(recent),
     onContextMenu: bubbleContextMenu,
     onOpenChat: (href) => panel.openThread(href, bubble.getBounds()),
     onOpenInbox: () => panel.openInbox(bubble.getBounds()),
+    onDismiss: () => app.quit(),
     onMoved: (pos) => {
       panel.follow(bubble.getBounds());
       settings.bubble = pos;

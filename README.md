@@ -11,11 +11,16 @@ wraps messenger.com in a normal Electron window. This fork replaces the window w
 ## How it works
 
 - **Bubble** — a 56 px round Messenger logo that floats over every app and every Space
-  (including full-screen apps). Drag it anywhere; its position is remembered.
-- **Click the bubble** to open Messenger in a compact panel next to it (it flips to the other
-  side near a screen edge). Click the bubble again, or anywhere else, to hide it. Messenger
+  (including full-screen apps). Drag it anywhere; when you let go it snaps to the nearest
+  side and its position is remembered.
+- **Click the bubble** to fan out your five most recent chats as avatar heads (newest at the
+  top), plus an *Open Messenger* item for the full inbox. Click an avatar to open just that
+  conversation in a compact panel; click the bubble again to collapse the fan. Messenger
   stays loaded in the background, so messages keep arriving.
-- **Unread badge** — a red count appears on the bubble when you have unread chats.
+- **Drag to dismiss** — drag the bubble onto the ✕ target that appears at the bottom of the
+  screen to quit the app.
+- **Unread badge** — a red count on the bubble for total unread; a red dot on a chat head
+  whose conversation is unread.
 - **Right-click the bubble** for *Open Messenger*, *Reload Messenger*, *Reset Bubble Position*
   and *Quit*.
 - Persistent login, native notifications, dark mode, and links opening in your default browser
@@ -56,10 +61,13 @@ once inside the bubble.
 
 | File | Responsibility |
 |------|----------------|
-| `main.js` | App lifecycle, settings, cookie persistence, menu, wiring bubble ↔ panel |
-| `bubble.js` / `bubble.html` / `bubble-renderer.js` / `bubble-preload.js` | The floating bubble window: drag, click, badge, context menu |
-| `panel.js` | The Messenger panel: placement beside the bubble, show/hide, unread detection, link handling |
-| `lib/` | Pure helpers (`layout.js`, `unread.js`, `links.js`) covered by `test/` |
+| `main.js` | App lifecycle, settings, cookie persistence, menu, wiring bubble ↔ panel ↔ dismiss |
+| `bubble.js` / `bubble.html` / `bubble-renderer.js` / `bubble-preload.js` | The floating bubble: drag, edge-snap, click, fan of chat heads, badge, context menu |
+| `panel.js` | The Messenger panel: placement beside the bubble, compact vs full mode, unread detection, link handling |
+| `dismiss.js` / `dismiss.html` / … | The ✕ drop target shown while dragging |
+| `scrape.js` | Page-side scripts: read recent chats, open a thread, toggle compact mode |
+| `avatars.js` | Fetch profile pictures through the Messenger session as data URLs |
+| `lib/` | Pure helpers (`layout.js`, `unread.js`, `links.js`, `recent.js`) covered by `test/` |
 
 ## Differences from the original
 

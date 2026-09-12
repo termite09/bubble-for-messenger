@@ -54,3 +54,25 @@ test('fan with no items is just the bubble', () => {
   const r = fanLayout({ x: 100, y: 500, width: 64, height: 64 }, 0, area);
   assert.deepEqual(r.bounds, { x: 100, y: 500, width: 64, height: 64 });
 });
+
+const { snapToEdge } = require('../lib/layout');
+
+test('snapToEdge pulls the bubble to the nearer side, keeping y', () => {
+  assert.deepEqual(snapToEdge({ x: 100, y: 300, width: 64, height: 64 }, area), { x: 0, y: 300 });
+  assert.deepEqual(snapToEdge({ x: 1300, y: 300, width: 64, height: 64 }, area), { x: 1376, y: 300 });
+});
+
+test('snapToEdge clamps y into the work area and respects a non-zero origin', () => {
+  const off = { x: 1440, y: 0, width: 1440, height: 900 };
+  assert.deepEqual(snapToEdge({ x: 1450, y: -50, width: 64, height: 64 }, off), { x: 1440, y: 0 });
+  assert.deepEqual(snapToEdge({ x: 2800, y: 2000, width: 64, height: 64 }, off), { x: 2816, y: 836 });
+});
+
+const { centerWithin } = require('../lib/layout');
+
+test('centerWithin measures from the rect centre', () => {
+  const bubble = { x: 100, y: 100, width: 64, height: 64 }; // centre (132,132)
+  assert.equal(centerWithin(bubble, { x: 132, y: 132 }, 70), true);
+  assert.equal(centerWithin(bubble, { x: 190, y: 132 }, 70), true);  // 58px away
+  assert.equal(centerWithin(bubble, { x: 132, y: 220 }, 70), false); // 88px away
+});
