@@ -30,3 +30,18 @@ test('browserUrl refuses non-web schemes', () => {
   assert.equal(browserUrl('https://l.messenger.com/l.php'), null);
   assert.equal(browserUrl('garbage'), null);
 });
+
+const { staysInPanel } = require('../lib/links');
+
+test('staysInPanel allows messenger.com and facebook.com auth pages', () => {
+  assert.equal(staysInPanel('https://www.messenger.com/t/1/'), true);
+  assert.equal(staysInPanel('https://www.facebook.com/two_step_verification/authentication/?x=1'), true);
+  assert.equal(staysInPanel('https://www.facebook.com/checkpoint/'), true);
+});
+
+test('staysInPanel rejects other hosts, lookalikes and non-web schemes', () => {
+  assert.equal(staysInPanel('https://l.facebook.com/l.php?u=https%3A%2F%2Fexample.com'), false);
+  assert.equal(staysInPanel('https://facebook.com.evil.example/'), false);
+  assert.equal(staysInPanel('https://example.com/'), false);
+  assert.equal(staysInPanel('javascript:alert(1)'), false);
+});

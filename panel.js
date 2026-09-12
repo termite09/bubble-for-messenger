@@ -2,7 +2,7 @@ const { BrowserWindow, shell, screen } = require('electron');
 const path = require('path');
 const { panelPosition } = require('./lib/layout');
 const { unreadFromTitle } = require('./lib/unread');
-const { isInternal, browserUrl } = require('./lib/links');
+const { isInternal, staysInPanel, browserUrl } = require('./lib/links');
 
 const BLUR_GUARD_MS = 200;
 
@@ -37,7 +37,7 @@ function createPanel({ onUnread }) {
   });
 
   win.webContents.on('will-navigate', (event, url) => {
-    if (isInternal(url)) return;
+    if (staysInPanel(url)) return;
     event.preventDefault();
     const target = browserUrl(url);
     if (target) shell.openExternal(target);
