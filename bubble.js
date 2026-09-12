@@ -64,9 +64,15 @@ function createBubble({ position, onClick, onMoved, onContextMenu, onOpenChat, o
     if (!expanded) return;
     expanded = false;
     const gen = ++animGen;
-    // Let the items animate back toward the bubble, then shrink the window once they're gone.
+    // Let the items animate back toward the bubble, then clear them and shrink the window.
+    // Clearing before the shrink is essential: leftover item height would push the main
+    // bubble out of the 64×64 window and it would look like the bubble vanished.
     win.webContents.send('bubble:fan', { animate: 'out' });
-    setTimeout(() => { if (gen === animGen && !expanded) win.setBounds(bounds()); }, COLLAPSE_MS);
+    setTimeout(() => {
+      if (gen !== animGen || expanded) return;
+      win.webContents.send('bubble:fan', { animate: 'clear' });
+      win.setBounds(bounds());
+    }, COLLAPSE_MS);
   }
 
   // Show `items` as a column next to the main bubble by growing the (non-activating) window.

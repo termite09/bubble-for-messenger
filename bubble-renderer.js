@@ -55,6 +55,12 @@ const STAGGER_MS = 30;
 // spring outward, staggered from the main bubble. On 'out' we tuck them back; the main process
 // shrinks the window after the matching delay.
 window.bubbleApi.onFan((data) => {
+  if (data && data.animate === 'clear') {
+    // Remove the tucked-away items so they stop taking layout height, which would otherwise
+    // push the main bubble out of the shrunken window and leave it looking empty.
+    fan.replaceChildren();
+    return;
+  }
   if (!data || data.animate === 'out') {
     for (const el of fan.children) el.classList.add('enter');
     return;
