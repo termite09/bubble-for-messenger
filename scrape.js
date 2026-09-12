@@ -34,26 +34,52 @@ async function readRecentChats(wc) {
   }
 }
 
-// Open a thread with an in-page click (keeps Messenger's SPA state); fall back to a full load.
-// Match by href prefix so a row's ?focus_target=1 query still resolves to the right link.
-async function openThread(wc, href) {
-  const clicked = await wc.executeJavaScript(`(() => {
-    const a = document.querySelector('a[role="link"][href^=${JSON.stringify(href)}]');
-    if (!a) return false;
-    a.click();
-    return true;
-  })()`, true).catch(() => false);
-  if (!clicked) wc.loadURL('https://www.messenger.com' + href);
+// Find the conversation's list row and return the viewport point at its centre, or null if no
+// row is on screen (e.g. a thread is open, so the list isn't showing). Several links can share
+// the thread href (avatar, hidden prefetch); pick the largest one actually within the viewport.
+function rowPoint(wc, href) {
+  return wc.executeJavaScript(`(() => {
+    const cands = [...document.querySelectorAll('a[role="link"][href^=${JSON.stringify(href)}]')]
+      .map((a) => a.getBoundingClientRect())
+      .filter((r) => r.width > 60 && r.height > 20 && r.top >= 0 && r.bottom <= innerHeight)
+      .sort((a, b) => b.width * b.height - a.width * a.height);
+    const r = cands[0];
+    return r ? { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) } : null;
+  })()`, true).catch(() => null);
 }
 
-// Compact mode strips Messenger down to just the open thread: hide the left icon rail and the
-// per-thread voice/video/info buttons. (The conversation-list column is NOT hidden — at this
-// width Messenger's narrow layout sizes the thread through that container, so removing it
-// collapses the message area.) A <style> tag is toggled (not removed) so it survives the SPA's
+function reload(wc, url) {
+  return new Promise((resolve) => {
+    wc.once('did-finish-load', () => setTimeout(resolve, 700));
+    wc.loadURL(url);
+  });
+}
+
+// Open a conversation. At the panel's narrow width Messenger only slides into a thread on a
+// *trusted* click of its list row — a synthetic a.click() or a URL load just highlights it — so
+// we inject a real mouse event at the row. If the row isn't on screen (a thread is already open)
+// we reload to the list first, which is also how switching between chats is made reliable.
+async function openThread(wc, href) {
+  let point = await rowPoint(wc, href);
+  if (!point) {
+    await reload(wc, 'https://www.messenger.com' + href);
+    point = await rowPoint(wc, href);
+  }
+  if (!point) return;
+  wc.sendInputEvent({ type: 'mouseMove', x: point.x, y: point.y });
+  wc.sendInputEvent({ type: 'mouseDown', x: point.x, y: point.y, button: 'left', clickCount: 1 });
+  wc.sendInputEvent({ type: 'mouseUp', x: point.x, y: point.y, button: 'left', clickCount: 1 });
+}
+
+// Compact mode strips Messenger down to just the open thread: hide the left icon rail, the
+// per-thread voice/video/info buttons, and the Back arrow (navigation is via the fan, and the
+// list it returns to is not part of this view). The conversation-list column is deliberately
+// NOT hidden — at this width Messenger sizes the thread through that container, so removing it
+// collapses the message area. A <style> tag is toggled (not removed) so it survives the SPA's
 // re-renders while compact mode is on.
 const COMPACT_CSS = [
   '[role="navigation"][aria-label="Inbox switcher"]{display:none!important}',
-  '[aria-label="Start a voice call"],[aria-label="Start a video call"],[aria-label="Conversation information"]{display:none!important}',
+  '[aria-label="Start a voice call"],[aria-label="Start a video call"],[aria-label="Conversation information"],[aria-label="Back"]{display:none!important}',
 ].join('');
 
 function setCompact(wc, on) {

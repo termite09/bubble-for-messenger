@@ -28,6 +28,10 @@ function createPanel({ onUnread }) {
     win.hide();
   });
 
+  // Re-apply compact styling after any navigation (a full reload drops injected CSS).
+  let compact = false;
+  win.webContents.on('did-finish-load', () => scrape.setCompact(win.webContents, compact));
+
   win.webContents.on('page-title-updated', (_event, title) => onUnread(unreadFromTitle(title)));
 
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -44,8 +48,10 @@ function createPanel({ onUnread }) {
     if (target) shell.openExternal(target);
   });
 
-  // A single open thread needs less width than the full inbox.
-  const SIZES = { full: [420, 640], compact: [360, 560] };
+  // A single open thread is shorter than the full inbox. It is kept the same width, though:
+  // below ~400px Messenger drops into a single-column layout that shows the chat list instead
+  // of the conversation, so a narrower panel would render the wrong thing.
+  const SIZES = { full: [420, 640], compact: [420, 560] };
 
   function resize(mode) {
     const [w, h] = SIZES[mode];
@@ -79,12 +85,14 @@ function createPanel({ onUnread }) {
     readRecentChats: () => scrape.readRecentChats(win.webContents),
     session: () => win.webContents.session,
     async openThread(href, bubbleBounds) {
-      await scrape.openThread(win.webContents, href);
-      await scrape.setCompact(win.webContents, true);
+      compact = true;
       resize('compact');
       api.showAt(bubbleBounds);
+      await scrape.openThread(win.webContents, href);
+      await scrape.setCompact(win.webContents, true);
     },
     async openInbox(bubbleBounds) {
+      compact = false;
       await scrape.setCompact(win.webContents, false);
       resize('full');
       await scrape.openInbox(win.webContents);
