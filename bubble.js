@@ -19,7 +19,7 @@ function createBubble({ position, onClick, onMoved, onContextMenu, onOpenChat, o
   const win = new BrowserWindow({
     x: anchor.x, y: anchor.y, width: SIZE, height: SIZE,
     frame: false, transparent: true, hasShadow: false, resizable: false,
-    alwaysOnTop: true, skipTaskbar: true, focusable: true, show: false,
+    alwaysOnTop: true, skipTaskbar: true, focusable: false, show: false,
     webPreferences: {
       preload: path.join(__dirname, 'bubble-preload.js'),
       contextIsolation: true,
