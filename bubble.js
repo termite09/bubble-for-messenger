@@ -41,8 +41,9 @@ function createBubble({ position, onClick, onMoved, onContextMenu }) {
     drag = { offsetX: cursor.x - wx, offsetY: cursor.y - wy, startX: wx, startY: wy, timer: null };
     drag.timer = setInterval(() => {
       const c = screen.getCursorScreenPoint();
-      const nx = c.x - drag.offsetX;
-      const ny = c.y - drag.offsetY;
+      // Keep the bubble fully on whichever display the cursor is over.
+      const area = screen.getDisplayNearestPoint(c).workArea;
+      const { x: nx, y: ny } = clampToArea({ x: c.x - drag.offsetX, y: c.y - drag.offsetY, width: SIZE, height: SIZE }, area);
       const [cx, cy] = win.getPosition();
       if (nx !== cx || ny !== cy) {
         win.setPosition(nx, ny);

@@ -1,6 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-contextBridge.exposeInMainWorld('bubble', {
+contextBridge.exposeInMainWorld('bubbleApi', {
   dragStart: () => ipcRenderer.send('bubble:drag-start'),
   dragEnd: () => ipcRenderer.send('bubble:drag-end'),
   contextMenu: () => ipcRenderer.send('bubble:context-menu'),

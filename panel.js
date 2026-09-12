@@ -2,19 +2,9 @@ const { BrowserWindow, shell, screen } = require('electron');
 const path = require('path');
 const { panelPosition } = require('./lib/layout');
 const { unreadFromTitle } = require('./lib/unread');
+const { isInternal, browserUrl } = require('./lib/links');
 
 const BLUR_GUARD_MS = 200;
-
-// l.messenger.com / l.facebook.com wrap outbound links; unwrap to the real URL.
-function externalUrl(url) {
-  try {
-    const u = new URL(url);
-    if (u.hostname === 'l.messenger.com' || u.hostname === 'l.facebook.com') return u.searchParams.get('u');
-  } catch (e) {}
-  return null;
-}
-
-const isInternal = (url) => url.includes('messenger.com') && !url.includes('l.messenger.com');
 
 function createPanel({ onUnread }) {
   const win = new BrowserWindow({
@@ -40,20 +30,17 @@ function createPanel({ onUnread }) {
   win.webContents.on('page-title-updated', (_event, title) => onUnread(unreadFromTitle(title)));
 
   win.webContents.setWindowOpenHandler(({ url }) => {
-    const ext = externalUrl(url);
-    if (ext || !isInternal(url)) {
-      shell.openExternal(ext || url);
-      return { action: 'deny' };
-    }
-    return { action: 'allow' };
+    if (isInternal(url)) return { action: 'allow' };
+    const target = browserUrl(url);
+    if (target) shell.openExternal(target);
+    return { action: 'deny' };
   });
 
   win.webContents.on('will-navigate', (event, url) => {
-    const ext = externalUrl(url);
-    if (ext || !isInternal(url)) {
-      event.preventDefault();
-      shell.openExternal(ext || url);
-    }
+    if (isInternal(url)) return;
+    event.preventDefault();
+    const target = browserUrl(url);
+    if (target) shell.openExternal(target);
   });
 
   function place(bubbleBounds) {

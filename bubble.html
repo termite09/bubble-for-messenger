@@ -2,6 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'">
   <style>
     html, body { margin: 0; background: transparent; overflow: hidden; user-select: none; -webkit-user-select: none; }
     #bubble {
@@ -20,21 +21,6 @@
 <body>
   <div id="bubble"><img src="icon.png" alt=""></div>
   <div id="badge"></div>
-  <script>
-    const bubble = document.getElementById('bubble');
-    const badge = document.getElementById('badge');
-
-    // Drag/click are resolved in the main process (it polls the cursor while the button is down);
-    // CSS drag regions can't be used because they swallow click events on macOS.
-    bubble.addEventListener('mousedown', (e) => { if (e.button === 0) window.bubble.dragStart(); });
-    window.addEventListener('mouseup', (e) => { if (e.button === 0) window.bubble.dragEnd(); });
-    window.addEventListener('blur', () => window.bubble.dragEnd());
-    bubble.addEventListener('contextmenu', (e) => { e.preventDefault(); window.bubble.contextMenu(); });
-
-    window.bubble.onBadge((n) => {
-      badge.textContent = n > 9 ? '9+' : String(n);
-      badge.classList.toggle('visible', n > 0);
-    });
-  </script>
+  <script src="bubble-renderer.js"></script>
 </body>
 </html>
