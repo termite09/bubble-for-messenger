@@ -35,3 +35,22 @@ test('isClick uses a 4px threshold', () => {
   assert.equal(isClick(0, 4), true);
   assert.equal(isClick(5, 0), false);
 });
+
+const { fanLayout } = require('../lib/layout');
+
+test('fan grows upward when there is room above the bubble', () => {
+  const r = fanLayout({ x: 100, y: 500, width: 64, height: 64 }, 3, area);
+  assert.equal(r.direction, 'up');
+  assert.deepEqual(r.bounds, { x: 100, y: 332, width: 64, height: 232 });
+});
+
+test('fan grows downward near the top of the screen', () => {
+  const r = fanLayout({ x: 100, y: 40, width: 64, height: 64 }, 3, area);
+  assert.equal(r.direction, 'down');
+  assert.deepEqual(r.bounds, { x: 100, y: 40, width: 64, height: 232 });
+});
+
+test('fan with no items is just the bubble', () => {
+  const r = fanLayout({ x: 100, y: 500, width: 64, height: 64 }, 0, area);
+  assert.deepEqual(r.bounds, { x: 100, y: 500, width: 64, height: 64 });
+});
