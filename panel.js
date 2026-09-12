@@ -70,6 +70,7 @@ function createPanel({ onUnread }) {
     isVisible: () => win.isVisible(),
     showAt(bubbleBounds) {
       place(bubbleBounds);
+      win.setOpacity(1);
       win.show();
       win.focus();
     },
@@ -87,9 +88,18 @@ function createPanel({ onUnread }) {
     async openThread(href, bubbleBounds) {
       compact = true;
       resize('compact');
-      api.showAt(bubbleBounds);
+      // Stage the reload + row click invisibly (opacity 0 but rendered, so the click still
+      // dispatches), then reveal only once the conversation is showing — the list is never seen.
+      win.setOpacity(0);
+      place(bubbleBounds);
+      win.showInactive();
+      await scrape.setCompact(win.webContents, true);
       await scrape.openThread(win.webContents, href);
       await scrape.setCompact(win.webContents, true);
+      place(bubbleBounds);
+      win.setOpacity(1);
+      win.show();
+      win.focus();
     },
     async openInbox(bubbleBounds) {
       compact = false;

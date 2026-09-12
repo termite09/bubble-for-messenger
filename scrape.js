@@ -58,6 +58,8 @@ function rowPoint(wc, href) {
   })()`, true).catch(() => null);
 }
 
+const delay = (ms) => new Promise((r) => setTimeout(r, ms));
+
 function reload(wc, url) {
   return new Promise((resolve) => {
     wc.once('did-finish-load', () => setTimeout(resolve, 700));
@@ -65,10 +67,31 @@ function reload(wc, url) {
   });
 }
 
+// The conversation (not the list) is showing: the list's Search box is gone and a message
+// composer is present. Used to know when it's safe to reveal the panel after a switch.
+function threadShowing(wc) {
+  return wc.executeJavaScript(`(() => {
+    const s = document.querySelector('[aria-label="Search Messenger"]');
+    const searchVisible = !!s && s.getBoundingClientRect().width > 0;
+    const composer = document.querySelector('[role="textbox"][contenteditable="true"]');
+    return !searchVisible && !!composer;
+  })()`, true).catch(() => false);
+}
+
+async function waitForThread(wc, timeout = 4000) {
+  const start = Date.now();
+  while (Date.now() - start < timeout) {
+    if (await threadShowing(wc)) return true;
+    await delay(120);
+  }
+  return false;
+}
+
 // Open a conversation. At the panel's narrow width Messenger only slides into a thread on a
 // *trusted* click of its list row — a synthetic a.click() or a URL load just highlights it — so
-// we inject a real mouse event at the row. If the row isn't on screen (a thread is already open)
-// we reload to the list first, which is also how switching between chats is made reliable.
+// we inject a real mouse event at the row. If the row isn't clickable (a thread is already open,
+// so the list is behind it) we reload to the list first. Resolves once the thread is on screen,
+// letting the caller keep the panel hidden until then so the list transition is never seen.
 async function openThread(wc, href) {
   let point = await rowPoint(wc, href);
   if (!point) {
@@ -79,6 +102,7 @@ async function openThread(wc, href) {
   wc.sendInputEvent({ type: 'mouseMove', x: point.x, y: point.y });
   wc.sendInputEvent({ type: 'mouseDown', x: point.x, y: point.y, button: 'left', clickCount: 1 });
   wc.sendInputEvent({ type: 'mouseUp', x: point.x, y: point.y, button: 'left', clickCount: 1 });
+  await waitForThread(wc);
 }
 
 // Compact mode strips Messenger down to just the open thread: hide the left icon rail, the
