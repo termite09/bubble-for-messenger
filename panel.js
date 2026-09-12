@@ -3,6 +3,7 @@ const path = require('path');
 const { panelPosition } = require('./lib/layout');
 const { unreadFromTitle } = require('./lib/unread');
 const { isInternal, staysInPanel, browserUrl } = require('./lib/links');
+const scrape = require('./scrape');
 
 const BLUR_GUARD_MS = 200;
 
@@ -66,6 +67,18 @@ function createPanel({ onUnread }) {
     },
     reload() {
       win.webContents.reload();
+    },
+    readRecentChats: () => scrape.readRecentChats(win.webContents),
+    session: () => win.webContents.session,
+    async openThread(href, bubbleBounds) {
+      await scrape.openThread(win.webContents, href);
+      await scrape.setCompact(win.webContents, true);
+      api.showAt(bubbleBounds);
+    },
+    async openInbox(bubbleBounds) {
+      await scrape.setCompact(win.webContents, false);
+      await scrape.openInbox(win.webContents);
+      api.showAt(bubbleBounds);
     },
     toggle(bubbleBounds) {
       // A bubble click that just blurred (and hid) the panel must not reopen it.

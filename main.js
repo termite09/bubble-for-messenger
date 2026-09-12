@@ -3,6 +3,9 @@ const path = require('path');
 const fs = require('fs');
 const { createBubble } = require('./bubble');
 const { createPanel } = require('./panel');
+const { fetchAvatar } = require('./avatars');
+
+const RECENT_POLL_MS = 5000;
 
 // Own profile folder, separate from the upstream MessengerApp so both can run side by side.
 app.setPath('userData', path.join(app.getPath('appData'), 'MessengerBubble'));
@@ -26,6 +29,23 @@ const settings = { sidebarVisible: true, bubble: null, ...loadSettings() };
 
 let bubble;
 let panel;
+let recent = []; // [{ href, name, avatar (data URL), unread }]
+
+// Re-read the chat list from the Messenger page and refresh the fan if it is open.
+let recentKey = '';
+async function refreshRecent() {
+  if (!bubble || !panel) return;
+  const rows = await panel.readRecentChats();
+  const ses = panel.session();
+  const next = await Promise.all(rows.map(async (r) => ({
+    href: r.href, name: r.name, unread: r.unread, avatar: await fetchAvatar(ses, r.avatarUrl),
+  })));
+  const key = JSON.stringify(next.map((r) => [r.href, r.name, r.unread, Boolean(r.avatar)]));
+  if (key === recentKey) return;
+  recentKey = key;
+  recent = next;
+  if (bubble.isExpanded()) bubble.expand(recent);
+}
 
 // Facebook issues session cookies; re-issue them with a 1-year expiry so login survives restarts.
 function persistFacebookCookies() {
@@ -81,7 +101,7 @@ function switchToConversation(n) {
 
 function bubbleContextMenu() {
   Menu.buildFromTemplate([
-    { label: 'Open Messenger', click: () => panel.showAt(bubble.getBounds()) },
+    { label: 'Open Messenger', click: () => panel.openInbox(bubble.getBounds()) },
     { label: 'Reload Messenger', click: () => panel.reload() },
     { type: 'separator' },
     { label: 'Reset Bubble Position', click: () => bubble.resetPosition() },
@@ -158,14 +178,23 @@ app.whenReady().then(() => {
   createMenu();
   persistFacebookCookies();
 
-  panel = createPanel({ onUnread: (n) => bubble && bubble.setBadge(n) });
+  panel = createPanel({
+    onUnread: (n) => {
+      if (!bubble) return;
+      bubble.setBadge(n);
+      refreshRecent();
+    },
+  });
   panel.win.webContents.on('did-finish-load', () => setTimeout(applySidebarState, 1000));
+  setInterval(refreshRecent, RECENT_POLL_MS);
 
   let saveTimer;
   bubble = createBubble({
     position: settings.bubble,
-    onClick: () => panel.toggle(bubble.getBounds()),
+    onClick: () => bubble.expand(recent),
     onContextMenu: bubbleContextMenu,
+    onOpenChat: (href) => panel.openThread(href, bubble.getBounds()),
+    onOpenInbox: () => panel.openInbox(bubble.getBounds()),
     onMoved: (pos) => {
       panel.follow(bubble.getBounds());
       settings.bubble = pos;
