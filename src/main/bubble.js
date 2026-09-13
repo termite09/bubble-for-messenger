@@ -37,6 +37,9 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onOp
   win.setIgnoreMouseEvents(true, { forward: true });
   win.loadFile(path.join(RENDERER, 'bubble.html'));
   win.once('ready-to-show', () => { win.showInactive(); applyBounds(); });
+  // Settings arrive before the page has loaded at startup; hand them over again once it has.
+  let lastSettings = null;
+  win.webContents.on('did-finish-load', () => { if (lastSettings) win.webContents.send('bubble:settings', lastSettings); });
 
   // While the stack is open, an invisible shield covers the display beneath it (and the panel):
   // a press anywhere that is not a banner puts the stack away, the way a popover closes. It is
@@ -251,6 +254,12 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onOp
     // A message just arrived for `item`: unroll its banner out of the disc for a moment.
     landed: (item) => win.webContents.send('bubble:landed', item),
     replyResult: (ok) => win.webContents.send('bubble:reply-result', Boolean(ok)),
+    // Whether the disc (and the shield beneath an open stack) float over full-screen apps.
+    setOverFullscreen: (on) => {
+      win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: on });
+      shield.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: on });
+    },
+    setSettings: (s) => { lastSettings = s; win.webContents.send('bubble:settings', s); },
     resetPosition: () => {
       stopSnap();
       collapse();

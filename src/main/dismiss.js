@@ -48,6 +48,7 @@ function createDismissTarget() {
     setHot(hot) {
       win.webContents.send('dismiss:hot', hot);
     },
+    setOverFullscreen: (on) => win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: on }),
   };
 }
 

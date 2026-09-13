@@ -1,4 +1,4 @@
-const { app, Menu, session } = require('electron');
+const { app, Menu, session, nativeTheme } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { createBubble } = require('./bubble');
@@ -8,6 +8,7 @@ const { fetchAvatar } = require('./avatars');
 const { LIMIT: RECENT_LIMIT } = require('../lib/recent');
 const { isMetaHost } = require('../lib/links');
 const { isTelemetryUrl } = require('../lib/telemetry');
+const { normalizeSettings, isSettingKey } = require('../lib/settings');
 const { removeStaleLockFiles } = require('../lib/storage');
 
 const RECENT_POLL_MS = 5000;
@@ -37,10 +38,41 @@ function saveSettings() {
   } catch (e) {}
 }
 
-const settings = { bubble: null, ...loadSettings() };
+let settings = normalizeSettings(loadSettings());
+const settingsListeners = new Set(); // called with the full settings after every change
 
 let bubble;
 let panel;
+let dismiss;
+let settingsWindow;
+let lastUnread = 0;
+
+// One setting changed on the page: normalize, save, apply what differs, tell every listener.
+function updateSetting(key, value) {
+  if (!isSettingKey(key)) return settings;
+  const prev = settings;
+  settings = normalizeSettings({ ...settings, [key]: value });
+  saveSettings();
+  applySettings(prev);
+  for (const fn of settingsListeners) fn(settings);
+  return settings;
+}
+
+// Every setting has one place it takes effect. `prev` is the state before a change (null at
+// startup): only what differs is re-applied, so flipping one switch never touches the rest.
+function applySettings(prev) {
+  const changed = (key) => !prev || prev[key] !== settings[key];
+  if (changed('overFullscreen')) {
+    for (const w of [bubble, panel, dismiss, settingsWindow]) if (w) w.setOverFullscreen(settings.overFullscreen);
+  }
+  // Under `npm start` this would register Electron.app itself as the login item.
+  if (changed('startAtLogin') && app.isPackaged) app.setLoginItemSettings({ openAtLogin: settings.startAtLogin });
+  if (changed('badge') && bubble) bubble.setBadge(settings.badge ? lastUnread : 0);
+  if (changed('quickReply') && bubble) bubble.setSettings({ quickReply: settings.quickReply });
+  if (changed('theme')) nativeTheme.themeSource = settings.theme;
+  if (changed('spellcheck') && panel) panel.session().setSpellCheckerEnabled(settings.spellcheck);
+  // banner, bannerPreview, notifications and blockTelemetry are read where they matter.
+}
 let recent = []; // [{ href, name, avatar (data URL), unread }]
 let activeHref = null; // thread the panel is showing; null = inbox
 
@@ -70,7 +102,7 @@ async function refreshRecent() {
   recent = next;
   seeded = true;
   if (bubble.isExpanded()) bubble.expand(recent, false);
-  else if (landed) bubble.landed(landed);
+  else if (landed && settings.banner) bubble.landed(settings.bannerPreview ? landed : { ...landed, preview: '' });
 }
 
 // Facebook issues session cookies; re-issue them with a 1-year expiry so login survives restarts.
@@ -95,14 +127,16 @@ function persistFacebookCookies() {
 
 // Electron grants every permission request by default. Only Messenger (and the facebook.com
 // login pages the panel may visit) get anything, and only what a chat client needs.
-const GRANTED_PERMISSIONS = new Set(['media', 'notifications', 'clipboard-read', 'clipboard-sanitized-write', 'fullscreen']);
+const GRANTED_PERMISSIONS = new Set(['media', 'clipboard-read', 'clipboard-sanitized-write', 'fullscreen']);
 function restrictPermissions() {
   const allowed = (url) => { try { return isMetaHost(new URL(url).hostname); } catch (e) { return false; } };
+  // Messenger asks before every notification, so the switch takes effect for the next message.
+  const granted = (permission) => GRANTED_PERMISSIONS.has(permission) || (permission === 'notifications' && settings.notifications);
   session.defaultSession.setPermissionRequestHandler((wc, permission, callback, details) => {
-    callback(allowed(details.requestingUrl || wc.getURL()) && GRANTED_PERMISSIONS.has(permission));
+    callback(allowed(details.requestingUrl || wc.getURL()) && granted(permission));
   });
   session.defaultSession.setPermissionCheckHandler((wc, permission, origin) =>
-    allowed(origin) && GRANTED_PERMISSIONS.has(permission));
+    allowed(origin) && granted(permission));
 }
 
 // Drop Facebook's logging beacons at the network layer. Only the pure telemetry sinks listed in
@@ -110,7 +144,7 @@ function restrictPermissions() {
 function blockTelemetry() {
   session.defaultSession.webRequest.onBeforeRequest(
     { urls: ['*://*.facebook.com/*', '*://*.messenger.com/*'] },
-    (details, callback) => callback({ cancel: isTelemetryUrl(details.url) }),
+    (details, callback) => callback({ cancel: settings.blockTelemetry && isTelemetryUrl(details.url) }),
   );
 }
 
@@ -229,14 +263,15 @@ app.whenReady().then(() => {
   panel = createPanel({
     onUnread: (n) => {
       if (!bubble) return;
-      bubble.setBadge(n);
+      lastUnread = n;
+      bubble.setBadge(settings.badge ? n : 0);
       refreshRecent();
     },
     onShown: syncActive,
   });
   setInterval(refreshRecent, RECENT_POLL_MS);
 
-  const dismiss = createDismissTarget();
+  dismiss = createDismissTarget();
 
   let saveTimer;
   bubble = createBubble({
@@ -265,6 +300,8 @@ app.whenReady().then(() => {
       saveTimer = setTimeout(saveSettings, 300);
     },
   });
+
+  applySettings(null);
 });
 
 // The bubble is the app: keep running even when the panel is hidden.

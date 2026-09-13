@@ -171,6 +171,7 @@ function createPanel({ onUnread, onShown = () => {} }) {
     openInbox: (bubbleBounds) => enqueue(() => stageInbox(bubbleBounds)),
     // Serialised with opens; the queue swallows rejections into undefined, hence `=== true`.
     sendReply: (href, text) => enqueue(() => stageReply(href, text)).then((ok) => ok === true),
+    setOverFullscreen: (on) => win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: on }),
   };
   return api;
 }
