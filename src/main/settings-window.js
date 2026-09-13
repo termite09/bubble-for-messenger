@@ -3,7 +3,7 @@ const path = require('path');
 
 const RENDERER = path.join(__dirname, '..', 'renderer');
 const WIDTH = 360;
-const HEIGHT = 700;
+const HEIGHT = 720;
 
 // The settings card. One window, made on first open and hidden after; it takes focus like a
 // normal window (it has controls to click) but floats with the rest of the app.
