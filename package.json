@@ -34,7 +34,11 @@
         "zip"
       ],
       "hardenedRuntime": true,
-      "gatekeeperAssess": false
-    }
+      "gatekeeperAssess": false,
+      "electronLanguages": [
+        "en"
+      ]
+    },
+    "compression": "maximum"
   }
 }

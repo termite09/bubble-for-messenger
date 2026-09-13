@@ -8,6 +8,8 @@
   send can't complete, the conversation opens with your text in the composer.
 
 ### Changed
+- Smaller download: the build ships Chromium's English locale only (the app has no other
+  language) and the DMG uses maximum compression — 128 MB → ~102 MB, 288 MB → 240 MB installed.
 - Messenger is kept live while hidden: the page is no longer background-throttled, reloads
   after the Mac wakes from sleep and every quarter hour in the background (never while the
   panel is showing), and Facebook's static error page is retried with backoff.
