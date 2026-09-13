@@ -1,12 +1,27 @@
 # Bubble for Messenger
 
-Facebook Messenger as a floating "chat head" on macOS: a small always-on-top bubble that
-opens a compact Messenger panel beside it. No dock icon, no browser tab.
-
-Forked from [stefanminch/messenger-mac](https://github.com/stefanminch/messenger-mac), which
-wraps messenger.com in a normal Electron window. This fork replaces the window with the bubble.
+Facebook Messenger as a floating chat head on macOS: a small always-on-top bubble that opens
+your recent chats and a compact Messenger panel beside it. No dock icon, no browser tab.
 
 <img src="icon.png" width="128" alt="Bubble for Messenger">
+
+## Install
+
+Requires macOS 11 or later. Builds are for Apple Silicon (M1 and later); on an Intel Mac,
+build from source (below).
+
+1. Download the latest `Bubble-<version>-arm64.dmg` from
+   [Releases](https://github.com/termite09/bubble-for-messenger/releases).
+2. Open the DMG and drag **Bubble** into **Applications**.
+3. First launch only: the app is not signed with an Apple developer certificate, so macOS
+   will refuse a normal double-click. **Right-click `Bubble.app` → Open → Open**. (If macOS
+   still says the app is damaged, run
+   `xattr -d com.apple.quarantine /Applications/Bubble.app` once in Terminal.)
+4. A grey disc appears at the bottom-right of your screen. Right-click it → **Open Messenger**
+   and sign in to messenger.com. You only do this once; the login is kept.
+
+To update, download the new DMG and replace the app. To uninstall, delete `Bubble.app` and,
+if you want your login gone too, `~/Library/Application Support/Bubble for Messenger`.
 
 ## How it works
 
@@ -40,23 +55,17 @@ wraps messenger.com in a normal Electron window. This fork replaces the window w
 Prerequisites: Node.js 18+ and npm.
 
 ```bash
-git clone <this repo>
-cd messenger-mac
+git clone https://github.com/termite09/bubble-for-messenger.git
+cd bubble-for-messenger
 npm install
 
-# Run in development mode
-npm start
-
-# Unit tests (layout, unread parsing, link handling)
-npm test
-
-# Build a .app / DMG into dist/
-npm run build
+npm start        # run in development mode
+npm test         # unit tests (layout, unread parsing, link handling)
+npm run build    # build Bubble.app and a DMG into dist/ for this Mac's architecture
 ```
 
-The app keeps its own profile in `~/Library/Application Support/Bubble for Messenger`, so it can run
-alongside the original MessengerApp without sharing (or corrupting) its login data. You log in
-once inside the bubble.
+The app keeps its own profile in `~/Library/Application Support/Bubble for Messenger`, so it
+can run alongside the original MessengerApp without sharing (or corrupting) its login data.
 
 ## Project layout
 
@@ -73,6 +82,9 @@ once inside the bubble.
 
 ## Differences from the original
 
+Forked from [stefanminch/messenger-mac](https://github.com/stefanminch/messenger-mac), which
+wraps messenger.com in a normal Electron window.
+
 - Runs as a bubble instead of a dock window (no dock icon).
 - Removed the daily usage ping to `counterapi.dev`, the GitHub update check, and the welcome window.
 - External links are only opened when they are real `http(s)` URLs on a non-messenger.com host.
@@ -85,7 +97,16 @@ not affiliated with Meta/Facebook.
 **Does it support voice/video calls?** Everything messenger.com supports works, since it *is*
 messenger.com in the panel.
 
-**How do I quit?** Right-click the bubble → Quit (there is no dock icon).
+**How do I quit?** Right-click the disc → Quit, or drag the disc onto the ✕ target (there is
+no dock icon).
+
+**Why does macOS say the app is damaged or from an unidentified developer?** The builds are
+not signed or notarized (that needs a paid Apple developer account). Right-click → Open on
+the first launch, or clear the quarantine flag as described under Install. If you'd rather not
+trust a downloaded binary, build it yourself from source.
+
+**Does it start at login?** Not yet; add `Bubble.app` under System Settings → General →
+Login Items if you want that.
 
 ## License
 
