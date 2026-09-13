@@ -92,6 +92,14 @@
     .name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .sub { font-size: 12px; line-height: 15px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .time { font-size: 11px; color: var(--dim); flex: none; }
+
+    /* Reduce Motion: no travel, just the crossfade. */
+    @media (prefers-reduced-motion: reduce) {
+      #fan { transition: --p 120ms linear; }
+      .head { transform: none; }
+      #landed { transition: opacity 120ms linear; }
+      body.edge-right #landed, body.edge-left #landed { clip-path: inset(0 round 22px); }
+    }
   </style>
 </head>
 <body class="up edge-right">

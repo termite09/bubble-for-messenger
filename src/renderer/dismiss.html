@@ -16,6 +16,7 @@
     #target svg { width: 22px; height: 22px; stroke: #f5f5f7; stroke-width: 2; fill: none; transition: stroke .12s linear; }
     body.hot #target { transform: scale(1.2); background: #f5f5f7; }
     body.hot #target svg { stroke: #1c1c1e; }
+    @media (prefers-reduced-motion: reduce) { #target { transition: background .12s linear; } body.hot #target { transform: none; } }
   </style>
 </head>
 <body>

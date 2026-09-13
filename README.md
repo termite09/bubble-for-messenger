@@ -3,7 +3,7 @@
 Facebook Messenger as a floating chat head on macOS: a small always-on-top bubble that opens
 your recent chats and a compact Messenger panel beside it. No dock icon, no browser tab.
 
-<img src="icon.png" width="128" alt="Bubble for Messenger">
+<img src="assets/icon.png" width="128" alt="Bubble for Messenger">
 
 ## Install
 
@@ -17,7 +17,7 @@ build from source (below).
    will refuse a normal double-click. **Right-click `Bubble.app` → Open → Open**. (If macOS
    still says the app is damaged, run
    `xattr -d com.apple.quarantine /Applications/Bubble.app` once in Terminal.)
-4. A grey disc appears at the bottom-right of your screen. Right-click it → **Open Messenger**
+4. A grey bubble appears at the bottom-right of your screen. Right-click it → **Open Messenger**
    and sign in to messenger.com. You only do this once; the login is kept.
 
 To update, download the new DMG and replace the app. To uninstall, delete `Bubble.app` and,
@@ -25,20 +25,20 @@ if you want your login gone too, `~/Library/Application Support/Bubble for Messe
 
 ## How it works
 
-- **The disc** — a 44 px grey disc with the Messenger mark that floats over every app and every
+- **The bubble** — a 44 px grey disc with the Messenger mark that floats over every app and every
   Space (including full-screen apps). Drag it anywhere; when you let go it snaps to the nearest
   side and its position is remembered. A blue count shows total unread.
 - **A message lands** — the disc unrolls into a banner (avatar, name, first line) for four
   seconds, then folds back.
-- **Click the disc** to deploy a stack of your five most recent chats as round heads, newest
+- **Click the bubble** to deploy a stack of your five most recent chats as round heads, newest
   at the top (hover for the name; a blue dot means unread), plus a paper *Open Messenger* head
   for the full inbox. Pick one and that conversation opens in a compact sheet beside the stack;
   the open chat wears a white ring, and the others stay one click away. Click anywhere else, or
-  the disc, to put it all away. Messenger stays loaded in the background, so messages keep
+  the bubble, to put it all away. Messenger stays loaded in the background, so messages keep
   arriving.
-- **Drag to dismiss** — drag the disc onto the ✕ target that appears at the bottom of the
+- **Drag to dismiss** — drag the bubble onto the ✕ target that appears at the bottom of the
   screen to quit the app.
-- **Right-click the disc** for *Open Messenger*, *Reload Messenger*, *Reset Bubble Position*
+- **Right-click the bubble** for *Open Messenger*, *Reload Messenger*, *Reset Bubble Position*
   and *Quit*.
 - Persistent login, native notifications, dark mode, and links opening in your default browser
   all carry over from the original app.
@@ -102,8 +102,11 @@ not affiliated with Meta/Facebook.
 **Does it support voice/video calls?** Everything messenger.com supports works, since it *is*
 messenger.com in the panel.
 
-**How do I quit?** Right-click the disc → Quit, or drag the disc onto the ✕ target (there is
-no dock icon).
+**How do I quit?** Right-click the bubble → Quit, or drag it onto the ✕ target (there is no
+dock icon).
+
+**I clicked in another app while the chat heads were open and nothing happened.** The first
+click outside the heads only closes them (the same way a menu closes); click again.
 
 **Why does macOS say the app is damaged or from an unidentified developer?** The builds are
 not signed or notarized (that needs a paid Apple developer account). Right-click → Open on

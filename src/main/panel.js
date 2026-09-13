@@ -32,10 +32,14 @@ function createPanel({ onUnread, onShown = () => {} }) {
 
   win.webContents.on('page-title-updated', (_event, title) => onUnread(unreadFromTitle(title)));
 
+  // Never spawn a second window: it would carry the Facebook session with none of this
+  // window's navigation policy. Messenger pages open in the panel itself, the rest externally.
   win.webContents.setWindowOpenHandler(({ url }) => {
-    if (isInternal(url)) return { action: 'allow' };
-    const target = browserUrl(url);
-    if (target) shell.openExternal(target);
+    if (isInternal(url)) win.loadURL(url).catch(() => {});
+    else {
+      const target = browserUrl(url);
+      if (target) shell.openExternal(target);
+    }
     return { action: 'deny' };
   });
 

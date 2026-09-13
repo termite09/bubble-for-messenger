@@ -17,6 +17,10 @@ function hostOf(url) {
 
 const onDomain = (host, domain) => host === domain || host.endsWith('.' + domain);
 
+// True for a cookie/permission origin on Meta's own domains (suffix match, never substring).
+const isMetaHost = (host) => typeof host === 'string' &&
+  ['messenger.com', 'facebook.com'].some((d) => onDomain(host.toLowerCase().replace(/^\./, ''), d));
+
 // messenger.com pages stay in the panel; everything else (incl. its l.* link-shim) is external.
 function isInternal(url) {
   const host = hostOf(url);
@@ -38,4 +42,4 @@ function browserUrl(url) {
   return isWebUrl(u) ? u.toString() : null;
 }
 
-module.exports = { isInternal, staysInPanel, browserUrl };
+module.exports = { isInternal, staysInPanel, browserUrl, isMetaHost };

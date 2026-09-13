@@ -6,6 +6,7 @@ const { createPanel } = require('./panel');
 const { createDismissTarget } = require('./dismiss');
 const { fetchAvatar } = require('./avatars');
 const { LIMIT: RECENT_LIMIT } = require('../lib/recent');
+const { isMetaHost } = require('../lib/links');
 
 const RECENT_POLL_MS = 5000;
 
@@ -69,10 +70,11 @@ async function refreshRecent() {
 }
 
 // Facebook issues session cookies; re-issue them with a 1-year expiry so login survives restarts.
+// Every other attribute is copied as issued — in particular SameSite, so a cookie Facebook left
+// Lax-by-default does not come back as SameSite=None.
 function persistFacebookCookies() {
   session.defaultSession.cookies.on('changed', (_event, cookie, _cause, removed) => {
-    const fb = cookie.domain.includes('facebook.com') || cookie.domain.includes('messenger.com');
-    if (removed || !cookie.session || !fb) return;
+    if (removed || !cookie.session || !isMetaHost(cookie.domain)) return;
     session.defaultSession.cookies.set({
       url: `https://${cookie.domain.replace(/^\./, '')}${cookie.path}`,
       name: cookie.name,
@@ -81,10 +83,22 @@ function persistFacebookCookies() {
       path: cookie.path,
       secure: cookie.secure,
       httpOnly: cookie.httpOnly,
-      sameSite: cookie.sameSite || 'no_restriction',
+      sameSite: cookie.sameSite || 'unspecified',
       expirationDate: Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60,
     }).catch(() => {});
   });
+}
+
+// Electron grants every permission request by default. Only Messenger (and the facebook.com
+// login pages the panel may visit) get anything, and only what a chat client needs.
+const GRANTED_PERMISSIONS = new Set(['media', 'notifications', 'clipboard-read', 'clipboard-sanitized-write', 'fullscreen']);
+function restrictPermissions() {
+  const allowed = (url) => { try { return isMetaHost(new URL(url).hostname); } catch (e) { return false; } };
+  session.defaultSession.setPermissionRequestHandler((wc, permission, callback, details) => {
+    callback(allowed(details.requestingUrl || wc.getURL()) && GRANTED_PERMISSIONS.has(permission));
+  });
+  session.defaultSession.setPermissionCheckHandler((wc, permission, origin) =>
+    allowed(origin) && GRANTED_PERMISSIONS.has(permission));
 }
 
 const runInPanel = (js) => panel && panel.win.webContents.executeJavaScript(js).catch(() => {});
@@ -193,6 +207,7 @@ app.whenReady().then(() => {
   if (app.dock) app.dock.hide();
   createMenu();
   persistFacebookCookies();
+  restrictPermissions();
 
   // The open conversation's banner reads as active in the stack.
   const syncActive = () => bubble && bubble.setActive(activeHref);

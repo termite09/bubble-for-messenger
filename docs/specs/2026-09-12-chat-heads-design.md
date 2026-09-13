@@ -1,3 +1,6 @@
+> **Historical.** This spec describes the first bubble prototype (September 2026, before the
+> redesign). Current behaviour is documented in `README.md` and `DESIGN.md`.
+
 # Chat heads — design
 
 Extends bubble mode: clicking the main bubble fans out the five most recent

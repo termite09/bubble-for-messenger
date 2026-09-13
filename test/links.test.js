@@ -45,3 +45,13 @@ test('staysInPanel rejects other hosts, lookalikes and non-web schemes', () => {
   assert.equal(staysInPanel('https://example.com/'), false);
   assert.equal(staysInPanel('javascript:alert(1)'), false);
 });
+
+const { isMetaHost } = require('../src/lib/links');
+
+test('isMetaHost matches Meta domains by suffix only, with or without a leading dot', () => {
+  assert.equal(isMetaHost('.facebook.com'), true);
+  assert.equal(isMetaHost('www.messenger.com'), true);
+  assert.equal(isMetaHost('notfacebook.com'), false);
+  assert.equal(isMetaHost('facebook.com.evil.example'), false);
+  assert.equal(isMetaHost(undefined), false);
+});

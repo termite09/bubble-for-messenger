@@ -1,3 +1,6 @@
+> **Historical.** This spec describes the first bubble prototype (September 2026, before the
+> redesign). Current behaviour is documented in `README.md` and `DESIGN.md`.
+
 # Bubble mode — design
 
 Turn messenger-mac from a dock window into a floating "chat head": a small

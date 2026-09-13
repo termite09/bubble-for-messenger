@@ -16,8 +16,8 @@
   "author": "Alexandros Christou (fork of stefanminch/messenger-mac)",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^33.0.0",
-    "electron-builder": "^25.0.0"
+    "electron": "^44.3.0",
+    "electron-builder": "^26.15.3"
   },
   "build": {
     "appId": "com.termite09.bubble-for-messenger",
