@@ -1,0 +1,56 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  release:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out app repo
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build macOS app
+        run: npm run build
+
+      - name: Read app version
+        id: version
+        run: echo "version=$(node -p \"require('./package.json').version\")" >> "$GITHUB_OUTPUT"
+
+      - name: Upload release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          TAG="v${VERSION}"
+          DIST_DIR="dist"
+          ASSET_DMG="${DIST_DIR}/Bubble-${VERSION}-arm64.dmg"
+          ASSET_ZIP="${DIST_DIR}/Bubble-${VERSION}-arm64-mac.zip"
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$ASSET_DMG" "$ASSET_ZIP" --clobber
+          else
+            gh release create "$TAG" "$ASSET_DMG" "$ASSET_ZIP" --title "Bubble for Messenger ${VERSION}" --notes-file CHANGELOG.md
+          fi
+
+      - name: Update Homebrew tap cask
+        if: ${{ secrets.HOMEBREW_TAP_TOKEN != '' }}
+        env:
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: bash .github/scripts/update-homebrew-tap.sh "${{ steps.version.outputs.version }}"
