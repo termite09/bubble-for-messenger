@@ -26,8 +26,13 @@ test('sends once the draft is in the composer and Send is available', () => {
   assert.deepEqual(decideReply('inserted', inserted, false), { action: 'send', phase: 'confirming' });
 });
 
-test('after inserting, a missing draft or Send button is a failure', () => {
-  assert.equal(decideReply('inserted', { ...ready, composerEmpty: false, draftMatches: false, sendAvailable: true }, false).action, 'failure');
+test('after inserting, the editor gets time to show the draft — until the budget runs out', () => {
+  // Messenger's editor reconciles the DOM a tick after insertText lands.
+  assert.deepEqual(decideReply('inserted', { ...ready, draftMatches: false, sendAvailable: true }, false), { action: 'wait', phase: 'inserted' });
+  assert.equal(decideReply('inserted', { ...ready, draftMatches: false, sendAvailable: true }, true).action, 'failure');
+});
+
+test('after inserting, a draft that is there but not focused is a failure (Enter must not go elsewhere)', () => {
   assert.equal(decideReply('inserted', { ...ready, composerEmpty: false, draftMatches: true, sendAvailable: false }, false).action, 'failure');
 });
 

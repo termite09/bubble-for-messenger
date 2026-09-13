@@ -185,38 +185,50 @@ async function openThread(wc, href) {
 
 // Page-side halves of a quick reply. Kept as replaceable actions so the delivery loop can be
 // driven by a scripted page in tests, and so a live check can run everything but the Send.
+// The composer counts only when it is actually in front: at the panel's width the thread pane
+// sits *behind* the list with its composer rendered but visibility:hidden, and a hidden
+// composer takes neither focus nor text. Sending is a trusted Enter into the focused composer —
+// what the user would press — rather than a Send button, whose label is localised and shares
+// its wording with "Send a like" / "Send a voice clip".
 const COMPOSER = '[role="main"] [contenteditable="true"][role="textbox"]';
-const SEND_BUTTONS = '[role="main"] [role="button"], [role="main"] button';
+const FIND_COMPOSER = `[...document.querySelectorAll(${JSON.stringify(COMPOSER)})].find((el) => {
+  const r = el.getBoundingClientRect();
+  if (r.height <= 0 || getComputedStyle(el).visibility === 'hidden') return false;
+  const hit = document.elementFromPoint(Math.round(r.left + r.width / 2), Math.round(r.top + r.height / 2));
+  return !!hit && (hit === el || el.contains(hit));
+}) || null`;
 const replyActions = {
   // What the loop needs to know this instant. `href` is a validated thread path.
   snapshot: (wc, href, text) => wc.executeJavaScript(`(() => {
-    const box = [...document.querySelectorAll(${JSON.stringify(COMPOSER)})].find((el) => el.getBoundingClientRect().height > 0) || null;
+    const box = ${FIND_COMPOSER};
     const content = box ? (box.textContent || '') : '';
-    const send = [...document.querySelectorAll(${JSON.stringify(SEND_BUTTONS)})]
-      .find((b) => /send/i.test(b.getAttribute('aria-label') || '') && b.getBoundingClientRect().height > 0) || null;
     const want = ${JSON.stringify(href)}.replace(/\\/$/, '');
     return {
       onThread: location.pathname.replace(/\\/$/, '') === want,
       composerReady: !!box,
       composerEmpty: !content.trim(),
       draftMatches: content.includes(${JSON.stringify(text)}),
-      sendAvailable: !!send,
+      sendAvailable: !!box && document.activeElement === box,
     };
   })()`, true).catch(() => null),
-  // insertText goes through the editor's own input pipeline, so the draft is real to Messenger.
-  insert: (wc, text) => wc.executeJavaScript(`(() => {
-    const box = [...document.querySelectorAll(${JSON.stringify(COMPOSER)})].find((el) => el.getBoundingClientRect().height > 0);
-    if (!box) return false;
-    box.focus();
-    return document.execCommand('insertText', false, ${JSON.stringify(text)});
-  })()`, true).catch(() => false),
-  send: (wc) => wc.executeJavaScript(`(() => {
-    const b = [...document.querySelectorAll(${JSON.stringify(SEND_BUTTONS)})]
-      .find((b) => /send/i.test(b.getAttribute('aria-label') || '') && b.getBoundingClientRect().height > 0);
-    if (!b) return false;
-    b.click();
+  // Messenger's editor ignores execCommand('insertText') and synthetic paste; only trusted key
+  // input reaches it. So: focus the composer in the page, then type the text as input events.
+  insert: async (wc, text) => {
+    const focused = await wc.executeJavaScript(`(() => {
+      const box = ${FIND_COMPOSER};
+      if (!box) return false;
+      box.focus();
+      return document.activeElement === box;
+    })()`, true).catch(() => false);
+    if (!focused) return false;
+    for (const ch of text) wc.sendInputEvent({ type: 'char', keyCode: ch });
     return true;
-  })()`, true).catch(() => false),
+  },
+  send: async (wc) => {
+    wc.sendInputEvent({ type: 'keyDown', keyCode: 'Enter' });
+    wc.sendInputEvent({ type: 'keyUp', keyCode: 'Enter' });
+    return true;
+  },
 };
 
 // Put `text` in the thread's composer and send it, polling the page into the reply state
@@ -232,7 +244,7 @@ async function deliverReply(wc, href, text, { actions = replyActions, now = Date
     phase = decision.phase;
     switch (decision.action) {
       case 'wait': await wait(REPLY_POLL_MS); break;
-      case 'insert': if (!await actions.insert(wc, text)) return false; break;
+      case 'insert': if (!await actions.insert(wc, text)) return false; await wait(REPLY_POLL_MS); break;
       case 'send': if (!await actions.send(wc)) return false; await wait(REPLY_POLL_MS); break;
       case 'success': return true;
       default: return false;

@@ -24,7 +24,10 @@ function decideReply(phase, snapshot, expired) {
   // Once text is in, any navigation away is a hard stop: never click Send elsewhere.
   if (!snapshot.onThread || !snapshot.composerReady) return { action: 'failure', phase };
   if (phase === 'inserted') {
-    if (!snapshot.draftMatches || !snapshot.sendAvailable) return { action: 'failure', phase };
+    // The editor shows the inserted text a tick later; give it until the budget runs out.
+    if (!snapshot.draftMatches) return { action: expired ? 'failure' : 'wait', phase };
+    // The draft is there but the composer lost focus: Enter would go somewhere else.
+    if (!snapshot.sendAvailable) return { action: 'failure', phase };
     return { action: 'send', phase: 'confirming' };
   }
   if (snapshot.composerEmpty) return { action: 'success', phase };
