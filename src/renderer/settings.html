@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:">
+  <style>
+    /* One more card from the same stack. The window is transparent; the card draws its own
+       silhouette (16px sheet radius, hairline) and macOS casts the shadow, as for the panel. */
+    html, body { margin: 0; background: transparent; overflow: hidden; user-select: none; -webkit-user-select: none; }
+    body {
+      --card: #1c1c1e; --raised: #2c2c2e; --ink: #f5f5f7; --dim: #8e8e93; --rule: rgba(255,255,255,.12); --rule-active: rgba(255,255,255,.28);
+      --ease: cubic-bezier(.22, 1, .36, 1);
+      font: 13px/16px -apple-system, system-ui, sans-serif; color: var(--ink); -webkit-font-smoothing: antialiased;
+      height: 100vh;
+    }
+    #card {
+      position: absolute; inset: 0; background: var(--card); border: 1px solid var(--rule); border-radius: 16px;
+      box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden;
+    }
+
+    /* Header: the title, and a ✕ drawn the way the dismiss target draws its own. The whole
+       row drags the card. */
+    header { display: flex; align-items: center; height: 44px; padding: 0 10px 0 16px; flex: none; -webkit-app-region: drag; }
+    header h1 { flex: 1; margin: 0; font: 600 13px/16px -apple-system, system-ui, sans-serif; }
+    #close {
+      -webkit-app-region: no-drag; width: 28px; height: 28px; border: 1px solid transparent; border-radius: 14px; padding: 0;
+      background: transparent; color: var(--ink); display: flex; align-items: center; justify-content: center; cursor: default;
+    }
+    #close svg { width: 12px; height: 12px; display: block; stroke: currentColor; stroke-width: 2; stroke-linecap: round; fill: none; }
+    #close:hover { background: var(--raised); }
+    #close:focus-visible { outline: 0; border-color: var(--rule-active); }
+
+    /* Groups: an ash caption, then rows on a hairline that starts at the text edge. */
+    main { flex: 1; padding-bottom: 8px; }
+    h2 {
+      margin: 0; padding: 10px 16px 2px; font: 400 11px/16px -apple-system, system-ui, sans-serif;
+      color: var(--dim); text-transform: uppercase; letter-spacing: .04em;
+    }
+    .row { display: flex; align-items: center; gap: 14px; min-height: 44px; padding: 6px 16px 6px 0; margin-left: 16px; box-sizing: border-box; }
+    .row + .row { border-top: 1px solid var(--rule); }
+    .text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+    .name { font-weight: 500; }
+    .sub { font-size: 12px; line-height: 15px; color: var(--dim); }
+
+    /* A switch is a small pill of the same material. Off: raised graphite with an ash knob.
+       On: it inverts to paper with a graphite knob — the ✕ target arms the same way. The knob
+       moves by transform only; the fill crossfades alongside. */
+    .switch { position: relative; flex: none; width: 36px; height: 22px; }
+    .switch input { position: absolute; inset: 0; margin: 0; opacity: 0; }
+    .switch span {
+      position: absolute; inset: 0; border-radius: 11px; background: var(--raised); border: 1px solid var(--rule);
+      box-sizing: border-box; transition: background 120ms linear, border-color 120ms linear;
+    }
+    .switch span::after {
+      content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 8px; background: var(--dim);
+      transition: transform 220ms var(--ease), background 120ms linear;
+    }
+    .switch input:checked + span { background: var(--ink); border-color: var(--ink); }
+    .switch input:checked + span::after { background: var(--card); transform: translateX(14px); }
+    .switch input:focus-visible + span { border-color: var(--rule-active); }
+    .row:hover .switch input:not(:checked) + span { border-color: var(--rule-active); }
+
+    /* The three-way appearance choice: hairline segments; the chosen one holds the raised tone. */
+    .segments { display: flex; flex: none; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; }
+    .segments label { position: relative; }
+    .segments input { position: absolute; inset: 0; margin: 0; opacity: 0; }
+    .segments span { display: block; padding: 0 10px; font: 500 12px/24px -apple-system, system-ui, sans-serif; color: var(--dim); }
+    .segments label + label span { border-left: 1px solid var(--rule); }
+    .segments input:checked + span { background: var(--raised); color: var(--ink); }
+    .segments input:focus-visible + span { color: var(--ink); }
+    .segments label:hover span { color: var(--ink); }
+
+    @media (prefers-reduced-motion: reduce) {
+      .switch span, .switch span::after { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="card">
+    <header>
+      <h1>Bubble</h1>
+      <button id="close" type="button" aria-label="Close"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8"/></svg></button>
+    </header>
+    <main>
+      <section>
+        <h2>Bubble</h2>
+        <label class="row"><div class="text"><div class="name">Show over full-screen apps</div><div class="sub">Off keeps the bubble to normal Spaces; a full-screen video or app hides it.</div></div><span class="switch"><input type="checkbox" data-key="overFullscreen"><span></span></span></label>
+        <label class="row"><div class="text"><div class="name">Start at login</div></div><span class="switch"><input type="checkbox" data-key="startAtLogin"><span></span></span></label>
+      </section>
+      <section>
+        <h2>Messages</h2>
+        <label class="row"><div class="text"><div class="name">Banner when a message lands</div><div class="sub">The disc unrolls for a few seconds.</div></div><span class="switch"><input type="checkbox" data-key="banner"><span></span></span></label>
+        <label class="row"><div class="text"><div class="name">Show the message in the banner</div><div class="sub">Off shows only who wrote — for screen sharing or public places.</div></div><span class="switch"><input type="checkbox" data-key="bannerPreview"><span></span></span></label>
+        <label class="row"><div class="text"><div class="name">Reply from the banner</div><div class="sub">The ↩ on the banner. Off if the bubble should never take the keyboard.</div></div><span class="switch"><input type="checkbox" data-key="quickReply"><span></span></span></label>
+        <label class="row"><div class="text"><div class="name">macOS notifications from Messenger</div><div class="sub">Messenger's own Notification Center banners, in addition to the bubble.</div></div><span class="switch"><input type="checkbox" data-key="notifications"><span></span></span></label>
+        <label class="row"><div class="text"><div class="name">Unread count on the bubble</div></div><span class="switch"><input type="checkbox" data-key="badge"><span></span></span></label>
+      </section>
+      <section>
+        <h2>Panel</h2>
+        <div class="row"><div class="text"><div class="name">Appearance</div><div class="sub">Applies when Messenger's own theme is set to Device.</div></div>
+          <div class="segments" role="radiogroup" aria-label="Appearance">
+            <label><input type="radio" name="theme" value="system"><span>System</span></label>
+            <label><input type="radio" name="theme" value="light"><span>Light</span></label>
+            <label><input type="radio" name="theme" value="dark"><span>Dark</span></label>
+          </div></div>
+        <label class="row"><div class="text"><div class="name">Spell check</div></div><span class="switch"><input type="checkbox" data-key="spellcheck"><span></span></span></label>
+      </section>
+      <section>
+        <h2>Privacy</h2>
+        <label class="row"><div class="text"><div class="name">Block Facebook telemetry</div><div class="sub">Cancels Facebook's logging beacons. Nothing Messenger needs to work is touched.</div></div><span class="switch"><input type="checkbox" data-key="blockTelemetry"><span></span></span></label>
+      </section>
+    </main>
+  </div>
+  <script src="settings-renderer.js"></script>
+</body>
+</html>
