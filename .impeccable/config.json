@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "clipped-overflow-container",
+        "value": "*",
+        "files": [
+          "bubble.html"
+        ],
+        "createdAt": "2026-09-13T07:29:32.761Z",
+        "reason": "bubble.html is a transparent always-on-top window: the viewport is the clip by design and lib/layout PAD reserves 32px around content for shadows and the count pill; nothing needs to escape it"
+      }
+    ]
+  }
+}

@@ -6,6 +6,10 @@ contextBridge.exposeInMainWorld('bubbleApi', {
   contextMenu: () => ipcRenderer.send('bubble:context-menu'),
   openChat: (href) => ipcRenderer.send('bubble:open-chat', href),
   openInbox: () => ipcRenderer.send('bubble:open-inbox'),
+  hit: (over) => ipcRenderer.send('bubble:hit', over),
   onBadge: (cb) => ipcRenderer.on('bubble:badge', (_event, n) => cb(n)),
   onFan: (cb) => ipcRenderer.on('bubble:fan', (_event, data) => cb(data)),
+  onLayout: (cb) => ipcRenderer.on('bubble:layout', (_event, data) => cb(data)),
+  onActive: (cb) => ipcRenderer.on('bubble:active', (_event, href) => cb(href)),
+  onLanded: (cb) => ipcRenderer.on('bubble:landed', (_event, item) => cb(item)),
 });

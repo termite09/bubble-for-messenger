@@ -1,0 +1,330 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-13T00:00:00Z",
+  "title": "Design System: Bubble for Messenger",
+  "extensions": {
+    "colorMeta": {
+      "system-blue": {
+        "role": "primary",
+        "displayName": "System Blue",
+        "canonical": "#0a84ff",
+        "tonalRamp": [
+          "oklch(15% 0.06 255)",
+          "oklch(26% 0.10 255)",
+          "oklch(38% 0.15 255)",
+          "oklch(50% 0.19 255)",
+          "oklch(62% 0.21 255)",
+          "oklch(73% 0.15 255)",
+          "oklch(84% 0.09 255)",
+          "oklch(95% 0.03 255)"
+        ]
+      },
+      "graphite": {
+        "role": "neutral",
+        "displayName": "Graphite",
+        "canonical": "#1c1c1e",
+        "tonalRamp": [
+          "oklch(15% 0.004 286)",
+          "oklch(22% 0.004 286)",
+          "oklch(30% 0.004 286)",
+          "oklch(42% 0.004 286)",
+          "oklch(55% 0.004 286)",
+          "oklch(68% 0.004 286)",
+          "oklch(82% 0.004 286)",
+          "oklch(95% 0.004 286)"
+        ]
+      },
+      "raised-graphite": {
+        "role": "neutral",
+        "displayName": "Raised Graphite",
+        "canonical": "#2c2c2e",
+        "tonalRamp": [
+          "oklch(15% 0.004 286)",
+          "oklch(22% 0.004 286)",
+          "oklch(30% 0.004 286)",
+          "oklch(42% 0.004 286)",
+          "oklch(55% 0.004 286)",
+          "oklch(68% 0.004 286)",
+          "oklch(82% 0.004 286)",
+          "oklch(95% 0.004 286)"
+        ]
+      },
+      "avatar-slate": {
+        "role": "neutral",
+        "displayName": "Avatar Slate",
+        "canonical": "#3a3a3c",
+        "tonalRamp": [
+          "oklch(15% 0.004 286)",
+          "oklch(24% 0.004 286)",
+          "oklch(35% 0.004 286)",
+          "oklch(46% 0.004 286)",
+          "oklch(58% 0.004 286)",
+          "oklch(70% 0.004 286)",
+          "oklch(83% 0.004 286)",
+          "oklch(95% 0.004 286)"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "canonical": "#f5f5f7",
+        "tonalRamp": [
+          "oklch(15% 0.003 286)",
+          "oklch(27% 0.003 286)",
+          "oklch(39% 0.003 286)",
+          "oklch(51% 0.003 286)",
+          "oklch(63% 0.003 286)",
+          "oklch(75% 0.003 286)",
+          "oklch(86% 0.003 286)",
+          "oklch(97% 0.003 286)"
+        ]
+      },
+      "ash": {
+        "role": "neutral",
+        "displayName": "Ash",
+        "canonical": "#8e8e93",
+        "tonalRamp": [
+          "oklch(15% 0.007 286)",
+          "oklch(27% 0.007 286)",
+          "oklch(39% 0.007 286)",
+          "oklch(51% 0.007 286)",
+          "oklch(64% 0.007 286)",
+          "oklch(75% 0.007 286)",
+          "oklch(86% 0.007 286)",
+          "oklch(95% 0.007 286)"
+        ]
+      },
+      "hairline": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "rgba(255,255,255,.12)",
+        "tonalRamp": [
+          "rgba(255,255,255,.04)",
+          "rgba(255,255,255,.08)",
+          "rgba(255,255,255,.12)",
+          "rgba(255,255,255,.2)",
+          "rgba(255,255,255,.28)",
+          "rgba(255,255,255,.45)",
+          "rgba(255,255,255,.7)",
+          "rgba(255,255,255,.95)"
+        ]
+      },
+      "hairline-active": {
+        "role": "neutral",
+        "displayName": "Active Hairline",
+        "canonical": "rgba(255,255,255,.28)",
+        "tonalRamp": [
+          "rgba(255,255,255,.04)",
+          "rgba(255,255,255,.08)",
+          "rgba(255,255,255,.12)",
+          "rgba(255,255,255,.2)",
+          "rgba(255,255,255,.28)",
+          "rgba(255,255,255,.45)",
+          "rgba(255,255,255,.7)",
+          "rgba(255,255,255,.95)"
+        ]
+      },
+      "white": {
+        "role": "neutral",
+        "displayName": "White",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(27% 0 0)",
+          "oklch(39% 0 0)",
+          "oklch(51% 0 0)",
+          "oklch(63% 0 0)",
+          "oklch(75% 0 0)",
+          "oklch(87% 0 0)",
+          "oklch(100% 0 0)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "title": {
+        "displayName": "Title",
+        "purpose": "A conversation name in a banner and the landed banner; single line, ellipsised."
+      },
+      "title-quiet": {
+        "displayName": "Title, quiet",
+        "purpose": "The \"Open Messenger\" banner label; reads as an action, not a person."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "The last-message preview in Ash; one line, omitted when the scrape has no preview."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "The relative time (\"2h\", \"now\") at the banner's right edge."
+      },
+      "count": {
+        "displayName": "Count",
+        "purpose": "The unread number on the blue pill, capped at \"9+\"."
+      }
+    },
+    "shadows": [
+      {
+        "name": "lift",
+        "value": "0 8px 24px rgba(0,0,0,.45)",
+        "purpose": "Every card in the bubble layer and the dismiss target. The only shadow in the system."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out-quint",
+        "value": "cubic-bezier(.22, 1, .36, 1)",
+        "purpose": "The single curve for every spatial change: stack deploy, landed clip-path, dismiss scale."
+      },
+      {
+        "name": "duration-move",
+        "value": "220ms",
+        "purpose": "Duration for every transform / clip-path / --p transition."
+      },
+      {
+        "name": "duration-fade",
+        "value": "120ms linear",
+        "purpose": "Colour or opacity crossfade riding alongside a move (landed opacity, dismiss background and stroke)."
+      },
+      {
+        "name": "landed-hold",
+        "value": "4000ms",
+        "purpose": "How long the landed banner stays open before folding back into the disc."
+      },
+      {
+        "name": "deploy-progress",
+        "value": "@property --p { syntax: '<number>'; inherits: true; initial-value: 0; }",
+        "purpose": "One registered progress value; each banner derives translateY(calc((1 - var(--p)) * var(--d))) and opacity var(--p) from it."
+      }
+    ],
+    "breakpoints": []
+  },
+  "components": [
+    {
+      "name": "Disc with count",
+      "kind": "custom",
+      "refersTo": "disc",
+      "description": "The resting chat head: a 44px graphite circle with the Messenger mark and a blue unread count overhanging its top-right.",
+      "html": "<div class=\"ds-stage\"><div class=\"ds-disc\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"11\" fill=\"#8e8e93\"/><path d=\"M6.5 14.5l3.4-3.6 2.6 2 3.6-2.9-3.6 3.8-2.6-2z\" fill=\"#1c1c1e\"/></svg><div class=\"ds-count\">3</div></div></div>",
+      "css": ".ds-stage { padding: 32px; } .ds-disc { position: relative; width: 44px; height: 44px; border-radius: 22px; background: #1c1c1e; border: 1px solid rgba(255,255,255,.12); box-shadow: 0 8px 24px rgba(0,0,0,.45); box-sizing: border-box; display: flex; align-items: center; justify-content: center; } .ds-disc svg { width: 24px; height: 24px; display: block; } .ds-count { position: absolute; right: -8px; top: -6px; min-width: 18px; height: 18px; padding: 0 5px; box-sizing: border-box; border-radius: 9px; background: #0a84ff; color: #fff; font: 600 11px/18px -apple-system, system-ui, sans-serif; text-align: center; pointer-events: none; }"
+    },
+    {
+      "name": "Head",
+      "kind": "custom",
+      "refersTo": "head",
+      "description": "A conversation as a 44px photo disc with hairline and lift; blue dot when unread; paper ring when it is the open chat.",
+      "html": "<div style=\"display:flex;gap:16px;align-items:center\"><div class=\"ds-head ds-head--unread\"><div class=\"ds-initial\">K</div><div class=\"ds-dot\"></div></div><div class=\"ds-head ds-head--active\"><div class=\"ds-initial\">I</div></div><div class=\"ds-head ds-head--inbox\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\"><circle cx=\"12\" cy=\"12\" r=\"10\" fill=\"#0a84ff\"/></svg></div></div>",
+      "css": ".ds-head { position: relative; width: 44px; height: 44px; border-radius: 22px; background: #1c1c1e; border: 1px solid rgba(255,255,255,.12); box-sizing: border-box; box-shadow: 0 8px 24px rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; } .ds-head:hover { border-color: rgba(255,255,255,.28); } .ds-head--active { box-shadow: 0 8px 24px rgba(0,0,0,.45), 0 0 0 2px #f5f5f7; } .ds-head--inbox { background: #f5f5f7; } .ds-initial { color: #f5f5f7; font: 600 15px -apple-system, system-ui, sans-serif; } .ds-dot { position: absolute; right: -1px; top: -1px; width: 12px; height: 12px; border-radius: 6px; background: #0a84ff; border: 2px solid #1c1c1e; box-sizing: border-box; display: none; } .ds-head--unread .ds-dot { display: block; }"
+    },
+    {
+      "name": "Landed banner",
+      "kind": "custom",
+      "refersTo": "banner-landed",
+      "description": "\"A message landed\": a 252x44 pill that unrolls out of the disc via clip-path over 220ms and folds back after 4s. Hover the stage to see it open.",
+      "html": "<div class=\"ds-stage ds-edge-right\"><div class=\"ds-disc-host\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"11\" fill=\"#8e8e93\"/><path d=\"M6.5 14.5l3.4-3.6 2.6 2 3.6-2.9-3.6 3.8-2.6-2z\" fill=\"#1c1c1e\"/></svg><div class=\"ds-landed\"><div class=\"ds-av\">I</div><div class=\"ds-text\"><div class=\"ds-name\">Ioanna Varvatsi</div><div class=\"ds-sub\">New message</div></div><div class=\"ds-time\">now</div></div></div></div>",
+      "css": ".ds-stage { padding: 32px 32px 32px 240px; font: 13px/16px -apple-system, system-ui, sans-serif; color: #f5f5f7; -webkit-font-smoothing: antialiased; } .ds-disc-host { position: relative; width: 44px; height: 44px; border-radius: 22px; background: #1c1c1e; border: 1px solid rgba(255,255,255,.12); box-shadow: 0 8px 24px rgba(0,0,0,.45); box-sizing: border-box; display: flex; align-items: center; justify-content: center; } .ds-disc-host > svg { width: 24px; height: 24px; display: block; } .ds-landed { position: absolute; top: -1px; right: -1px; width: 252px; height: 44px; border-radius: 22px; background: #1c1c1e; border: 1px solid rgba(255,255,255,.12); box-shadow: 0 8px 24px rgba(0,0,0,.45); box-sizing: border-box; display: flex; align-items: center; gap: 10px; padding: 0 14px 0 5px; clip-path: inset(0 0 0 208px round 22px); opacity: 0; transition: clip-path 220ms cubic-bezier(.22, 1, .36, 1), opacity 120ms linear; pointer-events: none; } .ds-stage:hover .ds-landed { clip-path: inset(0 round 22px); opacity: 1; } .ds-av { width: 32px; height: 32px; border-radius: 16px; flex: none; background: #3a3a3c; display: flex; align-items: center; justify-content: center; font: 600 13px -apple-system, system-ui, sans-serif; color: #fff; } .ds-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; } .ds-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-sub { font-size: 12px; line-height: 15px; color: #8e8e93; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-time { font-size: 11px; color: #8e8e93; flex: none; }"
+    },
+    {
+      "name": "Stack (one-progress deploy)",
+      "kind": "custom",
+      "refersTo": "banner",
+      "description": "Three banners above a disc, deployed from one --p value: each row's translateY and opacity are derived from --p and its distance --d. Hover the stage to open.",
+      "html": "<div class=\"ds-stage\"><div class=\"ds-fan\"><div class=\"ds-banner\" style=\"--d: 180px\"><div class=\"ds-av\">P</div><div class=\"ds-text\"><div class=\"ds-name\">PokeMen</div><div class=\"ds-sub\">Diomidis: Mew parea m tha itan</div></div><div class=\"ds-time\">18h</div></div><div class=\"ds-banner\" style=\"--d: 120px\"><div class=\"ds-av\">S</div><div class=\"ds-text\"><div class=\"ds-name\">Spyros Lontos</div><div class=\"ds-sub\">The audio call ended.</div></div><div class=\"ds-time\">23h</div></div><div class=\"ds-banner ds-inbox\" style=\"--d: 60px\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"11\" fill=\"#8e8e93\"/><path d=\"M6.5 14.5l3.4-3.6 2.6 2 3.6-2.9-3.6 3.8-2.6-2z\" fill=\"#1c1c1e\"/></svg><div class=\"ds-name ds-quiet\">Open Messenger</div></div></div><div class=\"ds-disc\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"11\" fill=\"#8e8e93\"/><path d=\"M6.5 14.5l3.4-3.6 2.6 2 3.6-2.9-3.6 3.8-2.6-2z\" fill=\"#1c1c1e\"/></svg></div></div>",
+      "css": "@property --p { syntax: '<number>'; inherits: true; initial-value: 0; } .ds-stage { padding: 32px; display: flex; flex-direction: column; align-items: flex-end; font: 13px/16px -apple-system, system-ui, sans-serif; color: #f5f5f7; -webkit-font-smoothing: antialiased; } .ds-fan { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; --p: 0; transition: --p 220ms cubic-bezier(.22, 1, .36, 1); } .ds-stage:hover .ds-fan { --p: 1; } .ds-banner { width: 250px; height: 52px; border-radius: 14px; background: #1c1c1e; border: 1px solid rgba(255,255,255,.12); box-shadow: 0 8px 24px rgba(0,0,0,.45); box-sizing: border-box; display: flex; align-items: center; gap: 10px; padding: 0 12px 0 10px; cursor: default; flex: none; transform: translateY(calc((1 - var(--p)) * var(--d))); opacity: var(--p); } .ds-banner:hover { background: #2c2c2e; } .ds-banner.ds-inbox { height: 44px; padding-left: 12px; } .ds-banner.ds-inbox svg { width: 24px; height: 24px; display: block; } .ds-disc { width: 44px; height: 44px; border-radius: 22px; background: #1c1c1e; border: 1px solid rgba(255,255,255,.12); box-shadow: 0 8px 24px rgba(0,0,0,.45); box-sizing: border-box; display: flex; align-items: center; justify-content: center; flex: none; } .ds-disc svg { width: 24px; height: 24px; display: block; } .ds-av { width: 32px; height: 32px; border-radius: 16px; flex: none; background: #3a3a3c; display: flex; align-items: center; justify-content: center; font: 600 13px -apple-system, system-ui, sans-serif; color: #fff; } .ds-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; } .ds-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-quiet { font-weight: 500; } .ds-sub { font-size: 12px; line-height: 15px; color: #8e8e93; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-time { font-size: 11px; color: #8e8e93; flex: none; }"
+    },
+    {
+      "name": "Panel frame",
+      "kind": "card",
+      "refersTo": "panel-frame",
+      "description": "The conversation sheet's silhouette: messenger.com's own wash clipped to 16px with a 1px hairline on top. The content inside is Messenger's, never restyled; shown here as a placeholder.",
+      "html": "<div class=\"ds-stage\"><div class=\"ds-sheet\"><div class=\"ds-ground\"></div><div class=\"ds-sheet-body\"><div class=\"ds-sender\"><div class=\"ds-av\">I</div><div class=\"ds-sender-name\">Ioanna Varvatsi</div></div><div class=\"ds-placeholder\">messenger.com content (not part of this system)</div></div><div class=\"ds-frame\"></div></div></div>",
+      "css": ".ds-stage { padding: 32px; font: 13px/16px -apple-system, system-ui, sans-serif; color: #f5f5f7; -webkit-font-smoothing: antialiased; } .ds-sheet { position: relative; width: 420px; height: 280px; border-radius: 16px; overflow: hidden; } .ds-ground { position: absolute; inset: 0; background: #1a1a1a; } .ds-frame { position: absolute; inset: 0; border-radius: 16px; border: 1px solid rgba(255,255,255,.12); box-sizing: border-box; pointer-events: none; } .ds-sheet-body { position: relative; height: 100%; display: flex; flex-direction: column; } .ds-sender { display: flex; align-items: center; gap: 12px; padding: 16px; } .ds-sender-name { font-size: 15px; font-weight: 600; } .ds-av { width: 32px; height: 32px; border-radius: 16px; flex: none; background: #3a3a3c; display: flex; align-items: center; justify-content: center; font: 600 13px -apple-system, system-ui, sans-serif; color: #fff; } .ds-placeholder { flex: 1; display: flex; align-items: center; justify-content: center; color: #8e8e93; font-size: 12px; }"
+    },
+    {
+      "name": "Dismiss target",
+      "kind": "button",
+      "refersTo": "dismiss-target",
+      "description": "The drop-to-quit target shown while dragging: a 56px graphite circle with a Paper cross. Arming scales it 1.2x and inverts to Paper with a Graphite cross; it never turns red. Hover to arm.",
+      "html": "<div class=\"ds-stage\"><button class=\"ds-target\" type=\"button\" aria-label=\"Quit\"><svg viewBox=\"0 0 24 24\"><line x1=\"6\" y1=\"6\" x2=\"18\" y2=\"18\"/><line x1=\"18\" y1=\"6\" x2=\"6\" y2=\"18\"/></svg></button></div>",
+      "css": ".ds-stage { padding: 32px; } .ds-target { width: 56px; height: 56px; border-radius: 28px; box-sizing: border-box; background: #1c1c1e; border: 1px solid rgba(255,255,255,.12); box-shadow: 0 8px 24px rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; padding: 0; cursor: default; outline: none; transition: transform .22s cubic-bezier(.22, 1, .36, 1), background .12s linear; } .ds-target svg { width: 22px; height: 22px; stroke: #f5f5f7; stroke-width: 2; fill: none; transition: stroke .12s linear; } .ds-target:hover, .ds-target:focus-visible { transform: scale(1.2); background: #f5f5f7; } .ds-target:hover svg, .ds-target:focus-visible svg { stroke: #1c1c1e; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Standing Notification",
+    "overview": "Bubble for Messenger looks like a macOS notification banner that decided to stay. Every surface is the same material: a solid graphite card, a one-pixel white hairline at twelve percent, and one soft lifted shadow. The disc at rest is that card cut to a circle; a conversation is that card stretched to a banner; the open sheet is that card at 420 wide with messenger.com painted inside it. Nothing is translucent, nothing is tinted, nothing glows. The Messenger mark's own raster is the only colour on screen at rest, and blue appears only where the system has to say \"unread\".\n\nThe system is dense and quiet. Five conversations occupy 292 vertical pixels. Type is the system face at three sizes, and the hierarchy is carried by weight and by ash-grey secondaries rather than by size jumps. Motion is a single idea applied everywhere: one ease-out-quint curve at 220 milliseconds, driving transform, opacity, or clip-path and nothing else. The stack does not animate as five cards; it animates as one number, `--p`, that every banner reads its offset and opacity from.\n\nThe build refused two things on purpose and they are confirmed rejections: the incumbent \"liquid\" goo-and-gradient fan, and the category default of a red badge beside a native-looking window. The dismiss target does not turn red when armed; it inverts to paper.",
+    "keyCharacteristics": [
+      "One material: graphite card, 12% hairline, one lifted shadow, on every surface including the ✕ target",
+      "Blue only means unread: the count pill and the 6px dot, nowhere else",
+      "System type at 13 / 12 / 11 px; weight 600 is the entire emphasis vocabulary",
+      "One motion curve (ease-out-quint, 220 ms), one progress value for the stack, no overshoot, no stagger",
+      "The panel is framed, never restyled: messenger.com keeps its own wash, radii and bubbles behind a 16px hairline frame"
+    ],
+    "rules": [
+      {
+        "name": "The Blue Means Unread Rule",
+        "body": "System Blue appears on exactly two elements, the count pill and the unread dot. No blue rules, fills, focus rings, or links anywhere in the app's own chrome.",
+        "section": "colors"
+      },
+      {
+        "name": "The No Red Rule",
+        "body": "There is no destructive colour. The dismiss target arms by inverting Graphite and Paper, not by turning red.",
+        "section": "colors"
+      },
+      {
+        "name": "The Mark Is The Colour Rule",
+        "body": "At rest the only chroma on screen is the Messenger icon raster (24px). The system supplies no gradient, tint, or vibrancy of its own.",
+        "section": "colors"
+      },
+      {
+        "name": "The Thirteen Ceiling Rule",
+        "body": "No text the app itself sets is larger than 13px. Hierarchy comes from 600 versus 400 and Paper versus Ash.",
+        "section": "typography"
+      },
+      {
+        "name": "The One Line Rule",
+        "body": "Every text run in a card is `white-space: nowrap` with an ellipsis. Cards never grow to fit text.",
+        "section": "typography"
+      },
+      {
+        "name": "The Disc Anchor Rule",
+        "body": "Nothing moves the disc. Stack, landed banner, and panel all take their position from it, and the disc keeps its screen position when the stack opens or closes.",
+        "section": "layout"
+      },
+      {
+        "name": "The Sixty Pitch Rule",
+        "body": "Banner rows sit on a 60px pitch (52 + 8). `lib/layout.js` and `bubble-renderer.js` both hardcode it; change one and the fold offsets break.",
+        "section": "layout"
+      },
+      {
+        "name": "The One Shadow Rule",
+        "body": "There is exactly one shadow value. Elevation is binary: a thing is a card (lifted, hairlined) or it is nothing.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Tone And Rule Rule",
+        "body": "State that would be a colour change elsewhere is a tone step and a rule change here: hover raises the card one step; active holds that step and brightens the hairline. No new hues, no transforms.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Radius Follows Height Rule",
+        "body": "Pills (disc, landed banner, count, avatar, dot, target) are radius = height / 2. Cards that hold two lines (banner, sheet) use 14px or 16px. Nothing is square-cornered.",
+        "section": "shapes"
+      }
+    ],
+    "dos": [
+      "Do build every new surface from the one material: Graphite (`#1c1c1e`), a 1px `rgba(255,255,255,.12)` rule, and `0 8px 24px rgba(0,0,0,.45)`.",
+      "Do use the single curve `cubic-bezier(.22, 1, .36, 1)` at 220ms for any spatial change, and 120ms linear only for a colour or opacity crossfade riding alongside it.",
+      "Do derive grouped motion from one progress value (`--p`) rather than per-item delays.",
+      "Do keep radii tied to height: half the height for pills and circles, 14px for a 52px card, 16px for the sheet.",
+      "Do show state with tone and rule (Raised Graphite on hover, 28% hairline when active), not with transforms or new colours.",
+      "Do leave messenger.com's own content alone inside the frame; the system owns the silhouette, not the page."
+    ],
+    "donts": [
+      "Don't introduce gradients, blur, vibrancy, or translucency; the rejected liquid fan is not to be carried forward.",
+      "Don't use red anywhere; arming or destructive states invert Graphite and Paper instead.",
+      "Don't put System Blue on anything but the unread count and the unread dot.",
+      "Don't set app text larger than 13px or use a second family; emphasis is 600 weight or Ash, not size.",
+      "Don't animate layout, width, height, or box-shadow; only transform, opacity, and clip-path move.",
+      "Don't add a second shadow or elevation level; a thing is either a card or nothing."
+    ]
+  }
+}

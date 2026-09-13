@@ -4,70 +4,108 @@
   <meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:">
   <style>
-    html, body { margin: 0; background: transparent; overflow: hidden; user-select: none; -webkit-user-select: none; }
-    body { display: flex; flex-direction: column; align-items: center; }
-    body.down { flex-direction: column-reverse; }
+    /* The stack's deploy is one number: --p runs 0→1 and every banner derives its offset and
+       opacity from it, so the fan opens as a single linked motion rather than five cards. */
+    @property --p { syntax: '<number>'; inherits: true; initial-value: 0; }
 
-    #main { position: relative; width: 64px; height: 64px; flex: none; }
-    #bubble {
-      position: absolute; left: 4px; top: 4px; width: 56px; height: 56px; border-radius: 50%;
-      overflow: hidden; box-shadow: 0 2px 8px rgba(0, 0, 0, .35); cursor: default;
+    html, body { margin: 0; background: transparent; overflow: hidden; user-select: none; -webkit-user-select: none; }
+    body {
+      --card: #1c1c1e; --raised: #2c2c2e; --ink: #f5f5f7; --dim: #8e8e93; --rule: rgba(255,255,255,.12); --blue: #0a84ff;
+      --lift: 0 8px 24px rgba(0,0,0,.45);
+      --ease: cubic-bezier(.22, 1, .36, 1); /* ease-out-quint: fast start, long settle, no overshoot */
+      font: 13px/16px -apple-system, system-ui, sans-serif; color: var(--ink); -webkit-font-smoothing: antialiased;
+      position: relative; width: 100vw; height: 100vh;
     }
     img { -webkit-user-drag: none; pointer-events: none; }
-    #bubble img { width: 100%; height: 100%; display: block; }
-    .badge {
-      position: absolute; right: 0; top: 0; min-width: 20px; height: 20px; padding: 0 6px; box-sizing: border-box;
-      border-radius: 10px; background: #ff3b30; color: #fff; font: 600 12px/16px -apple-system, sans-serif;
-      text-align: center; border: 2px solid #fff; display: none; pointer-events: none;
-    }
-    .badge.visible { display: block; }
 
-    /* Most recent chat sits nearest the main bubble; the inbox item is farthest. */
-    #fan { display: flex; flex-direction: column-reverse; align-items: center; }
-    body.down #fan { flex-direction: column; }
-    .item {
-      position: relative; width: 48px; height: 48px; margin: 4px 0; flex: none; border-radius: 50%;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, .35); cursor: default; background: #333;
-      transition: opacity .16s ease, transform .2s cubic-bezier(.34, 1.56, .64, 1);
-    }
-    /* Entrance/exit state: tucked toward the main bubble and shrunk. Direction of "toward the
-       bubble" flips with the fan direction. Per-item transition-delay (set in JS) staggers them. */
-    body:not(.down) .item.enter { opacity: 0; transform: translateY(28px) scale(.3); }
-    body.down .item.enter { opacity: 0; transform: translateY(-28px) scale(.3); }
-    .item img { width: 100%; height: 100%; border-radius: 50%; display: block; object-fit: cover; }
-    .item.inbox { background: #fff; }
-    .item.inbox img { width: 70%; height: 70%; margin: 15%; }
-    .item .dot {
-      position: absolute; right: -1px; top: -1px; width: 14px; height: 14px; border-radius: 50%;
-      background: #ff3b30; border: 2px solid #fff; display: none;
-    }
-    .item.unread .dot { display: block; }
-    .item .initial {
-      width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
-      color: #fff; font: 600 20px -apple-system, sans-serif;
-    }
+    /* #content is the disc column; the main process positions it inside the padded window
+       and tells us which screen edge the disc rests on so banners extend the other way. */
+    #content { position: absolute; display: flex; flex-direction: column; }
+    body.up #content { flex-direction: column; justify-content: flex-end; }
+    body.down #content { flex-direction: column-reverse; justify-content: flex-end; }
+    body.edge-right #content { align-items: flex-end; }
+    body.edge-left #content { align-items: flex-start; }
 
-    /* While the fan moves, run everything through a metaball filter so the heads pull apart
-       from the bubble like drops of liquid, then drop the filter so avatars stay crisp at rest. */
-    #defs { position: absolute; width: 0; height: 0; }
-    body.oozing { filter: url(#goo); }
+    .card { background: var(--card); border: 1px solid var(--rule); box-shadow: var(--lift); box-sizing: border-box; }
+
+    /* ---- The disc ------------------------------------------------------------------------ */
+    #disc {
+      position: relative; width: 44px; height: 44px; border-radius: 22px; flex: none;
+      display: flex; align-items: center; justify-content: center; cursor: default;
+    }
+    #disc img { width: 24px; height: 24px; display: block; }
+    #count {
+      position: absolute; right: -8px; top: -6px; min-width: 18px; height: 18px; padding: 0 5px; box-sizing: border-box;
+      border-radius: 9px; background: var(--blue); color: #fff; font: 600 11px/18px -apple-system, system-ui, sans-serif;
+      text-align: center; display: none; pointer-events: none;
+    }
+    #count.visible { display: block; }
+
+    /* "A message landed": a banner unrolls out of the disc for a few seconds, then rolls back.
+       It is a full-size card whose clip-path starts as the disc's own circle, so the reveal is
+       one element growing along the panel side with no layout work. */
+    #landed {
+      position: absolute; top: -1px; width: 252px; height: 44px; border-radius: 22px;
+      display: flex; align-items: center; gap: 10px; padding: 0 14px 0 5px;
+      transition: clip-path 220ms var(--ease), opacity 120ms linear; opacity: 0; pointer-events: none;
+    }
+    body.landed #landed { pointer-events: auto; }
+    #landed:hover { background: var(--raised); }
+    body.edge-right #landed { right: -1px; clip-path: inset(0 0 0 208px round 22px); }
+    body.edge-left #landed { left: -1px; clip-path: inset(0 208px 0 0 round 22px); }
+    body.landed #landed { clip-path: inset(0 round 22px); opacity: 1; }
+    body.landed #count { display: none; }
+
+    /* ---- Heads ---------------------------------------------------------------------------- */
+    #fan { display: flex; flex-direction: column; gap: 8px; --p: 0; transition: --p 220ms var(--ease); }
+    body.up #fan { margin-bottom: 8px; }
+    body.down #fan { margin-top: 8px; }
+    body.open #fan { --p: 1; }
+    body.edge-right #fan { align-items: flex-end; }
+    body.edge-left #fan { align-items: flex-start; }
+    /* Newest at the top, Open Messenger at the bottom, whichever side of the disc the stack is on. */
+    .head {
+      position: relative; width: 44px; height: 44px; border-radius: 22px; cursor: default; flex: none;
+      /* --d: this head's distance to the disc; at p=0 it sits folded under the disc, unseen */
+      transform: translateY(calc((1 - var(--p)) * var(--d)));
+      opacity: var(--p);
+    }
+    .head img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
+    .head .initial { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font: 600 15px -apple-system, system-ui, sans-serif; }
+    /* Open Messenger is the one paper disc in the column, so it never reads as another contact. */
+    .head.inbox { background: var(--ink); }
+    .head.inbox img { width: 24px; height: 24px; margin: 9px; border-radius: 0; }
+    .head:hover { border-color: rgba(255,255,255,.28); }
+    /* The open conversation: a paper ring outside the hairline. */
+    .head.active { box-shadow: var(--lift), 0 0 0 2px var(--ink); }
+    .dot {
+      position: absolute; right: -1px; top: -1px; width: 12px; height: 12px; border-radius: 6px; background: var(--blue);
+      border: 2px solid var(--card); box-sizing: border-box; display: none;
+    }
+    .unread .dot { display: block; }
+
+    /* Landed-banner internals */
+    .av { width: 32px; height: 32px; border-radius: 16px; flex: none; overflow: hidden; background: #3a3a3c;
+          display: flex; align-items: center; justify-content: center; font: 600 13px -apple-system, system-ui, sans-serif; color: #fff; }
+    .av img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+    .name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sub { font-size: 12px; line-height: 15px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .time { font-size: 11px; color: var(--dim); flex: none; }
   </style>
 </head>
-<body>
-  <svg id="defs" aria-hidden="true">
-    <defs>
-      <filter id="goo">
-        <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
-        <feColorMatrix in="blur" type="matrix"
-          values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 24 -12" result="goo" />
-        <feBlend in="SourceGraphic" in2="goo" />
-      </filter>
-    </defs>
-  </svg>
-  <div id="fan"></div>
-  <div id="main">
-    <div id="bubble"><img src="icon.png" alt=""></div>
-    <div id="badge" class="badge"></div>
+<body class="up edge-right">
+  <div id="content">
+    <div id="fan"></div>
+    <div id="disc" class="card">
+      <img src="icon.png" alt="">
+      <div id="count"></div>
+      <div id="landed" class="card">
+        <div class="av" id="landed-av"></div>
+        <div class="text"><div class="name" id="landed-name"></div><div class="sub" id="landed-sub"></div></div>
+        <div class="time">now</div>
+      </div>
+    </div>
   </div>
   <script src="bubble-renderer.js"></script>
 </body>

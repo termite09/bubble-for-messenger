@@ -1,4 +1,4 @@
-# Messenger Bubble for Mac
+# Bubble for Messenger
 
 Facebook Messenger as a floating "chat head" on macOS: a small always-on-top bubble that
 opens a compact Messenger panel beside it. No dock icon, no browser tab.
@@ -6,22 +6,24 @@ opens a compact Messenger panel beside it. No dock icon, no browser tab.
 Forked from [stefanminch/messenger-mac](https://github.com/stefanminch/messenger-mac), which
 wraps messenger.com in a normal Electron window. This fork replaces the window with the bubble.
 
-<img src="icon.png" width="128" alt="Messenger Bubble">
+<img src="icon.png" width="128" alt="Bubble for Messenger">
 
 ## How it works
 
-- **Bubble** — a 56 px round Messenger logo that floats over every app and every Space
-  (including full-screen apps). Drag it anywhere; when you let go it snaps to the nearest
-  side and its position is remembered.
-- **Click the bubble** to fan out your five most recent chats as avatar heads (newest at the
-  top), plus an *Open Messenger* item for the full inbox. Click an avatar to open just that
-  conversation in a compact panel; click the bubble again to collapse the fan. Messenger
-  stays loaded in the background, so messages keep arriving.
-- **Drag to dismiss** — drag the bubble onto the ✕ target that appears at the bottom of the
+- **The disc** — a 44 px grey disc with the Messenger mark that floats over every app and every
+  Space (including full-screen apps). Drag it anywhere; when you let go it snaps to the nearest
+  side and its position is remembered. A blue count shows total unread.
+- **A message lands** — the disc unrolls into a banner (avatar, name, first line) for four
+  seconds, then folds back.
+- **Click the disc** to deploy a stack of your five most recent chats as round heads, newest
+  at the top (hover for the name; a blue dot means unread), plus a paper *Open Messenger* head
+  for the full inbox. Pick one and that conversation opens in a compact sheet beside the stack;
+  the open chat wears a white ring, and the others stay one click away. Click anywhere else, or
+  the disc, to put it all away. Messenger stays loaded in the background, so messages keep
+  arriving.
+- **Drag to dismiss** — drag the disc onto the ✕ target that appears at the bottom of the
   screen to quit the app.
-- **Unread badge** — a red count on the bubble for total unread; a red dot on a chat head
-  whose conversation is unread.
-- **Right-click the bubble** for *Open Messenger*, *Reload Messenger*, *Reset Bubble Position*
+- **Right-click the disc** for *Open Messenger*, *Reload Messenger*, *Reset Bubble Position*
   and *Quit*.
 - Persistent login, native notifications, dark mode, and links opening in your default browser
   all carry over from the original app.
@@ -30,9 +32,8 @@ wraps messenger.com in a normal Electron window. This fork replaces the window w
 
 | Shortcut | Action |
 |----------|--------|
-| `Cmd + N` | New message |
-| `Cmd + 1-9` | Switch to conversation 1-9 |
-| `Cmd + Shift + S` | Toggle Messenger's inbox sidebar |
+| `Cmd + N` | New message (opens the inbox) |
+| `Cmd + 1-5` | Open one of your five most recent chats (1 = most recent) |
 
 ## Build from source
 
@@ -53,7 +54,7 @@ npm test
 npm run build
 ```
 
-The app keeps its own profile in `~/Library/Application Support/MessengerBubble`, so it can run
+The app keeps its own profile in `~/Library/Application Support/Bubble for Messenger`, so it can run
 alongside the original MessengerApp without sharing (or corrupting) its login data. You log in
 once inside the bubble.
 
@@ -62,10 +63,11 @@ once inside the bubble.
 | File | Responsibility |
 |------|----------------|
 | `main.js` | App lifecycle, settings, cookie persistence, menu, wiring bubble ↔ panel ↔ dismiss |
-| `bubble.js` / `bubble.html` / `bubble-renderer.js` / `bubble-preload.js` | The floating bubble: drag, edge-snap, click, fan of chat heads, badge, context menu |
-| `panel.js` | The Messenger panel: placement beside the bubble, compact vs full mode, unread detection, link handling |
+| `bubble.js` / `bubble.html` / `bubble-renderer.js` / `bubble-preload.js` | The disc: drag, edge-snap, click, the stack of heads, the landed banner, unread count, context menu |
+| `shield.html` / `shield-preload.js` / `shield-renderer.js` | The invisible catch window behind an open stack: a press anywhere else closes it |
+| `panel.js` | The Messenger panel: placement beside the disc, card frame, compact vs full mode, unread detection, link handling |
 | `dismiss.js` / `dismiss.html` / … | The ✕ drop target shown while dragging |
-| `scrape.js` | Page-side scripts: read recent chats, open a thread, toggle compact mode |
+| `scrape.js` | Page-side scripts: read recent chats (name, preview, time, unread), open a thread, frame and compact mode |
 | `avatars.js` | Fetch profile pictures through the Messenger session as data URLs |
 | `lib/` | Pure helpers (`layout.js`, `unread.js`, `links.js`, `recent.js`) covered by `test/` |
 
@@ -87,7 +89,8 @@ messenger.com in the panel.
 
 ## License
 
-MIT License — feel free to modify and distribute.
+MIT — see [LICENSE](LICENSE). Copyright the original author (Stefan Minch) for the upstream
+wrapper and Alexandros Christou for this fork.
 
 ## Disclaimer
 

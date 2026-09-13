@@ -32,7 +32,7 @@ function createDismissTarget() {
     show(bubbleBounds) {
       const area = screen.getDisplayMatching(bubbleBounds).workArea;
       const x = Math.round(area.x + area.width / 2 - SIZE / 2);
-      const y = Math.round(area.y + area.height - SIZE - BOTTOM_MARGIN + SIZE / 2 - SIZE / 2);
+      const y = Math.round(area.y + area.height - SIZE - BOTTOM_MARGIN);
       win.setBounds({ x, y, width: SIZE, height: SIZE });
       center = { x: x + SIZE / 2, y: y + SIZE / 2 };
       win.showInactive();

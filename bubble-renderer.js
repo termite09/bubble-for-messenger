@@ -1,44 +1,75 @@
-const bubble = document.getElementById('bubble');
-const badge = document.getElementById('badge');
+const body = document.body;
+const content = document.getElementById('content');
+const disc = document.getElementById('disc');
+const count = document.getElementById('count');
 const fan = document.getElementById('fan');
+const landed = document.getElementById('landed');
+const landedAv = document.getElementById('landed-av');
+const landedName = document.getElementById('landed-name');
+const landedSub = document.getElementById('landed-sub');
+
+const FAN_PITCH = 52; // head 44 + gap 8; must match lib/layout FAN_ITEM
 
 // Drag/click are resolved in the main process (it polls the cursor while the button is down);
 // CSS drag regions can't be used because they swallow click events on macOS.
-bubble.addEventListener('mousedown', (e) => { if (e.button === 0) window.bubbleApi.dragStart(); });
+disc.addEventListener('mousedown', (e) => { if (e.button === 0) window.bubbleApi.dragStart(); });
 window.addEventListener('mouseup', (e) => { if (e.button === 0) window.bubbleApi.dragEnd(); });
-window.addEventListener('blur', () => window.bubbleApi.dragEnd());
-bubble.addEventListener('contextmenu', (e) => { e.preventDefault(); window.bubbleApi.contextMenu(); });
+disc.addEventListener('contextmenu', (e) => { e.preventDefault(); window.bubbleApi.contextMenu(); });
+
+// The window is mostly transparent padding. Tell the main process whether the cursor is over
+// something real so it can let clicks fall through everywhere else.
+let overContent = false;
+window.addEventListener('mousemove', (e) => {
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  const hit = Boolean(el && el.closest('.card'));
+  if (hit !== overContent) { overContent = hit; window.bubbleApi.hit(hit); }
+});
+window.addEventListener('mouseleave', () => { if (overContent) { overContent = false; window.bubbleApi.hit(false); } });
 
 window.bubbleApi.onBadge((n) => {
-  badge.textContent = n > 9 ? '9+' : String(n);
-  badge.classList.toggle('visible', n > 0);
+  count.textContent = n > 9 ? '9+' : String(n);
+  count.classList.toggle('visible', n > 0);
 });
 
-function itemEl({ href, name, avatar, unread }) {
-  const el = document.createElement('div');
-  el.className = 'item' + (unread ? ' unread' : '');
-  el.title = name;
-  if (avatar) {
+function fillAvatar(target, item) {
+  target.replaceChildren();
+  if (item.avatar) {
     const img = document.createElement('img');
-    img.src = avatar;
+    img.src = item.avatar;
+    img.alt = '';
+    target.appendChild(img);
+  } else {
+    target.textContent = item.name.slice(0, 1).toUpperCase();
+  }
+}
+
+// A head: the contact's photo filling a 44px disc, name as the tooltip, blue dot when unread.
+function headEl(item) {
+  const el = document.createElement('div');
+  el.className = 'head card' + (item.unread ? ' unread' : '');
+  el.dataset.href = item.href;
+  el.title = item.name;
+  if (item.avatar) {
+    const img = document.createElement('img');
+    img.src = item.avatar;
     img.alt = '';
     el.appendChild(img);
   } else {
     const initial = document.createElement('div');
     initial.className = 'initial';
-    initial.textContent = name.slice(0, 1).toUpperCase();
+    initial.textContent = item.name.slice(0, 1).toUpperCase();
     el.appendChild(initial);
   }
   const dot = document.createElement('div');
   dot.className = 'dot';
   el.appendChild(dot);
-  el.addEventListener('click', () => window.bubbleApi.openChat(href));
+  el.addEventListener('click', () => window.bubbleApi.openChat(item.href));
   return el;
 }
 
 function inboxEl() {
   const el = document.createElement('div');
-  el.className = 'item inbox';
+  el.className = 'head inbox card';
   el.title = 'Open Messenger';
   const img = document.createElement('img');
   img.src = 'icon.png';
@@ -48,50 +79,90 @@ function inboxEl() {
   return el;
 }
 
-const STAGGER_MS = 30;
+// ---- Layout from the main process ------------------------------------------------------------
+// { contentX, contentY, edge: 'left' | 'right', direction: 'up' | 'down' } — where the disc sits
+// inside the padded window and which way the stack and banners extend.
+let direction = 'up';
+window.bubbleApi.onLayout((l) => {
+  direction = l.direction;
+  body.classList.toggle('edge-left', l.edge === 'left');
+  body.classList.toggle('edge-right', l.edge === 'right');
+  body.classList.toggle('up', l.direction === 'up');
+  body.classList.toggle('down', l.direction === 'down');
+  const w = 250;
+  content.style.left = (l.edge === 'right' ? l.contentX + 44 - w : l.contentX) + 'px';
+  content.style.width = w + 'px';
+  // The column is anchored at the disc: bottom-aligned when growing up, top-aligned when down.
+  if (l.direction === 'up') { content.style.top = ''; content.style.bottom = (innerHeight - l.contentY - 44) + 'px'; }
+  else { content.style.bottom = ''; content.style.top = l.contentY + 'px'; }
+  setDistances();
+});
 
-// Turn the metaball filter on while anything is moving, off once it settles.
-let oozeTimer;
-function ooze(durationMs) {
-  document.body.classList.add('oozing');
-  clearTimeout(oozeTimer);
-  oozeTimer = setTimeout(() => document.body.classList.remove('oozing'), durationMs);
+// Each row's distance to the disc drives its fold offset: with the stack above the disc the
+// bottom row is nearest; below the disc the top row is.
+function setDistances() {
+  const rows = [...fan.children];
+  rows.forEach((el, i) => {
+    const fromDisc = direction === 'up' ? rows.length - i : i + 1;
+    el.style.setProperty('--d', `${fromDisc * FAN_PITCH}px`);
+  });
 }
 
-// Each fan message is { animate: 'in', direction, items } to open or { animate: 'out' } to close.
-// On 'in' we build the items in the tucked `enter` state, then release them next frame so they
-// spring outward, staggered from the main bubble. On 'out' we tuck them back; the main process
-// shrinks the window after the matching delay.
-window.bubbleApi.onFan((data) => {
-  if (data && data.animate === 'clear') {
-    // Remove the tucked-away items so they stop taking layout height, which would otherwise
-    // push the main bubble out of the shrunken window and leave it looking empty.
-    fan.replaceChildren();
-    return;
-  }
-  if (!data || data.animate === 'out') {
-    ooze(320);
-    for (const el of fan.children) el.classList.add('enter');
-    return;
-  }
+// ---- Fan -------------------------------------------------------------------------------------
+// { animate: 'in' | 'update', items } opens or refreshes; { animate: 'out' } folds the stack back
+// into the disc (the main process shrinks the window once the fold has played); 'clear' empties it.
+let activeHref;
+function markActive() {
+  for (const el of fan.children) el.classList.toggle('active', el.dataset.href !== undefined && el.dataset.href === activeHref);
+}
 
+window.bubbleApi.onFan((data) => {
+  if (!data || data.animate === 'clear') { fan.replaceChildren(); body.classList.remove('open'); return; }
+  if (data.animate === 'out') { body.classList.remove('open'); return; }
+  const wasOpen = body.classList.contains('open');
   fan.replaceChildren();
-  document.body.classList.toggle('down', data.direction === 'down');
-  // items arrive newest-first; render oldest nearest the main bubble so the newest chat
-  // ends up farthest out, with the Open Messenger item beyond it.
-  const els = [...data.items].reverse().map(itemEl);
+  // items arrive newest-first and read top-down; Open Messenger closes the list.
+  const els = data.items.map(headEl);
   els.push(inboxEl());
-  const animate = data.animate === 'in';
-  els.forEach((el, i) => {
-    if (animate) {
-      el.classList.add('enter');
-      el.style.transitionDelay = i * STAGGER_MS + 'ms';
-    }
-    fan.appendChild(el);
-  });
-  if (!animate) return; // 'update': show the new contents without replaying the entrance
-  ooze(els.length * STAGGER_MS + 320);
-  // Force layout so the browser registers the `enter` start state before we remove it.
-  void fan.offsetHeight;
-  requestAnimationFrame(() => els.forEach((el) => el.classList.remove('enter')));
+  for (const el of els) fan.appendChild(el);
+  setDistances();
+  markActive();
+  if (data.animate === 'in' && !wasOpen) {
+    // Register the folded start state before releasing the deploy.
+    void fan.offsetHeight;
+    requestAnimationFrame(() => body.classList.add('open'));
+  } else {
+    body.classList.add('open');
+  }
+});
+
+window.bubbleApi.onActive((href) => { activeHref = href; markActive(); });
+
+// ---- "A message landed" ----------------------------------------------------------------------
+let landedTimer;
+let landedHref = null;
+window.bubbleApi.onLanded((item) => {
+  landedHref = item.href;
+  fillAvatar(landedAv, item);
+  landedName.textContent = item.name;
+  landedSub.textContent = item.preview || 'New message';
+  body.classList.add('landed');
+  clearTimeout(landedTimer);
+  landedTimer = setTimeout(() => body.classList.remove('landed'), 4000);
+});
+// Clicking the banner opens that conversation. It lives inside the disc, so stop the press
+// from starting a drag and the release from counting as a disc click.
+landed.addEventListener('mousedown', (e) => e.stopPropagation());
+// Hovering holds the banner open; it folds shortly after the cursor leaves.
+landed.addEventListener('mouseenter', () => clearTimeout(landedTimer));
+landed.addEventListener('mouseleave', () => {
+  clearTimeout(landedTimer);
+  landedTimer = setTimeout(() => body.classList.remove('landed'), 1500);
+});
+landed.addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (!landedHref) return;
+  body.classList.remove('landed');
+  clearTimeout(landedTimer);
+  window.bubbleApi.openChat(landedHref);
 });

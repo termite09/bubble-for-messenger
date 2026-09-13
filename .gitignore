@@ -5,5 +5,10 @@ dist/
 *.dmg
 *.zip
 .env
-package-lock.json
 RELEASE_INSTRUCTIONS.md
+.codex/
+.cursor/
+.impeccable/hook.cache.json
+.impeccable/config.local.json
+.impeccable/review/
+.impeccable/questions/

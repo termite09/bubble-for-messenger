@@ -1,19 +1,18 @@
 const { BrowserWindow, shell, screen } = require('electron');
-const path = require('path');
 const { panelPosition } = require('./lib/layout');
 const { unreadFromTitle } = require('./lib/unread');
 const { isInternal, staysInPanel, browserUrl } = require('./lib/links');
 const scrape = require('./scrape');
 
-const BLUR_GUARD_MS = 200;
-
-function createPanel({ onUnread }) {
+// `onShown` fires once the panel is actually visible to the user (not merely staged at opacity
+// 0), so the bubble can dock the open chat's avatar beside it at the right moment.
+function createPanel({ onUnread, onShown = () => {} }) {
+  // Transparent so the page can draw its own card silhouette (scrape.FRAME_CSS: 16px corners and
+  // a hairline) instead of the square window edge; macOS casts a shadow that follows the shape.
   const win = new BrowserWindow({
-    width: 420, height: 640, minWidth: 360, minHeight: 480,
-    show: false, frame: false, alwaysOnTop: true, skipTaskbar: true,
-    roundedCorners: true,
+    width: 420, height: 640, resizable: false,
+    show: false, frame: false, transparent: true, alwaysOnTop: true, skipTaskbar: true,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
     },
@@ -22,15 +21,14 @@ function createPanel({ onUnread }) {
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   win.loadURL('https://www.messenger.com');
 
-  let lastBlur = 0;
-  win.on('blur', () => {
-    lastBlur = Date.now();
-    win.hide();
-  });
+  win.on('blur', () => win.hide());
 
-  // Re-apply compact styling after any navigation (a full reload drops injected CSS).
+  // Re-apply the frame and compact styling after any navigation (a full reload drops injected CSS).
   let compact = false;
-  win.webContents.on('did-finish-load', () => scrape.setCompact(win.webContents, compact));
+  win.webContents.on('did-finish-load', () => {
+    scrape.setFrame(win.webContents, true);
+    scrape.setCompact(win.webContents, compact);
+  });
 
   win.webContents.on('page-title-updated', (_event, title) => onUnread(unreadFromTitle(title)));
 
@@ -65,14 +63,52 @@ function createPanel({ onUnread }) {
     win.setPosition(x, y);
   }
 
+  function reveal() {
+    win.setOpacity(1);
+    win.show();
+    win.focus();
+    onShown();
+  }
+
+  // Opens are serialised: a second fan click while one is still staging would otherwise
+  // interleave its reload / row-click with the first. The chain never rejects.
+  let queue = Promise.resolve();
+  const enqueue = (fn) => (queue = queue.then(fn).catch(() => {}));
+
+  async function stageThread(href, bubbleBounds) {
+    compact = true;
+    resize('compact');
+    // Stage the reload + row click invisibly (opacity 0 but rendered, so the click still
+    // dispatches), then reveal only once the conversation is showing — the list is never seen.
+    win.setOpacity(0);
+    place(bubbleBounds);
+    win.showInactive();
+    try {
+      await scrape.setCompact(win.webContents, true);
+      await scrape.openThread(win.webContents, href);
+      await scrape.setCompact(win.webContents, true);
+    } finally {
+      // Whatever happened, never leave the panel staged: an invisible window still swallows
+      // the clicks meant for whatever is underneath it.
+      place(bubbleBounds);
+      reveal();
+    }
+  }
+
+  async function stageInbox(bubbleBounds) {
+    compact = false;
+    await scrape.setCompact(win.webContents, false);
+    resize('full');
+    await scrape.openInbox(win.webContents);
+    api.showAt(bubbleBounds);
+  }
+
   const api = {
     win,
     isVisible: () => win.isVisible(),
     showAt(bubbleBounds) {
       place(bubbleBounds);
-      win.setOpacity(1);
-      win.show();
-      win.focus();
+      reveal();
     },
     hide() {
       win.hide();
@@ -85,35 +121,8 @@ function createPanel({ onUnread }) {
     },
     readRecentChats: () => scrape.readRecentChats(win.webContents),
     session: () => win.webContents.session,
-    async openThread(href, bubbleBounds) {
-      compact = true;
-      resize('compact');
-      // Stage the reload + row click invisibly (opacity 0 but rendered, so the click still
-      // dispatches), then reveal only once the conversation is showing — the list is never seen.
-      win.setOpacity(0);
-      place(bubbleBounds);
-      win.showInactive();
-      await scrape.setCompact(win.webContents, true);
-      await scrape.openThread(win.webContents, href);
-      await scrape.setCompact(win.webContents, true);
-      place(bubbleBounds);
-      win.setOpacity(1);
-      win.show();
-      win.focus();
-    },
-    async openInbox(bubbleBounds) {
-      compact = false;
-      await scrape.setCompact(win.webContents, false);
-      resize('full');
-      await scrape.openInbox(win.webContents);
-      api.showAt(bubbleBounds);
-    },
-    toggle(bubbleBounds) {
-      // A bubble click that just blurred (and hid) the panel must not reopen it.
-      if (Date.now() - lastBlur < BLUR_GUARD_MS) return;
-      if (win.isVisible()) api.hide();
-      else api.showAt(bubbleBounds);
-    },
+    openThread: (href, bubbleBounds) => enqueue(() => stageThread(href, bubbleBounds)),
+    openInbox: (bubbleBounds) => enqueue(() => stageInbox(bubbleBounds)),
   };
   return api;
 }
