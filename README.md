@@ -13,12 +13,18 @@ build from source (below).
 **With Homebrew:**
 
 ```bash
-brew install --cask --no-quarantine termite09/tap/bubble-for-messenger
+brew install --cask termite09/tap/bubble-for-messenger
 ```
 
-`--no-quarantine` is needed because the app is not signed with an Apple developer certificate
-(see step 3 below for what happens without it). Update later with `brew upgrade --cask
-bubble-for-messenger`.
+Because the app is not signed with an Apple developer certificate, macOS may still block the
+first launch. If that happens, right-click the app in Applications → Open → Open, or clear the
+quarantine flag once in Terminal with:
+
+```bash
+xattr -d com.apple.quarantine /Applications/Bubble.app
+```
+
+Update later with `brew upgrade --cask bubble-for-messenger`.
 
 **By hand:**
 
