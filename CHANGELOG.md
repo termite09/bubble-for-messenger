@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Added
+- Reply from the banner: when a message lands, the ↩ at the banner's end opens a reply field.
+  Enter sends it through the hidden Messenger page; Esc or clicking elsewhere cancels. If the
+  send can't complete, the conversation opens with your text in the composer.
+
 ### Changed
 - Messenger is kept live while hidden: the page is no longer background-throttled, reloads
   after the Mac wakes from sleep and every quarter hour in the background (never while the

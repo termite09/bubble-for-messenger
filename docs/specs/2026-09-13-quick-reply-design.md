@@ -39,14 +39,23 @@ click mid-send cannot interleave. The send runs in `scrape.sendReply(wc, href, t
    events do not dispatch to a hidden window), remembering that it was hidden. If visible, it
    simply switches thread in view.
 2. **Thread.** Reuse `openThread` (trusted click on the list row, reload fallback). Then poll.
-3. **Composer.** `[role="main"] [contenteditable="true"][role="textbox"]`, visible. If it already
-   holds text, stop: a notification reply is never merged into a draft the user wrote.
-4. **Insert.** Focus the composer, `document.execCommand('insertText', false, text)`, then verify
-   the composer's text contains the reply.
-5. **Send.** Click Messenger's own Send button (`[role="main"]` button whose aria-label contains
-   "send", case-insensitive). Success is the composer becoming empty.
-6. **Stops.** At any step: the page no longer being on the target thread, the composer
-   disappearing, the draft not matching after insert, or a 12 s budget expiring, is a failure.
+3. **Composer.** `[role="main"] [contenteditable="true"][role="textbox"]` — and it must be *in
+   front*: not `visibility:hidden`, and the element under its own centre. At the panel's width
+   the thread pane sits behind the list with its composer rendered but hidden, and a hidden
+   composer takes neither focus nor text. If it already holds text, stop: a notification reply
+   is never merged into a draft the user wrote.
+4. **Insert.** Focus the composer in the page (verify it became `document.activeElement`), then
+   type the text from the main process as trusted `char` input events. Messenger's editor
+   ignores `execCommand('insertText')` and synthetic paste; only trusted key input reaches it.
+   Then verify the composer's text contains the reply (the editor reconciles a tick later; wait
+   for it within the budget).
+5. **Send.** A trusted Enter (`keyDown`/`keyUp`) into the focused composer — what the user would
+   press. Not a Send button: its label is localised and shares its wording with "Send a like" /
+   "Send a voice clip" / "Send a 🌙". Enter is only sent while the composer is the active
+   element and the draft matches. Success is the composer becoming empty.
+6. **Stops.** At any step: the page no longer being on the target thread, the composer no longer
+   in front, the composer losing focus after the draft is in, or a 12 s budget expiring, is a
+   failure.
 7. **Unstage.** In `finally`: if the panel was hidden before, hide it again — the list is never
    seen. Restore compact mode as `stageThread` would leave it.
 
@@ -56,13 +65,15 @@ The decision logic is a pure state machine in `src/lib/reply.js`:
 decideReply(phase, snapshot, expired) -> { action, phase }
   phases:  waiting -> inserted -> confirming
   snapshot: { onThread, composerReady, composerEmpty, draftMatches, sendAvailable }
+            (sendAvailable = the composer is document.activeElement)
   actions:  wait | insert | send | success | failure
 ```
 
 - `waiting`: expired → failure; not onThread or no composer → wait; composer not empty →
   failure; else insert (→ `inserted`).
 - `inserted` / `confirming`: not onThread or no composer → failure.
-- `inserted`: draft not matching or no send button → failure; else send (→ `confirming`).
+- `inserted`: draft not matching → wait (failure once expired); draft there but composer not
+  focused → failure; else send (→ `confirming`).
 - `confirming`: composer empty → success; expired → failure; else wait.
 
 `validReply(href, text)` covers the limits. Both are unit-tested; the DOM loop in `scrape.js`

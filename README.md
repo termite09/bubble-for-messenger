@@ -30,6 +30,9 @@ if you want your login gone too, `~/Library/Application Support/Bubble for Messe
   side and its position is remembered. A blue count shows total unread.
 - **A message lands** — the disc unrolls into a banner (avatar, name, first line) for four
   seconds, then folds back.
+- **Reply right there** — the ↩ at the end of the banner opens a reply field. Type, press Enter,
+  and it's sent without opening the panel; Esc cancels. The bubble only takes the keyboard while
+  that field is open.
 - **Click the bubble** to deploy a stack of your five most recent chats as round heads, newest
   at the top (hover for the name; a blue dot means unread), plus a paper *Open Messenger* head
   for the full inbox. Pick one and that conversation opens in a compact sheet beside the stack;
