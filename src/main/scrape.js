@@ -1,4 +1,5 @@
 const { normalizeRows, spanText, listAtTop, LIMIT } = require('../lib/recent');
+const { decideReply, REPLY_BUDGET_MS, REPLY_POLL_MS } = require('../lib/reply');
 
 // Runs inside messenger.com. Reads the first rows of the chat list. Messenger renders each
 // conversation as [role="row"] containing a link to /t/<id>/ (or /e2ee/t/<id>/), the avatar
@@ -182,6 +183,68 @@ async function openThread(wc, href) {
   if (point) { click(wc, point); await waitForThread(wc); }
 }
 
+// Page-side halves of a quick reply. Kept as replaceable actions so the delivery loop can be
+// driven by a scripted page in tests, and so a live check can run everything but the Send.
+const COMPOSER = '[role="main"] [contenteditable="true"][role="textbox"]';
+const SEND_BUTTONS = '[role="main"] [role="button"], [role="main"] button';
+const replyActions = {
+  // What the loop needs to know this instant. `href` is a validated thread path.
+  snapshot: (wc, href, text) => wc.executeJavaScript(`(() => {
+    const box = [...document.querySelectorAll(${JSON.stringify(COMPOSER)})].find((el) => el.getBoundingClientRect().height > 0) || null;
+    const content = box ? (box.textContent || '') : '';
+    const send = [...document.querySelectorAll(${JSON.stringify(SEND_BUTTONS)})]
+      .find((b) => /send/i.test(b.getAttribute('aria-label') || '') && b.getBoundingClientRect().height > 0) || null;
+    const want = ${JSON.stringify(href)}.replace(/\\/$/, '');
+    return {
+      onThread: location.pathname.replace(/\\/$/, '') === want,
+      composerReady: !!box,
+      composerEmpty: !content.trim(),
+      draftMatches: content.includes(${JSON.stringify(text)}),
+      sendAvailable: !!send,
+    };
+  })()`, true).catch(() => null),
+  // insertText goes through the editor's own input pipeline, so the draft is real to Messenger.
+  insert: (wc, text) => wc.executeJavaScript(`(() => {
+    const box = [...document.querySelectorAll(${JSON.stringify(COMPOSER)})].find((el) => el.getBoundingClientRect().height > 0);
+    if (!box) return false;
+    box.focus();
+    return document.execCommand('insertText', false, ${JSON.stringify(text)});
+  })()`, true).catch(() => false),
+  send: (wc) => wc.executeJavaScript(`(() => {
+    const b = [...document.querySelectorAll(${JSON.stringify(SEND_BUTTONS)})]
+      .find((b) => /send/i.test(b.getAttribute('aria-label') || '') && b.getBoundingClientRect().height > 0);
+    if (!b) return false;
+    b.click();
+    return true;
+  })()`, true).catch(() => false),
+};
+
+// Put `text` in the thread's composer and send it, polling the page into the reply state
+// machine until it reports success or failure. Assumes the page is already being put on the
+// thread (sendReply does that). Never sends anywhere but the target thread.
+async function deliverReply(wc, href, text, { actions = replyActions, now = Date.now, wait = delay } = {}) {
+  const deadline = now() + REPLY_BUDGET_MS;
+  let phase = 'waiting';
+  for (;;) {
+    const snapshot = await actions.snapshot(wc, href, text);
+    if (!snapshot) return false;
+    const decision = decideReply(phase, snapshot, now() >= deadline);
+    phase = decision.phase;
+    switch (decision.action) {
+      case 'wait': await wait(REPLY_POLL_MS); break;
+      case 'insert': if (!await actions.insert(wc, text)) return false; break;
+      case 'send': if (!await actions.send(wc)) return false; await wait(REPLY_POLL_MS); break;
+      case 'success': return true;
+      default: return false;
+    }
+  }
+}
+
+async function sendReply(wc, href, text) {
+  await openThread(wc, href);
+  return deliverReply(wc, href, text);
+}
+
 // Compact mode strips Messenger down to just the open thread: hide the left icon rail, the
 // per-thread voice/video/info buttons, and the Back arrow (navigation is via the fan, and the
 // list it returns to is not part of this view). The conversation-list column is deliberately
@@ -269,4 +332,4 @@ function openInbox(wc) {
   })()`, true).catch(() => {});
 }
 
-module.exports = { readRecentChats, openThread, openInbox, setCompact, setFrame, RECENT_CHATS_SCRIPT, FRAME_CSS };
+module.exports = { readRecentChats, openThread, openInbox, setCompact, setFrame, sendReply, deliverReply, replyActions, RECENT_CHATS_SCRIPT, FRAME_CSS };

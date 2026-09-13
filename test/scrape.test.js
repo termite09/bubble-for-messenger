@@ -24,3 +24,50 @@ test('the page script carries the emoji and scroll helpers', () => {
   assert.match(RECENT_CHATS_SCRIPT, /function listAtTop\(/);
 });
 
+const { deliverReply } = require('../src/main/scrape');
+
+// Drive deliverReply with a scripted page: each snapshot is what the page reports on one poll.
+function scripted(snapshots, { insertOk = true } = {}) {
+  const log = [];
+  let i = 0;
+  const actions = {
+    snapshot: async () => snapshots[Math.min(i++, snapshots.length - 1)],
+    insert: async (_wc, text) => { log.push('insert:' + text); return insertOk; },
+    send: async () => { log.push('send'); return true; },
+  };
+  let t = 0;
+  const deps = { actions, now: () => t, wait: async () => { t += 250; } };
+  return { deps, log };
+}
+const snap = (o) => ({ onThread: true, composerReady: true, composerEmpty: true, draftMatches: false, sendAvailable: false, ...o });
+
+test('deliverReply inserts, sends, and succeeds when the composer empties', async () => {
+  const { deps, log } = scripted([
+    snap({ onThread: false }),                                               // still switching thread
+    snap(),                                                                  // ready: insert
+    snap({ composerEmpty: false, draftMatches: true, sendAvailable: true }), // draft landed: send
+    snap({ composerEmpty: false, draftMatches: true }),                      // sending
+    snap(),                                                                  // sent
+  ]);
+  assert.equal(await deliverReply({}, '/t/1/', 'hi', deps), true);
+  assert.deepEqual(log, ['insert:hi', 'send']);
+});
+
+test('deliverReply refuses to touch a composer that holds a draft', async () => {
+  const { deps, log } = scripted([snap({ composerEmpty: false })]);
+  assert.equal(await deliverReply({}, '/t/1/', 'hi', deps), false);
+  assert.deepEqual(log, []);
+});
+
+test('deliverReply fails when the draft never appears or insert is rejected', async () => {
+  const rejected = scripted([snap()], { insertOk: false });
+  assert.equal(await deliverReply({}, '/t/1/', 'hi', rejected.deps), false);
+  const vanished = scripted([snap(), snap({ composerEmpty: false, draftMatches: false, sendAvailable: true })]);
+  assert.equal(await deliverReply({}, '/t/1/', 'hi', vanished.deps), false);
+  assert.deepEqual(vanished.log, ['insert:hi']);
+});
+
+test('deliverReply gives up after the budget', async () => {
+  const { deps } = scripted([snap({ onThread: false })]);
+  assert.equal(await deliverReply({}, '/t/1/', 'hi', deps), false);
+});
