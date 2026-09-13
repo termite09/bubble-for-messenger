@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+- Messenger is kept live while hidden: the page is no longer background-throttled, reloads
+  after the Mac wakes from sleep and every quarter hour in the background (never while the
+  panel is showing), and Facebook's static error page is retried with backoff.
+- Facebook's logging beacons (Banzai, Quick Metrics, Pixel, error reporting) are cancelled at
+  the network layer. Nothing Messenger needs to work is touched.
+- Tracking redirects via `lm.facebook.com` and `facebook.com/l.php` are unwrapped before a link
+  opens in the browser, like `l.messenger.com` / `l.facebook.com` already were.
+
+### Fixed
+- Emoji in chat previews were dropped ("Kim: 😢" read "Kim:"; an emoji-only message had no
+  preview): Messenger draws them as sprite images, which are now read back as their glyph.
+- After scrolling the inbox in the panel, the fan and the landed banner could show whatever rows
+  happened to be on screen as "most recent". The list is virtualised; it is now only read while
+  scrolled to the top, and the last known chats are kept otherwise.
+
+---
+
 ## v2.0.2 (2026-09-13) — Bubble for Messenger
 
 ### Fixed

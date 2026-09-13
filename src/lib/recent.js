@@ -5,6 +5,24 @@ const THREAD_HREF = /^\/(e2ee\/)?t\/\d+\/?$/;
 // page-side selector or a URL, so anything else is refused at the boundary.
 const isThreadHref = (href) => typeof href === 'string' && THREAD_HREF.test(href);
 
+// The text of a chat-list span with Messenger's emoji put back. Messenger draws emoji as sprite
+// <img>s (alt = the glyph) or background-image spans (aria-label = the glyph); textContent drops
+// both, so "Kim: 😢" would read "Kim:" and an emoji-only message would have no preview at all.
+// Self-contained (no closures) because it is also serialised into the page — see scrape.js.
+function spanText(node) {
+  if (!node) return '';
+  if (node.nodeType === 3) return node.nodeValue || '';
+  if (node.nodeType !== 1) return '';
+  // A glyph is short and starts with a pictograph; anything wordier is a label, not an emoji.
+  const glyph = (v) => (v && v.length <= 24 && /^\p{Extended_Pictographic}/u.test(v.trim()) ? v.trim() : '');
+  if (node.tagName === 'IMG') {
+    return /emoji/i.test(node.getAttribute('src') || '') ? glyph(node.getAttribute('alt')) : '';
+  }
+  let out = '';
+  for (const child of Array.from(node.childNodes || [])) out += spanText(child);
+  return out || glyph(node.getAttribute('aria-label'));
+}
+
 // Clean up the raw rows scraped from messenger.com's chat list into what the bubble renders.
 function normalizeRows(raw) {
   if (!Array.isArray(raw)) return [];
@@ -16,9 +34,9 @@ function normalizeRows(raw) {
     const name = typeof r.name === 'string' ? r.name.trim() : '';
     if (!isThreadHref(href) || !name || seen.has(href)) continue;
     seen.add(href);
-    // A preview with no letter or digit (Messenger's "·" separator, a lone emoji) is no preview.
+    // A preview needs a letter, digit or emoji; Messenger's lone "·" separator is no preview.
     const rawPreview = typeof r.preview === 'string' ? r.preview.trim() : '';
-    const preview = /[\p{L}\p{N}]/u.test(rawPreview) ? rawPreview : '';
+    const preview = /[\p{L}\p{N}\p{Extended_Pictographic}]/u.test(rawPreview) ? rawPreview : '';
     // A time stamp is short ("2m", "1h", "Yesterday"); anything longer is some other span.
     const time = typeof r.time === 'string' && r.time.trim().length <= 9 ? r.time.trim() : '';
     out.push({ href, name, avatarUrl: typeof r.avatarUrl === 'string' ? r.avatarUrl : null, unread: Boolean(r.unread), preview, time });
@@ -27,4 +45,16 @@ function normalizeRows(raw) {
   return out;
 }
 
-module.exports = { normalizeRows, isThreadHref, LIMIT };
+// Whether the chat list is scrolled to its top. The list is virtualised, so once the user has
+// scrolled it the rows in the DOM are whatever is on screen, not the most recent chats — a read
+// taken then would be wrong, and worse, would announce old chats as newly landed. Walks up from
+// a row to the first overflowing ancestor (stopping at `root`); no such ancestor means nothing
+// has scrolled. Self-contained (no closures) because it is also serialised into the page.
+function listAtTop(row, root) {
+  for (let el = row && row.parentElement; el && el !== root; el = el.parentElement) {
+    if (el.scrollHeight > el.clientHeight + 16) return el.scrollTop <= 8;
+  }
+  return true;
+}
+
+module.exports = { normalizeRows, isThreadHref, spanText, listAtTop, LIMIT };

@@ -1,8 +1,11 @@
-const { BrowserWindow, shell, screen } = require('electron');
+const { BrowserWindow, shell, screen, powerMonitor } = require('electron');
 const { panelPosition } = require('../lib/layout');
 const { unreadFromTitle } = require('../lib/unread');
 const { isInternal, staysInPanel, browserUrl } = require('../lib/links');
+const { shouldRefresh, looksLikeErrorPage, errorRetryDelay } = require('../lib/refresh');
 const scrape = require('./scrape');
+
+const REFRESH_TICK_MS = 60 * 1000;
 
 // `onShown` fires once the panel is actually visible to the user (not merely staged at opacity
 // 0), so the bubble can dock the open chat's avatar beside it at the right moment.
@@ -15,6 +18,8 @@ function createPanel({ onUnread, onShown = () => {} }) {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
+      // The page spends its life hidden; throttled timers would let its live connection lapse.
+      backgroundThrottling: false,
     },
   });
   win.setAlwaysOnTop(true, 'floating');
@@ -28,6 +33,29 @@ function createPanel({ onUnread, onShown = () => {} }) {
   win.webContents.on('did-finish-load', () => {
     scrape.setFrame(win.webContents, true);
     scrape.setCompact(win.webContents, compact);
+  });
+
+  // Keep the hidden page live: reload it after the Mac wakes and every quarter hour in the
+  // background (never while it is showing), and retry Facebook's static error page with backoff.
+  let loadedAt = Date.now();
+  let resumed = false;
+  let errorRetries = 0;
+  let errorTimer = null;
+  powerMonitor.on('resume', () => { resumed = true; });
+  setInterval(() => {
+    if (!shouldRefresh({ visible: win.isVisible(), loadedAt, now: Date.now(), resumed })) return;
+    resumed = false;
+    win.webContents.reload();
+  }, REFRESH_TICK_MS);
+  win.webContents.on('did-finish-load', async () => {
+    loadedAt = Date.now();
+    clearTimeout(errorTimer);
+    const doc = await win.webContents.executeJavaScript(`({
+      elementCount: document.getElementsByTagName('*').length,
+      interstitial: !!document.querySelector('.uiInterstitial, #back, #icon'),
+    })`, true).catch(() => null);
+    if (!looksLikeErrorPage(doc)) { errorRetries = 0; return; }
+    errorTimer = setTimeout(() => win.webContents.reload(), errorRetryDelay(errorRetries++));
   });
 
   win.webContents.on('page-title-updated', (_event, title) => onUnread(unreadFromTitle(title)));

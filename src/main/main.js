@@ -7,6 +7,7 @@ const { createDismissTarget } = require('./dismiss');
 const { fetchAvatar } = require('./avatars');
 const { LIMIT: RECENT_LIMIT } = require('../lib/recent');
 const { isMetaHost } = require('../lib/links');
+const { isTelemetryUrl } = require('../lib/telemetry');
 const { removeStaleLockFiles } = require('../lib/storage');
 
 const RECENT_POLL_MS = 5000;
@@ -50,6 +51,7 @@ let seeded = false; // the first read establishes state; it never announces anyt
 async function refreshRecent() {
   if (!bubble || !panel) return;
   const rows = await panel.readRecentChats();
+  if (!rows) return; // the list is scrolled: keep what we last knew rather than read the wrong rows
   const ses = panel.session();
   const next = await Promise.all(rows.map(async (r) => ({
     href: r.href, name: r.name, unread: r.unread, preview: r.preview, time: r.time, avatar: await fetchAvatar(ses, r.avatarUrl),
@@ -101,6 +103,15 @@ function restrictPermissions() {
   });
   session.defaultSession.setPermissionCheckHandler((wc, permission, origin) =>
     allowed(origin) && GRANTED_PERMISSIONS.has(permission));
+}
+
+// Drop Facebook's logging beacons at the network layer. Only the pure telemetry sinks listed in
+// lib/telemetry are cancelled; everything Messenger needs to work passes untouched.
+function blockTelemetry() {
+  session.defaultSession.webRequest.onBeforeRequest(
+    { urls: ['*://*.facebook.com/*', '*://*.messenger.com/*'] },
+    (details, callback) => callback({ cancel: isTelemetryUrl(details.url) }),
+  );
 }
 
 const runInPanel = (js) => panel && panel.win.webContents.executeJavaScript(js).catch(() => {});
@@ -210,6 +221,7 @@ app.whenReady().then(() => {
   createMenu();
   persistFacebookCookies();
   restrictPermissions();
+  blockTelemetry();
 
   // The open conversation's banner reads as active in the stack.
   const syncActive = () => bubble && bubble.setActive(activeHref);

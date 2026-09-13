@@ -19,6 +19,19 @@ test('browserUrl unwraps the link shim', () => {
   assert.equal(browserUrl('https://l.facebook.com/l.php?u=http%3A%2F%2Fexample.com'), 'http://example.com/');
 });
 
+test('browserUrl unwraps the mobile shim and the bare facebook.com/l.php form', () => {
+  assert.equal(browserUrl('https://lm.facebook.com/l.php?u=https%3A%2F%2Fexample.com%2F'), 'https://example.com/');
+  assert.equal(browserUrl('https://www.facebook.com/l.php?u=https%3A%2F%2Fexample.com%2F&h=x'), 'https://example.com/');
+  assert.equal(browserUrl('https://facebook.com/l.php?u=https%3A%2F%2Fexample.com%2F'), 'https://example.com/');
+  // Only that exact path is a shim; anything else on facebook.com is a page of its own.
+  assert.equal(browserUrl('https://www.facebook.com/lol.php?u=https%3A%2F%2Fexample.com%2F'), 'https://www.facebook.com/lol.php?u=https%3A%2F%2Fexample.com%2F');
+});
+
+test('the mobile shim and facebook.com/l.php never stay in the panel', () => {
+  assert.equal(staysInPanel('https://lm.facebook.com/l.php?u=https%3A%2F%2Fexample.com'), false);
+  assert.equal(staysInPanel('https://www.facebook.com/l.php?u=https%3A%2F%2Fexample.com'), false);
+});
+
 test('browserUrl passes plain http(s) links through', () => {
   assert.equal(browserUrl('https://example.com/page'), 'https://example.com/page');
 });

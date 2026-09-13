@@ -1,15 +1,19 @@
-const { normalizeRows, LIMIT } = require('../lib/recent');
+const { normalizeRows, spanText, listAtTop, LIMIT } = require('../lib/recent');
 
 // Runs inside messenger.com. Reads the first rows of the chat list. Messenger renders each
 // conversation as [role="row"] containing a link to /t/<id>/ (or /e2ee/t/<id>/), the avatar
-// <img> and name/preview spans; unread rows are drawn in bold.
+// <img> and name/preview spans; unread rows are drawn in bold. Returns null (not a list) when
+// the list has been scrolled: it is virtualised, so its DOM rows are then not the most recent.
 const RECENT_CHATS_SCRIPT = `(() => {
+  const spanText = ${spanText.toString()};
+  const listAtTop = ${listAtTop.toString()};
   const out = [];
   for (const row of document.querySelectorAll('[role="row"]')) {
     const link = row.querySelector('a[role="link"][href*="/t/"]');
     if (!link) continue;
+    if (!out.length && !listAtTop(row, document.body)) return null;
     const img = row.querySelector('img');
-    const spans = [...row.querySelectorAll('span[dir="auto"]')].map((s) => s.textContent.trim()).filter(Boolean);
+    const spans = [...row.querySelectorAll('span[dir="auto"]')].map((s) => spanText(s).trim()).filter(Boolean);
     const unread = [...row.querySelectorAll('span')].some((s) => parseInt(getComputedStyle(s).fontWeight, 10) >= 600);
     const name = (img && img.alt) || spans[0] || '';
     // After the name come the last-message preview and a short time stamp ("2m", "Yesterday").
@@ -34,10 +38,12 @@ const RECENT_CHATS_SCRIPT = `(() => {
 
 const onMessenger = (wc) => /^https:\/\/(www\.)?messenger\.com\//.test(wc.getURL());
 
+// The chat list, or null when the page's rows can't be trusted right now (see the script).
 async function readRecentChats(wc) {
   if (!onMessenger(wc)) return [];
   try {
-    return normalizeRows(await wc.executeJavaScript(RECENT_CHATS_SCRIPT, true));
+    const raw = await wc.executeJavaScript(RECENT_CHATS_SCRIPT, true);
+    return raw === null ? null : normalizeRows(raw);
   } catch (e) {
     return [];
   }

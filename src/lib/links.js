@@ -1,4 +1,4 @@
-const REDIRECT_HOSTS = ['l.messenger.com', 'l.facebook.com'];
+const REDIRECT_HOSTS = ['l.messenger.com', 'l.facebook.com', 'lm.facebook.com'];
 
 function parseUrl(url) {
   try {
@@ -17,28 +17,38 @@ function hostOf(url) {
 
 const onDomain = (host, domain) => host === domain || host.endsWith('.' + domain);
 
+// Meta wraps outbound links in a tracking redirect: the l.* / lm.* shim hosts, or /l.php on
+// facebook.com itself. Only the exact /l.php path counts there; the rest of facebook.com is pages.
+function isRedirect(u) {
+  const host = u.hostname.toLowerCase();
+  return REDIRECT_HOSTS.includes(host) ||
+    ((host === 'facebook.com' || host === 'www.facebook.com') && u.pathname === '/l.php');
+}
+
 // True for a cookie/permission origin on Meta's own domains (suffix match, never substring).
 const isMetaHost = (host) => typeof host === 'string' &&
   ['messenger.com', 'facebook.com'].some((d) => onDomain(host.toLowerCase().replace(/^\./, ''), d));
 
 // messenger.com pages stay in the panel; everything else (incl. its l.* link-shim) is external.
 function isInternal(url) {
+  const u = parseUrl(url);
   const host = hostOf(url);
-  return Boolean(host) && onDomain(host, 'messenger.com') && !REDIRECT_HOSTS.includes(host);
+  return Boolean(host) && onDomain(host, 'messenger.com') && !isRedirect(u);
 }
 
 // Main-frame navigations the panel may follow. Meta's login, 2FA and "security check" pages
 // live on facebook.com and redirect client-side, so cancelling them strands the login.
 function staysInPanel(url) {
+  const u = parseUrl(url);
   const host = hostOf(url);
-  return isInternal(url) || (Boolean(host) && onDomain(host, 'facebook.com') && !REDIRECT_HOSTS.includes(host));
+  return isInternal(url) || (Boolean(host) && onDomain(host, 'facebook.com') && !isRedirect(u));
 }
 
 // Resolve a link to the http(s) URL that should open in the default browser, or null.
-// l.messenger.com / l.facebook.com wrap outbound links in ?u=; unwrap them first.
+// The tracking shims carry the real destination in ?u=; unwrap them first.
 function browserUrl(url) {
   let u = parseUrl(url);
-  if (u && REDIRECT_HOSTS.includes(u.hostname.toLowerCase())) u = parseUrl(u.searchParams.get('u'));
+  if (u && isRedirect(u)) u = parseUrl(u.searchParams.get('u'));
   return isWebUrl(u) ? u.toString() : null;
 }
 
