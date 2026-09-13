@@ -2,6 +2,7 @@ const { BrowserWindow, ipcMain, screen } = require('electron');
 const path = require('path');
 const { isClick, clampToArea, fanLayout, windowFrame, snapToEdge, EDGE_MARGIN } = require('../lib/layout');
 const { isThreadHref } = require('../lib/recent');
+const { validReply } = require('../lib/reply');
 
 const RENDERER = path.join(__dirname, '..', 'renderer');
 
@@ -17,7 +18,7 @@ function defaultPosition() {
 // padding (room for shadows and the count pill) plus whatever is showing: the banner stack above
 // or below the disc, the "message landed" banner, and the docked avatar beside an open panel.
 // Clicks fall through the padding: the renderer reports when the cursor is over a card.
-function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onOpenChat, onOpenInbox, onDismiss, dismiss }) {
+function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onOpenChat, onOpenInbox, onDismiss, onReply, dismiss }) {
   const start = position || defaultPosition();
   const anchor = clampToArea({ ...start, width: SIZE, height: SIZE }, screen.getDisplayNearestPoint(start).workArea);
 
@@ -220,6 +221,17 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onOp
     if (!owns(e)) return;
     win.setIgnoreMouseEvents(!over, { forward: true });
   });
+  // The window is non-focusable so it never takes the keyboard from the user's work. The reply
+  // field is the one exception: focus is lent when it opens and taken back when it closes.
+  ipcMain.on('bubble:reply-focus', (e, on) => {
+    if (!owns(e)) return;
+    win.setFocusable(Boolean(on));
+    if (on) win.focus();
+  });
+  ipcMain.on('bubble:reply', (e, href, text) => {
+    if (!owns(e) || !validReply(href, text)) return;
+    onReply(href, text.trim());
+  });
 
   return {
     win,
@@ -238,6 +250,7 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onOp
     setActive: (href) => win.webContents.send('bubble:active', href),
     // A message just arrived for `item`: unroll its banner out of the disc for a moment.
     landed: (item) => win.webContents.send('bubble:landed', item),
+    replyResult: (ok) => win.webContents.send('bubble:reply-result', Boolean(ok)),
     resetPosition: () => {
       stopSnap();
       collapse();
