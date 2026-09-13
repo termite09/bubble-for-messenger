@@ -1,5 +1,16 @@
 # Changelog
 
+## v2.0.2 (2026-09-13) — Bubble for Messenger
+
+### Fixed
+- The panel showed nothing when not logged in, so a fresh install had no way to sign in. The
+  rounded-corner clip on the page used `<html>`'s own box as its shape, and on messenger.com's
+  login page that box is 0 px tall (the page is entirely positioned content), so the whole page
+  was clipped away. The frame now pins `<html>` to the viewport and lets `<body>` scroll, so the
+  clip is always the visible panel — on the login page, the cookie prompt and the app alike.
+
+---
+
 ## v2.0.1 (2026-09-13) — Bubble for Messenger
 
 ### Fixed

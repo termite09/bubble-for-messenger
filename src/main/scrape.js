@@ -234,8 +234,11 @@ const RADIUS = 16;
 const FRAME_CSS = [
   // Both html and body go transparent: a body background would propagate to the canvas, which
   // the clip-path cannot round. The wash is painted instead on a fixed layer under everything.
-  'html{background:transparent!important;clip-path:inset(0 round ' + RADIUS + 'px)}',
-  'body{background:transparent!important}',
+  // The clip box is html's own border box, so html is pinned to the viewport and body does the
+  // scrolling: on the login page html and body are 0px tall (everything on it is positioned),
+  // and an unpinned clip would cut the whole page away — a shown panel with nothing in it.
+  'html{background:transparent!important;height:100%!important;overflow:hidden!important;clip-path:inset(0 round ' + RADIUS + 'px)}',
+  'body{background:transparent!important;height:100%!important;overflow:auto!important;position:relative!important}',
   '#mb-ground{position:fixed;inset:0;z-index:-1;pointer-events:none;background:var(--web-wash,#1a1a1a)}',
   '#mb-frame{position:fixed;inset:0;z-index:2147483647;pointer-events:none;box-sizing:border-box;border-radius:' + RADIUS + 'px;' +
     'border:1px solid rgba(255,255,255,.12)}',
@@ -260,4 +263,4 @@ function openInbox(wc) {
   })()`, true).catch(() => {});
 }
 
-module.exports = { readRecentChats, openThread, openInbox, setCompact, setFrame, RECENT_CHATS_SCRIPT };
+module.exports = { readRecentChats, openThread, openInbox, setCompact, setFrame, RECENT_CHATS_SCRIPT, FRAME_CSS };
