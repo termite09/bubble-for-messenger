@@ -1,22 +1,40 @@
 {
-  "name": "messenger-app",
-  "version": "1.3.0",
-  "description": "Facebook Messenger as a floating chat-head bubble for macOS",
+  "name": "bubble-for-messenger",
+  "version": "2.0.0",
+  "description": "Facebook Messenger as a floating chat head for macOS",
+  "homepage": "https://github.com/termite09/bubble-for-messenger",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/termite09/bubble-for-messenger.git"
+  },
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "test": "node --test",
     "build": "electron-builder --mac"
   },
-  "author": "Termite (fork of stefanminch/messenger-mac)",
+  "author": "Alexandros Christou (fork of stefanminch/messenger-mac)",
   "license": "MIT",
   "devDependencies": {
     "electron": "^33.0.0",
     "electron-builder": "^25.0.0"
   },
   "build": {
-    "appId": "com.termite.messenger-bubble",
-    "productName": "MessengerBubble",
+    "appId": "com.termite09.bubble-for-messenger",
+    "productName": "Bubble",
+    "files": [
+      "main.js",
+      "bubble.js",
+      "panel.js",
+      "dismiss.js",
+      "scrape.js",
+      "avatars.js",
+      "lib/**",
+      "*.html",
+      "*-preload.js",
+      "*-renderer.js",
+      "icon.png"
+    ],
     "mac": {
       "category": "public.app-category.social-networking",
       "icon": "icon.icns",
