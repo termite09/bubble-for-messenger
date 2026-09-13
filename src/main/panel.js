@@ -9,7 +9,7 @@ const REFRESH_TICK_MS = 60 * 1000;
 
 // `onShown` fires once the panel is actually visible to the user (not merely staged at opacity
 // 0), so the bubble can dock the open chat's avatar beside it at the right moment.
-function createPanel({ onUnread, onShown = () => {} }) {
+function createPanel({ onUnread, onShown = () => {}, overFullscreen = true }) {
   // Transparent so the page can draw its own card silhouette (scrape.FRAME_CSS: 16px corners and
   // a hairline) instead of the square window edge; macOS casts a shadow that follows the shape.
   const win = new BrowserWindow({
@@ -23,7 +23,7 @@ function createPanel({ onUnread, onShown = () => {} }) {
     },
   });
   win.setAlwaysOnTop(true, 'floating');
-  win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: overFullscreen });
   win.loadURL('https://www.messenger.com');
 
   win.on('blur', () => win.hide());
@@ -171,7 +171,10 @@ function createPanel({ onUnread, onShown = () => {} }) {
     openInbox: (bubbleBounds) => enqueue(() => stageInbox(bubbleBounds)),
     // Serialised with opens; the queue swallows rejections into undefined, hence `=== true`.
     sendReply: (href, text) => enqueue(() => stageReply(href, text)).then((ok) => ok === true),
-    setOverFullscreen: (on) => win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: on }),
+    setOverFullscreen: (on) => {
+      win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: on });
+      if (on && win.isVisible()) win.show();
+    },
   };
   return api;
 }

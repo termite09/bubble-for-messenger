@@ -15,6 +15,11 @@ const DEFAULTS = Object.freeze({
   blockTelemetry: true,
 });
 
+const GRANTED_PERMISSIONS = new Set(['media', 'clipboard-read', 'clipboard-sanitized-write', 'fullscreen']);
+function isPermissionGranted(permission, settings) {
+  return GRANTED_PERMISSIONS.has(permission) || (permission === 'notifications' && settings.notifications);
+}
+
 const isSettingKey = (key) => typeof key === 'string' && Object.prototype.hasOwnProperty.call(DEFAULTS, key);
 
 function normalizeSettings(raw) {
@@ -29,4 +34,4 @@ function normalizeSettings(raw) {
   return out;
 }
 
-module.exports = { DEFAULTS, THEMES, normalizeSettings, isSettingKey };
+module.exports = { DEFAULTS, THEMES, normalizeSettings, isSettingKey, isPermissionGranted };

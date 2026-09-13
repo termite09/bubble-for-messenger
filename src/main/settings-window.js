@@ -46,7 +46,10 @@ function createSettingsWindow({ getSettings, setSetting, subscribe }) {
     },
     setOverFullscreen(on) {
       overFullscreen = on;
-      if (win) win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: on });
+      if (win) {
+        win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: on });
+        if (on && !win.isVisible()) win.show();
+      }
     },
   };
 }

@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { DEFAULTS, THEMES, normalizeSettings, isSettingKey } = require('../src/lib/settings');
+const { DEFAULTS, THEMES, normalizeSettings, isSettingKey, isPermissionGranted } = require('../src/lib/settings');
 
 test('defaults are what the spec says', () => {
   assert.deepEqual(DEFAULTS, {
@@ -35,4 +35,12 @@ test('isSettingKey knows the ten keys and nothing else', () => {
   assert.equal(isSettingKey('bubble'), false);
   assert.equal(isSettingKey('__proto__'), false);
   assert.equal(isSettingKey(undefined), false);
+});
+
+test('native notification permission is granted only for Meta pages and when the toggle is enabled', () => {
+  assert.equal(isPermissionGranted('notifications', { ...DEFAULTS, notifications: true }), true);
+  assert.equal(isPermissionGranted('notifications', { ...DEFAULTS, notifications: false }), false);
+  assert.equal(isPermissionGranted('media', DEFAULTS), true);
+  assert.equal(isPermissionGranted('clipboard-read', DEFAULTS), true);
+  assert.equal(isPermissionGranted('geolocation', DEFAULTS), false);
 });

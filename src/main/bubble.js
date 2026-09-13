@@ -19,7 +19,7 @@ function defaultPosition() {
 // padding (room for shadows and the count pill) plus whatever is showing: the banner stack above
 // or below the disc, the "message landed" banner, and the docked avatar beside an open panel.
 // Clicks fall through the padding: the renderer reports when the cursor is over a card.
-function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onOpenChat, onOpenInbox, onDismiss, onReply, dismiss }) {
+function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onOpenChat, onOpenInbox, onDismiss, onReply, dismiss, overFullscreen = true }) {
   const start = position || defaultPosition();
   const anchor = clampToArea({ ...start, width: SIZE, height: SIZE }, screen.getDisplayNearestPoint(start).workArea);
 
@@ -34,7 +34,7 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onOp
     },
   });
   win.setAlwaysOnTop(true, 'screen-saver');
-  win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: overFullscreen });
   win.setIgnoreMouseEvents(true, { forward: true });
   win.loadFile(path.join(RENDERER, 'bubble.html'));
   win.once('ready-to-show', () => { win.showInactive(); applyBounds(); });
@@ -51,7 +51,7 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onOp
     webPreferences: { preload: path.join(RENDERER, 'shield-preload.js'), contextIsolation: true, nodeIntegration: false },
   });
   shield.setAlwaysOnTop(true, 'floating');
-  shield.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  shield.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: overFullscreen });
   shield.loadFile(path.join(RENDERER, 'shield.html'));
 
   const bounds = () => ({ x: anchor.x, y: anchor.y, width: SIZE, height: SIZE });
@@ -262,6 +262,11 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onOp
     setOverFullscreen: (on) => {
       win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: on });
       shield.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: on });
+      if (on && !expanded) {
+        win.showInactive();
+      } else if (on && expanded && !shield.isVisible()) {
+        shield.showInactive();
+      }
     },
     setSettings: (s) => { lastSettings = s; win.webContents.send('bubble:settings', s); },
     resetPosition: () => {

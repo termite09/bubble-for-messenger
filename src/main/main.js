@@ -9,7 +9,7 @@ const { fetchAvatar } = require('./avatars');
 const { LIMIT: RECENT_LIMIT } = require('../lib/recent');
 const { isMetaHost } = require('../lib/links');
 const { isTelemetryUrl } = require('../lib/telemetry');
-const { normalizeSettings, isSettingKey } = require('../lib/settings');
+const { normalizeSettings, isSettingKey, isPermissionGranted } = require('../lib/settings');
 const { removeStaleLockFiles } = require('../lib/storage');
 
 const RECENT_POLL_MS = 5000;
@@ -128,11 +128,9 @@ function persistFacebookCookies() {
 
 // Electron grants every permission request by default. Only Messenger (and the facebook.com
 // login pages the panel may visit) get anything, and only what a chat client needs.
-const GRANTED_PERMISSIONS = new Set(['media', 'clipboard-read', 'clipboard-sanitized-write', 'fullscreen']);
 function restrictPermissions() {
   const allowed = (url) => { try { return isMetaHost(new URL(url).hostname); } catch (e) { return false; } };
-  // Messenger asks before every notification, so the switch takes effect for the next message.
-  const granted = (permission) => GRANTED_PERMISSIONS.has(permission) || (permission === 'notifications' && settings.notifications);
+  const granted = (permission) => isPermissionGranted(permission, settings);
   session.defaultSession.setPermissionRequestHandler((wc, permission, callback, details) => {
     callback(allowed(details.requestingUrl || wc.getURL()) && granted(permission));
   });
@@ -269,6 +267,7 @@ app.whenReady().then(() => {
   const syncActive = () => bubble && bubble.setActive(activeHref);
 
   panel = createPanel({
+    overFullscreen: settings.overFullscreen,
     onUnread: (n) => {
       if (!bubble) return;
       lastUnread = n;
@@ -279,12 +278,13 @@ app.whenReady().then(() => {
   });
   setInterval(refreshRecent, RECENT_POLL_MS);
 
-  dismiss = createDismissTarget();
+  dismiss = createDismissTarget({ overFullscreen: settings.overFullscreen });
 
   let saveTimer;
   bubble = createBubble({
     position: settings.bubble,
     dismiss,
+    overFullscreen: settings.overFullscreen,
     onClick: () => bubble.expand(recent),
     // Pressing the disc while the stack is open, or anywhere outside it, puts it all away.
     onClose: () => panel.hide(),

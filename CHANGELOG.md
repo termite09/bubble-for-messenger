@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.1.1 (2026-09-13) — Bubble for Messenger
+
+### Fixed
+- The fullscreen-app visibility toggle no longer hides the whole Bubble app when turned off.
+- The setting now only controls whether the bubble appears over full-screen apps, while keeping the app accessible and the settings window reopenable.
+
 ## v2.1.0 (2026-09-13) — Bubble for Messenger
 
 ### Added

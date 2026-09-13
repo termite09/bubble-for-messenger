@@ -8,7 +8,7 @@ const BOTTOM_MARGIN = 40;
 
 // A drop target that appears at the bottom-centre of the display while the bubble is being
 // dragged. Dropping the bubble onto it dismisses (quits) the app.
-function createDismissTarget() {
+function createDismissTarget({ overFullscreen = true } = {}) {
   const win = new BrowserWindow({
     width: SIZE, height: SIZE,
     frame: false, transparent: true, hasShadow: false, resizable: false,
@@ -20,7 +20,7 @@ function createDismissTarget() {
     },
   });
   win.setAlwaysOnTop(true, 'screen-saver');
-  win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: overFullscreen });
   win.setIgnoreMouseEvents(true);
   win.loadFile(path.join(__dirname, '..', 'renderer', 'dismiss.html'));
 
@@ -48,7 +48,10 @@ function createDismissTarget() {
     setHot(hot) {
       win.webContents.send('dismiss:hot', hot);
     },
-    setOverFullscreen: (on) => win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: on }),
+    setOverFullscreen: (on) => {
+      win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: on });
+      if (on && center) win.showInactive();
+    },
   };
 }
 
