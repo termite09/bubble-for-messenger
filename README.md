@@ -10,6 +10,18 @@ your recent chats and a compact Messenger panel beside it. No dock icon, no brow
 Requires macOS 11 or later. Builds are for Apple Silicon (M1 and later); on an Intel Mac,
 build from source (below).
 
+**With Homebrew:**
+
+```bash
+brew install --cask --no-quarantine termite09/tap/bubble-for-messenger
+```
+
+`--no-quarantine` is needed because the app is not signed with an Apple developer certificate
+(see step 3 below for what happens without it). Update later with `brew upgrade --cask
+bubble-for-messenger`.
+
+**By hand:**
+
 1. Download the latest `Bubble-<version>-arm64.dmg` from
    [Releases](https://github.com/termite09/bubble-for-messenger/releases).
 2. Open the DMG and drag **Bubble** into **Applications**.

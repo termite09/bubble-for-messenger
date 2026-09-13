@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v2.1.0 (2026-09-13) — Bubble for Messenger
 
 ### Added
 - Settings (right-click the bubble → Settings…, or Cmd+,): show over full-screen apps, start at
