@@ -250,6 +250,13 @@ app.whenReady().then(() => {
     // one click away without fanning out again.
     onOpenChat: (href) => openChat(href),
     onOpenInbox: () => { activeHref = null; syncActive(); panel.openInbox(bubble.getBounds()); },
+    // A reply typed into the banner goes out through the hidden page. If that fails, the
+    // conversation opens with whatever got as far as the composer, so nothing typed is lost.
+    onReply: async (href, text) => {
+      const ok = await panel.sendReply(href, text);
+      bubble.replyResult(ok);
+      if (!ok) openChat(href);
+    },
     onDismiss: () => app.quit(),
     onMoved: (pos) => {
       panel.follow(bubble.getStackBounds());
