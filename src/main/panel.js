@@ -135,6 +135,20 @@ function createPanel({ onUnread, onShown = () => {} }) {
     api.showAt(bubbleBounds);
   }
 
+  // Send a reply through the page without showing it: a hidden window does not dispatch the
+  // trusted row click, so stage it at opacity 0 like a thread open, then hide it again. If the
+  // panel is already showing, it simply switches to that thread in view.
+  async function stageReply(href, text) {
+    const wasHidden = !win.isVisible();
+    if (wasHidden) { win.setOpacity(0); win.showInactive(); }
+    try {
+      return await scrape.sendReply(win.webContents, href, text);
+    } finally {
+      // Never leave the invisible window up: it would swallow clicks meant for what's under it.
+      if (wasHidden) { win.hide(); win.setOpacity(1); }
+    }
+  }
+
   const api = {
     win,
     isVisible: () => win.isVisible(),
@@ -155,6 +169,8 @@ function createPanel({ onUnread, onShown = () => {} }) {
     session: () => win.webContents.session,
     openThread: (href, bubbleBounds) => enqueue(() => stageThread(href, bubbleBounds)),
     openInbox: (bubbleBounds) => enqueue(() => stageInbox(bubbleBounds)),
+    // Serialised with opens; the queue swallows rejections into undefined, hence `=== true`.
+    sendReply: (href, text) => enqueue(() => stageReply(href, text)).then((ok) => ok === true),
   };
   return api;
 }
