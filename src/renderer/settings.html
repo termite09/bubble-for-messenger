@@ -40,7 +40,7 @@
     .row + .row { border-top: 1px solid var(--rule); }
     .text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
     .name { font-weight: 500; }
-    .sub { font-size: 12px; line-height: 15px; color: var(--dim); }
+    .sub { font-size: 12px; line-height: 16px; color: var(--dim); } /* body token is 12/15 for one line; these wrap */
 
     /* A switch is a small pill of the same material. Off: raised graphite with an ash knob.
        On: it inverts to paper with a graphite knob — the ✕ target arms the same way. The knob
@@ -78,7 +78,7 @@
 <body>
   <div id="card">
     <header>
-      <h1>Bubble</h1>
+      <h1>Settings</h1>
       <button id="close" type="button" aria-label="Close"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8"/></svg></button>
     </header>
     <main>
@@ -97,7 +97,7 @@
       </section>
       <section>
         <h2>Panel</h2>
-        <div class="row"><div class="text"><div class="name">Appearance</div><div class="sub">Applies when Messenger's own theme is set to Device.</div></div>
+        <div class="row"><div class="text"><div class="name">Appearance</div><div class="sub">When Messenger’s own theme follows the device.</div></div>
           <div class="segments" role="radiogroup" aria-label="Appearance">
             <label><input type="radio" name="theme" value="system"><span>System</span></label>
             <label><input type="radio" name="theme" value="light"><span>Light</span></label>

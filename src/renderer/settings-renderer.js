@@ -11,7 +11,10 @@ document.addEventListener('change', (e) => {
   else if (input.name === 'theme') window.settingsApi.set('theme', input.value);
 });
 document.getElementById('close').addEventListener('click', () => window.settingsApi.close());
-window.addEventListener('keydown', (e) => { if (e.key === 'Escape') window.settingsApi.close(); });
+// Esc and Cmd+W both put the card away (there is no Window > Close: it would destroy the panel).
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' || (e.metaKey && e.key.toLowerCase() === 'w')) { e.preventDefault(); window.settingsApi.close(); }
+});
 
 window.settingsApi.onSettings(render);
 window.settingsApi.get().then((s) => { if (s) render(s); });

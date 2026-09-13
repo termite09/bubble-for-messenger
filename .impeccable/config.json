@@ -11,6 +11,42 @@
         ],
         "createdAt": "2026-09-13T07:29:32.761Z",
         "reason": "bubble.html is a transparent always-on-top window: the viewport is the clip by design and lib/layout PAD reserves 32px around content for shadows and the count pill; nothing needs to escape it"
+      },
+      {
+        "rule": "nested-cards",
+        "value": "*",
+        "files": [
+          "src/renderer/bubble.html"
+        ],
+        "createdAt": "2026-09-13T12:54:23.851Z",
+        "reason": "Intentional: #landed is a card positioned inside #disc so its clip-path can start as the disc's own circle and unroll from it (see the comment above #landed in bubble.html); the nesting is the animation mechanism, not visual hierarchy"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          "src/renderer/bubble.html"
+        ],
+        "createdAt": "2026-09-13T12:54:23.866Z",
+        "reason": "Intentional: the banner's 5px left inset plus 1px border centres the 32px avatar in the 44px round end it unrolls from; the ↩ is a 24px icon button with the glyph centred by line-height, and the reply field sits inside the banner's 14px right padding"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          "src/renderer/settings.html"
+        ],
+        "createdAt": "2026-09-13T13:08:41.143Z",
+        "reason": "Intentional: .segments is a segmented control whose segments fill the bordered container edge to edge by definition; each segment carries its own 10px inset"
+      },
+      {
+        "rule": "design-system-radius",
+        "value": "*",
+        "files": [
+          "src/renderer/settings.html"
+        ],
+        "createdAt": "2026-09-13T13:08:41.158Z",
+        "reason": "Intentional: DESIGN.md's Radius Follows Height rule — 22px switch pill = 11px, 24px segmented control = 8px; the token scale predates these control sizes"
       }
     ]
   }

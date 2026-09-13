@@ -4,6 +4,7 @@ const fs = require('fs');
 const { createBubble } = require('./bubble');
 const { createPanel } = require('./panel');
 const { createDismissTarget } = require('./dismiss');
+const { createSettingsWindow } = require('./settings-window');
 const { fetchAvatar } = require('./avatars');
 const { LIMIT: RECENT_LIMIT } = require('../lib/recent');
 const { isMetaHost } = require('../lib/links');
@@ -177,11 +178,16 @@ function openRecent(n) {
   if (bubble && recent[n]) openChat(recent[n].href);
 }
 
+function openSettings() {
+  if (settingsWindow && bubble) settingsWindow.open(bubble.getBounds());
+}
+
 function bubbleContextMenu() {
   Menu.buildFromTemplate([
     { label: 'Open Messenger', click: () => { activeHref = null; panel.openInbox(bubble.getBounds()); } },
     { label: 'Reload Messenger', click: () => panel.reload() },
     { type: 'separator' },
+    { label: 'Settings…', click: openSettings },
     { label: 'Reset Bubble Position', click: () => bubble.resetPosition() },
     { type: 'separator' },
     { label: 'Quit', click: () => app.quit() },
@@ -200,6 +206,8 @@ function createMenu() {
       label: app.name,
       submenu: [
         { role: 'about' },
+        { type: 'separator' },
+        { label: 'Settings…', accelerator: 'CmdOrCtrl+,', click: openSettings },
         { type: 'separator' },
         { role: 'hide' },
         { role: 'hideOthers' },
@@ -299,6 +307,12 @@ app.whenReady().then(() => {
       clearTimeout(saveTimer);
       saveTimer = setTimeout(saveSettings, 300);
     },
+  });
+
+  settingsWindow = createSettingsWindow({
+    getSettings: () => settings,
+    setSetting: updateSetting,
+    subscribe: (fn) => settingsListeners.add(fn),
   });
 
   applySettings(null);
