@@ -8,6 +8,7 @@ const RENDERER = path.join(__dirname, '..', 'renderer');
 
 const SIZE = 44;       // the disc
 const BANNER = 250;    // the landed banner; the window extends this far from the disc toward the screen centre
+const REPLY_ROW = 36;  // the row the landed banner grows below the disc while a reply is typed
 
 function defaultPosition() {
   const { workArea } = screen.getPrimaryDisplay();
@@ -58,6 +59,7 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onOp
   let animGen = 0;    // guards the deferred collapse shrink against a rapid re-expand
   let fanCount = 0;   // rows currently in the fan (incl. the inbox entry)
   let direction = 'up';
+  let replying = false; // the landed banner has grown its reply row
 
   // Which screen edge the disc rests on decides which way banners extend.
   const edge = () => {
@@ -75,7 +77,7 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onOp
       x: side === 'right' ? column.bounds.x + SIZE - BANNER : column.bounds.x,
       y: column.bounds.y, width: BANNER, height: column.bounds.height,
     };
-    const frame = windowFrame(content, null);
+    const frame = windowFrame(content, null, replying ? REPLY_ROW : 0);
     return {
       content,
       window: { x: frame.x, y: frame.y, width: frame.width, height: frame.height },
@@ -228,8 +230,10 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onOp
   // field is the one exception: focus is lent when it opens and taken back when it closes.
   ipcMain.on('bubble:reply-focus', (e, on) => {
     if (!owns(e)) return;
-    win.setFocusable(Boolean(on));
-    if (on) win.focus();
+    replying = Boolean(on);
+    applyBounds(); // room for the banner's reply row below the disc
+    win.setFocusable(replying);
+    if (replying) win.focus();
   });
   ipcMain.on('bubble:reply', (e, href, text) => {
     if (!owns(e) || !validReply(href, text)) return;

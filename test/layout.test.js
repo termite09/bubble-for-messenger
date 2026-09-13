@@ -99,3 +99,14 @@ test('centerWithin measures from the rect centre', () => {
   assert.equal(centerWithin(bubble, { x: 190, y: 132 }, 70), true);  // 58px away
   assert.equal(centerWithin(bubble, { x: 132, y: 220 }, 70), false); // 88px away
 });
+
+// While a reply is being typed the landed banner grows a second row below the disc; the
+// window grows with it so the field and its shadow are never clipped.
+test('windowFrame grows below the content by the extra it is given, keeping the content where it was', () => {
+  const plain = windowFrame({ x: 100, y: 500, width: 44, height: 44 }, null);
+  const grown = windowFrame({ x: 100, y: 500, width: 44, height: 44 }, null, 40);
+  assert.equal(grown.y, plain.y);
+  assert.equal(grown.contentY, plain.contentY);
+  assert.equal(grown.height, plain.height + 40);
+  assert.deepEqual(windowFrame({ x: 100, y: 500, width: 44, height: 44 }, null, 0), plain);
+});

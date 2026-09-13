@@ -37,8 +37,9 @@ function fanLayout(bubble, itemCount, area) {
 
 // The window that holds a content rect: PAD on every side, and stretched vertically so it also
 // covers `dockY` (the panel's top edge, where the open chat's avatar docks) when that lies
-// outside the content. Returns the window rect plus where the content sits inside it.
-function windowFrame(content, dockY) {
+// outside the content, plus `extra` below it (the reply row the landed banner grows while a
+// reply is typed). Returns the window rect plus where the content sits inside it.
+function windowFrame(content, dockY, extra = 0) {
   let top = content.y;
   let bottom = content.y + content.height;
   if (typeof dockY === 'number') {
@@ -49,7 +50,7 @@ function windowFrame(content, dockY) {
     x: content.x - PAD,
     y: top - PAD,
     width: content.width + 2 * PAD,
-    height: bottom - top + 2 * PAD,
+    height: bottom - top + 2 * PAD + extra,
     contentX: PAD,
     contentY: content.y - top + PAD,
   };
