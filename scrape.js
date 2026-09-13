@@ -67,25 +67,69 @@ function reload(wc, url) {
   });
 }
 
-// The conversation (not the list) is showing: the list's Search box is gone and a message
-// composer is present. Used to know when it's safe to reveal the panel after a switch.
+// The conversation is showing when [role=main] is the topmost element at its own centre.
+// (Presence alone is not enough: the list keeps its layout behind an open thread.)
 function threadShowing(wc) {
   return wc.executeJavaScript(`(() => {
-    const s = document.querySelector('[aria-label="Search Messenger"]');
-    const searchVisible = !!s && s.getBoundingClientRect().width > 0;
-    const composer = document.querySelector('[role="textbox"][contenteditable="true"]');
-    return !searchVisible && !!composer;
+    const m = document.querySelector('[role="main"]');
+    if (!m) return false;
+    const r = m.getBoundingClientRect();
+    if (r.height < 200) return false;
+    const el = document.elementFromPoint(Math.round(r.left + r.width / 2), Math.round(r.top + r.height / 2));
+    return !!(el && m.contains(el));
   })()`, true).catch(() => false);
 }
 
-async function waitForThread(wc, timeout = 4000) {
+// Any conversation row is clickable, i.e. the list is in front.
+function listInteractive(wc) {
+  return wc.executeJavaScript(`(() => {
+    for (const a of document.querySelectorAll('a[role="link"][href*="/t/"]')) {
+      const r = a.getBoundingClientRect();
+      if (r.width <= 60 || r.height <= 20 || r.top < 0 || r.bottom > innerHeight) continue;
+      const el = document.elementFromPoint(Math.round(r.left + r.width / 2), Math.round(r.top + r.height / 2));
+      if (el && (el === a || a.contains(el))) return true;
+    }
+    return false;
+  })()`, true).catch(() => false);
+}
+
+function click(wc, point) {
+  wc.sendInputEvent({ type: 'mouseMove', x: point.x, y: point.y });
+  wc.sendInputEvent({ type: 'mouseDown', x: point.x, y: point.y, button: 'left', clickCount: 1 });
+  wc.sendInputEvent({ type: 'mouseUp', x: point.x, y: point.y, button: 'left', clickCount: 1 });
+}
+
+async function waitUntil(check, wc, timeout) {
   const start = Date.now();
   while (Date.now() - start < timeout) {
-    if (await threadShowing(wc)) return true;
-    await delay(120);
+    if (await check(wc)) return true;
+    await delay(60);
   }
   return false;
 }
+
+// Return to the list client-side (~100ms) instead of reloading (~1-2s): un-hide the Back
+// control just long enough to click it, then hide it again. The panel is held invisible by the
+// caller during this, so the control is never clickable — or visible — to the user.
+async function backToList(wc) {
+  const point = await wc.executeJavaScript(`(() => {
+    let s = document.getElementById('mb-back');
+    if (!s) { s = document.createElement('style'); s.id = 'mb-back'; document.head.appendChild(s); }
+    s.textContent = '[aria-label="Back"]{display:block!important;opacity:0!important;pointer-events:auto!important}';
+    const b = document.querySelector('[aria-label="Back"]');
+    if (!b) return null;
+    const r = b.getBoundingClientRect();
+    return r.width > 0 ? { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) } : null;
+  })()`, true).catch(() => null);
+  const unhide = () => wc.executeJavaScript(`(() => { const s = document.getElementById('mb-back'); if (s) s.textContent = ''; })()`, true).catch(() => {});
+  if (!point) { await unhide(); return false; }
+  click(wc, point);
+  const ok = await waitUntil(listInteractive, wc, 2000);
+  await unhide();
+  return ok;
+}
+
+const waitForThread = (wc, timeout = 4000) => waitUntil(threadShowing, wc, timeout);
 
 // Open a conversation. At the panel's narrow width Messenger only slides into a thread on a
 // *trusted* click of its list row — a synthetic a.click() or a URL load just highlights it — so
@@ -94,14 +138,13 @@ async function waitForThread(wc, timeout = 4000) {
 // letting the caller keep the panel hidden until then so the list transition is never seen.
 async function openThread(wc, href) {
   let point = await rowPoint(wc, href);
+  if (!point && await backToList(wc)) point = await rowPoint(wc, href); // fast client-side path
   if (!point) {
-    await reload(wc, 'https://www.messenger.com' + href);
+    await reload(wc, 'https://www.messenger.com' + href); // last resort
     point = await rowPoint(wc, href);
   }
   if (!point) return;
-  wc.sendInputEvent({ type: 'mouseMove', x: point.x, y: point.y });
-  wc.sendInputEvent({ type: 'mouseDown', x: point.x, y: point.y, button: 'left', clickCount: 1 });
-  wc.sendInputEvent({ type: 'mouseUp', x: point.x, y: point.y, button: 'left', clickCount: 1 });
+  click(wc, point);
   await waitForThread(wc);
 }
 
@@ -114,6 +157,12 @@ async function openThread(wc, href) {
 const COMPACT_CSS = [
   '[role="navigation"][aria-label="Inbox switcher"]{display:none!important}',
   '[aria-label="Start a voice call"],[aria-label="Start a video call"],[aria-label="Conversation information"],[aria-label="Back"]{display:none!important}',
+  // The conversation's wrapper is inset by 16px on each side and the top; drop it so the
+  // thread fills the panel edge to edge.
+  'div:has(> [role="main"]){padding:0!important;margin:0!important}',
+  // No scrollbar gutter — it reserved 15px on the right and read as a fixed bar.
+  '::-webkit-scrollbar{width:0!important;height:0!important}',
+  '*{scrollbar-width:none!important}',
 ].join('');
 
 function setCompact(wc, on) {

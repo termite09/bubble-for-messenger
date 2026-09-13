@@ -50,6 +50,14 @@ function inboxEl() {
 
 const STAGGER_MS = 30;
 
+// Turn the metaball filter on while anything is moving, off once it settles.
+let oozeTimer;
+function ooze(durationMs) {
+  document.body.classList.add('oozing');
+  clearTimeout(oozeTimer);
+  oozeTimer = setTimeout(() => document.body.classList.remove('oozing'), durationMs);
+}
+
 // Each fan message is { animate: 'in', direction, items } to open or { animate: 'out' } to close.
 // On 'in' we build the items in the tucked `enter` state, then release them next frame so they
 // spring outward, staggered from the main bubble. On 'out' we tuck them back; the main process
@@ -62,6 +70,7 @@ window.bubbleApi.onFan((data) => {
     return;
   }
   if (!data || data.animate === 'out') {
+    ooze(320);
     for (const el of fan.children) el.classList.add('enter');
     return;
   }
@@ -81,6 +90,7 @@ window.bubbleApi.onFan((data) => {
     fan.appendChild(el);
   });
   if (!animate) return; // 'update': show the new contents without replaying the entrance
+  ooze(els.length * STAGGER_MS + 320);
   // Force layout so the browser registers the `enter` start state before we remove it.
   void fan.offsetHeight;
   requestAnimationFrame(() => els.forEach((el) => el.classList.remove('enter')));

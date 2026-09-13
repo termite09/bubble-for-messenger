@@ -136,9 +136,10 @@ function createBubble({ position, onClick, onMoved, onContextMenu, onOpenChat, o
   ipcMain.on('bubble:context-menu', (e) => {
     if (owns(e)) onContextMenu();
   });
+  // The fan deliberately stays open after picking a chat, so the next conversation is one
+  // click away instead of re-opening the fan each time.
   ipcMain.on('bubble:open-chat', (e, href) => {
     if (!owns(e) || typeof href !== 'string') return;
-    collapse();
     onOpenChat(href);
   });
   ipcMain.on('bubble:open-inbox', (e) => {
