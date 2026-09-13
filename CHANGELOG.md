@@ -1,5 +1,16 @@
 # Changelog
 
+## v2.0.1 (2026-09-13) — Bubble for Messenger
+
+### Fixed
+- Fixed a startup crash caused by stale Chromium/Electron lock files left behind after crashes or forced quits.
+- The app now removes stale storage locks in its user-data folder before Electron initializes its browser databases.
+
+### Changed
+- Added a regression test covering stale lock cleanup.
+
+---
+
 ## v2.0.0 (2026-09-13) — Bubble for Messenger
 
 The fork becomes its own app.

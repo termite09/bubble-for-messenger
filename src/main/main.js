@@ -7,6 +7,7 @@ const { createDismissTarget } = require('./dismiss');
 const { fetchAvatar } = require('./avatars');
 const { LIMIT: RECENT_LIMIT } = require('../lib/recent');
 const { isMetaHost } = require('../lib/links');
+const { removeStaleLockFiles } = require('../lib/storage');
 
 const RECENT_POLL_MS = 5000;
 
@@ -18,6 +19,7 @@ if (!fs.existsSync(userData) && fs.existsSync(legacyUserData)) {
   try { fs.renameSync(legacyUserData, userData); } catch (e) {}
 }
 app.setPath('userData', userData);
+removeStaleLockFiles(userData);
 const settingsPath = path.join(app.getPath('userData'), 'settings.json');
 
 function loadSettings() {
