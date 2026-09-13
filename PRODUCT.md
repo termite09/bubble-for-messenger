@@ -61,7 +61,7 @@ ornament.
 
 - Disc: 44 px grey disc with the Messenger mark; drag anywhere, snaps to nearest vertical edge
   on release, position persisted; blue unread count (`9+` cap); right-click menu (Open
-  Messenger, Reload Messenger, Reset Bubble Position, Quit). When a message lands, the disc
+  Messenger, Reload Messenger, Settings…, Reset Bubble Position, Quit). When a message lands, the disc
   unrolls into a banner (avatar, name, first line) for four seconds.
 - Stack: up to 5 recent chats as 250×52 banners (avatar, name, last line, time, blue dot when
   unread), newest first, with an "Open Messenger" banner last; grows up when it fits, else
@@ -75,6 +75,9 @@ ornament.
   the app stages this at opacity 0 and reveals once the thread is on screen.
 - The bubble page's CSP is `default-src 'self'; img-src 'self' data:` — avatars must arrive as
   data URLs; no external resources.
+- Settings (a 360×720 card, Cmd+,): over-full-screen, start at login, banner and its text,
+  reply from the banner, Messenger's macOS notifications, unread count, panel appearance,
+  spell check, telemetry blocking. Applied at once; saved to `settings.json`.
 - Explicitly out of scope so far: pop-out to a full-size window, menu-bar tray icon, sender
   avatar on the main bubble.
 - Undecided: whether the app should ever show a first-run/onboarding hint (there is none; the

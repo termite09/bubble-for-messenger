@@ -41,10 +41,30 @@ if you want your login gone too, `~/Library/Application Support/Bubble for Messe
   arriving.
 - **Drag to dismiss** — drag the bubble onto the ✕ target that appears at the bottom of the
   screen to quit the app.
-- **Right-click the bubble** for *Open Messenger*, *Reload Messenger*, *Reset Bubble Position*
-  and *Quit*.
+- **Right-click the bubble** for *Open Messenger*, *Reload Messenger*, *Settings…*, *Reset Bubble
+  Position* and *Quit*.
 - Persistent login, native notifications, dark mode, and links opening in your default browser
   all carry over from the original app.
+
+## Settings
+
+Right-click the bubble → **Settings…** (or Cmd+,). Every switch applies at once and is kept in
+`settings.json` next to the bubble's position.
+
+- **Show over full-screen apps** — off keeps the bubble to normal Spaces, so a full-screen video
+  or app hides it.
+- **Start at login.**
+- **Banner when a message lands**, and whether it **shows the message** or only who wrote — for
+  screen sharing or public places.
+- **Reply from the banner** — the ↩; off if the bubble should never take the keyboard.
+- **macOS notifications from Messenger** — Messenger's own Notification Center banners, in
+  addition to the bubble.
+- **Unread count on the bubble.**
+- **Appearance** (system / light / dark) for the panel — only when Messenger's own theme is set
+  to Device, which is how Messenger decides.
+- **Spell check** in the panel.
+- **Block Facebook telemetry** — cancels Facebook's logging beacons at the network layer; nothing
+  Messenger needs to work is touched. On by default.
 
 ## Keyboard shortcuts (while the panel is open)
 
@@ -116,8 +136,7 @@ not signed or notarized (that needs a paid Apple developer account). Right-click
 the first launch, or clear the quarantine flag as described under Install. If you'd rather not
 trust a downloaded binary, build it yourself from source.
 
-**Does it start at login?** Not yet; add `Bubble.app` under System Settings → General →
-Login Items if you want that.
+**Does it start at login?** Right-click the bubble → Settings… → **Start at login**.
 
 ## License
 

@@ -3,6 +3,9 @@
 ## Unreleased
 
 ### Added
+- Settings (right-click the bubble → Settings…, or Cmd+,): show over full-screen apps, start at
+  login, the banner and what it shows, reply from the banner, Messenger's macOS notifications,
+  the unread count, panel appearance, spell check, and telemetry blocking.
 - Reply from the banner: when a message lands, the ↩ at the banner's end opens a reply field.
   Enter sends it through the hidden Messenger page; Esc or clicking elsewhere cancels. If the
   send can't complete, the conversation opens with your text in the composer.
