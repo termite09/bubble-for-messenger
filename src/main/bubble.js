@@ -1,7 +1,9 @@
 const { BrowserWindow, ipcMain, screen } = require('electron');
 const path = require('path');
-const { isClick, clampToArea, fanLayout, windowFrame, snapToEdge, EDGE_MARGIN } = require('./lib/layout');
-const { isThreadHref } = require('./lib/recent');
+const { isClick, clampToArea, fanLayout, windowFrame, snapToEdge, EDGE_MARGIN } = require('../lib/layout');
+const { isThreadHref } = require('../lib/recent');
+
+const RENDERER = path.join(__dirname, '..', 'renderer');
 
 const SIZE = 44;       // the disc
 const BANNER = 250;    // the landed banner; the window extends this far from the disc toward the screen centre
@@ -24,7 +26,7 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onOp
     frame: false, transparent: true, hasShadow: false, resizable: false,
     alwaysOnTop: true, skipTaskbar: true, focusable: false, show: false,
     webPreferences: {
-      preload: path.join(__dirname, 'bubble-preload.js'),
+      preload: path.join(RENDERER, 'bubble-preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
     },
@@ -32,7 +34,7 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onOp
   win.setAlwaysOnTop(true, 'screen-saver');
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   win.setIgnoreMouseEvents(true, { forward: true });
-  win.loadFile('bubble.html');
+  win.loadFile(path.join(RENDERER, 'bubble.html'));
   win.once('ready-to-show', () => { win.showInactive(); applyBounds(); });
 
   // While the stack is open, an invisible shield covers the display beneath it (and the panel):
@@ -41,11 +43,11 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onOp
   const shield = new BrowserWindow({
     frame: false, transparent: true, hasShadow: false, resizable: false, focusable: false, show: false,
     alwaysOnTop: true, skipTaskbar: true,
-    webPreferences: { preload: path.join(__dirname, 'shield-preload.js'), contextIsolation: true, nodeIntegration: false },
+    webPreferences: { preload: path.join(RENDERER, 'shield-preload.js'), contextIsolation: true, nodeIntegration: false },
   });
   shield.setAlwaysOnTop(true, 'floating');
   shield.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
-  shield.loadFile('shield.html');
+  shield.loadFile(path.join(RENDERER, 'shield.html'));
 
   const bounds = () => ({ x: anchor.x, y: anchor.y, width: SIZE, height: SIZE });
   let expanded = false;

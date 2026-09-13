@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { panelPosition, clampToArea, isClick } = require('../lib/layout');
+const { panelPosition, clampToArea, isClick } = require('../src/lib/layout');
 
 const area = { x: 0, y: 0, width: 1440, height: 900 };
 const panel = { width: 420, height: 640 };
@@ -36,7 +36,7 @@ test('isClick uses a 4px threshold', () => {
   assert.equal(isClick(5, 0), false);
 });
 
-const { fanLayout } = require('../lib/layout');
+const { fanLayout } = require('../src/lib/layout');
 
 // Each fan row is a 44px head with an 8px gap (52px pitch), stacked away from the disc.
 test('fan grows upward when there is room above the bubble', () => {
@@ -56,7 +56,7 @@ test('fan with no items is just the bubble', () => {
   assert.deepEqual(r.bounds, { x: 100, y: 500, width: 44, height: 44 });
 });
 
-const { snapToEdge } = require('../lib/layout');
+const { snapToEdge } = require('../src/lib/layout');
 
 test('snapToEdge rests the bubble 16px in from the nearer side, keeping y', () => {
   assert.deepEqual(snapToEdge({ x: 100, y: 300, width: 64, height: 64 }, area), { x: 16, y: 300 });
@@ -69,7 +69,7 @@ test('snapToEdge clamps y into the work area and respects a non-zero origin', ()
   assert.deepEqual(snapToEdge({ x: 2800, y: 2000, width: 64, height: 64 }, off), { x: 2800, y: 836 });
 });
 
-const { windowFrame, PAD } = require('../lib/layout');
+const { windowFrame, PAD } = require('../src/lib/layout');
 
 // The window is the content rect grown by PAD on every side (room for shadows and the count),
 // and additionally stretched to reach a docked avatar at the panel's top edge.
@@ -91,7 +91,7 @@ test('windowFrame ignores a dock that is already inside the content span', () =>
   assert.equal(f.contentY, PAD);
 });
 
-const { centerWithin } = require('../lib/layout');
+const { centerWithin } = require('../src/lib/layout');
 
 test('centerWithin measures from the rect centre', () => {
   const bubble = { x: 100, y: 100, width: 64, height: 64 }; // centre (132,132)

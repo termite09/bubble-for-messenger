@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { normalizeRows, isThreadHref } = require('../lib/recent');
+const { normalizeRows, isThreadHref } = require('../src/lib/recent');
 
 test('isThreadHref accepts only clean thread paths', () => {
   assert.equal(isThreadHref('/t/123/'), true);

@@ -96,9 +96,9 @@ ornament.
 ## Evidence on Hand
 
 - `README.md` — feature description, shortcuts, project layout, FAQ, disclaimer.
-- `docs/superpowers/specs/2026-09-12-bubble-mode-design.md` and
-  `…-chat-heads-design.md` — behavioural specs the code was built from.
-- `icon.png`, `icon.icns` — the only visual assets.
+- `docs/specs/2026-09-12-bubble-mode-design.md` and `…-chat-heads-design.md` — behavioural
+  specs of the first (pre-redesign) bubble; the current behaviour is in README.md and DESIGN.md.
+- `assets/icon.png`, `assets/icon.icns` — the only visual assets.
 - No screenshots, demo video, testimonials, user counts or download figures exist. Do not
   fabricate any for a landing page or README.
 

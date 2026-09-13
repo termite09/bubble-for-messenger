@@ -69,16 +69,21 @@ can run alongside the original MessengerApp without sharing (or corrupting) its 
 
 ## Project layout
 
-| File | Responsibility |
-|------|----------------|
-| `main.js` | App lifecycle, settings, cookie persistence, menu, wiring bubble ↔ panel ↔ dismiss |
-| `bubble.js` / `bubble.html` / `bubble-renderer.js` / `bubble-preload.js` | The disc: drag, edge-snap, click, the stack of heads, the landed banner, unread count, context menu |
-| `shield.html` / `shield-preload.js` / `shield-renderer.js` | The invisible catch window behind an open stack: a press anywhere else closes it |
-| `panel.js` | The Messenger panel: placement beside the disc, card frame, compact vs full mode, unread detection, link handling |
-| `dismiss.js` / `dismiss.html` / … | The ✕ drop target shown while dragging |
-| `scrape.js` | Page-side scripts: read recent chats (name, preview, time, unread), open a thread, frame and compact mode |
-| `avatars.js` | Fetch profile pictures through the Messenger session as data URLs |
-| `lib/` | Pure helpers (`layout.js`, `unread.js`, `links.js`, `recent.js`) covered by `test/` |
+```
+src/main/       Electron main process
+  main.js         app lifecycle, settings, cookie persistence, menu, wiring
+  bubble.js       the disc window: drag, edge-snap, click, the stack, the landed banner, the shield
+  panel.js        the Messenger panel: placement beside the stack, card frame, compact/full mode
+  dismiss.js      the ✕ drop target shown while dragging
+  scrape.js       scripts run inside messenger.com: recent chats, open a thread, frame, compact CSS
+  avatars.js      profile pictures fetched through the Messenger session as data URLs
+src/renderer/   the pages inside the transparent windows (bubble, shield, dismiss) and their preloads
+src/lib/        pure helpers (layout, unread parsing, link policy, row normalisation), covered by test/
+test/           node --test unit tests
+assets/         app icon
+docs/           design specs and plans
+PRODUCT.md, DESIGN.md   product context and the design system the UI follows
+```
 
 ## Differences from the original
 

@@ -5,7 +5,7 @@ const { createBubble } = require('./bubble');
 const { createPanel } = require('./panel');
 const { createDismissTarget } = require('./dismiss');
 const { fetchAvatar } = require('./avatars');
-const { LIMIT: RECENT_LIMIT } = require('./lib/recent');
+const { LIMIT: RECENT_LIMIT } = require('../lib/recent');
 
 const RECENT_POLL_MS = 5000;
 

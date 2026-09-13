@@ -1,4 +1,4 @@
-const { normalizeRows, LIMIT } = require('./lib/recent');
+const { normalizeRows, LIMIT } = require('../lib/recent');
 
 // Runs inside messenger.com. Reads the first rows of the chat list. Messenger renders each
 // conversation as [role="row"] containing a link to /t/<id>/ (or /e2ee/t/<id>/), the avatar

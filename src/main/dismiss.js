@@ -1,6 +1,6 @@
 const { BrowserWindow, screen } = require('electron');
 const path = require('path');
-const { centerWithin } = require('./lib/layout');
+const { centerWithin } = require('../lib/layout');
 
 const SIZE = 120; // window; the visible target is centred inside it
 const HIT_RADIUS = 70; // how close the bubble centre must get to trigger dismissal
@@ -14,7 +14,7 @@ function createDismissTarget() {
     frame: false, transparent: true, hasShadow: false, resizable: false,
     alwaysOnTop: true, skipTaskbar: true, focusable: false, show: false,
     webPreferences: {
-      preload: path.join(__dirname, 'dismiss-preload.js'),
+      preload: path.join(__dirname, '..', 'renderer', 'dismiss-preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
     },
@@ -22,7 +22,7 @@ function createDismissTarget() {
   win.setAlwaysOnTop(true, 'screen-saver');
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   win.setIgnoreMouseEvents(true);
-  win.loadFile('dismiss.html');
+  win.loadFile(path.join(__dirname, '..', 'renderer', 'dismiss.html'));
 
   let center = null; // screen point of the target centre while shown
 

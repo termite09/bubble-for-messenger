@@ -72,7 +72,7 @@ function inboxEl() {
   el.className = 'head inbox card';
   el.title = 'Open Messenger';
   const img = document.createElement('img');
-  img.src = 'icon.png';
+  img.src = '../../assets/icon.png';
   img.alt = '';
   el.appendChild(img);
   el.addEventListener('click', () => window.bubbleApi.openInbox());

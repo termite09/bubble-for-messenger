@@ -1,7 +1,7 @@
 const { BrowserWindow, shell, screen } = require('electron');
-const { panelPosition } = require('./lib/layout');
-const { unreadFromTitle } = require('./lib/unread');
-const { isInternal, staysInPanel, browserUrl } = require('./lib/links');
+const { panelPosition } = require('../lib/layout');
+const { unreadFromTitle } = require('../lib/unread');
+const { isInternal, staysInPanel, browserUrl } = require('../lib/links');
 const scrape = require('./scrape');
 
 // `onShown` fires once the panel is actually visible to the user (not merely staged at opacity

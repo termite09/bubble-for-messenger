@@ -7,7 +7,7 @@
     "type": "git",
     "url": "https://github.com/termite09/bubble-for-messenger.git"
   },
-  "main": "main.js",
+  "main": "src/main/main.js",
   "scripts": {
     "start": "electron .",
     "test": "node --test",
@@ -23,21 +23,12 @@
     "appId": "com.termite09.bubble-for-messenger",
     "productName": "Bubble",
     "files": [
-      "main.js",
-      "bubble.js",
-      "panel.js",
-      "dismiss.js",
-      "scrape.js",
-      "avatars.js",
-      "lib/**",
-      "*.html",
-      "*-preload.js",
-      "*-renderer.js",
-      "icon.png"
+      "src/**",
+      "assets/icon.png"
     ],
     "mac": {
       "category": "public.app-category.social-networking",
-      "icon": "icon.icns",
+      "icon": "assets/icon.icns",
       "target": [
         "dmg",
         "zip"

@@ -1,0 +1,63 @@
+# Changelog
+
+## v2.0.0 (2026-09-13) — Bubble for Messenger
+
+The fork becomes its own app.
+
+### Changed
+- **New name and identity**: Bubble for Messenger (`Bubble.app`), MIT-licensed with a LICENSE file.
+- **The whole UI**: a floating grey disc instead of a dock window. Click it for a stack of your
+  five most recent chats as round heads (newest first); pick one and the conversation opens
+  in a compact card beside the stack. A banner unrolls from the disc when a message lands;
+  click it to open that chat. Click anywhere else to put it all away.
+- Panel framed as a 16 px card that fills edge to edge in single-thread mode.
+- Cmd+1–5 open your recent chats; Cmd+N opens the inbox to compose.
+
+### Removed
+- The dock window, native title bar, auto-update check, welcome screen and the usage ping.
+- Toggle Sidebar (Cmd+Shift+S); the compact panel has no sidebar.
+
+### Fixed
+- The transparent window no longer intercepts clicks around the disc.
+- A shaky click is a click, not a drag.
+- The panel can no longer be left invisible but click-blocking if Messenger fails to load.
+- Login cookies are flushed before quit.
+
+---
+
+# Upstream release notes (stefanminch/messenger-mac)
+
+## v1.3.0 (2025-12-27)
+
+### New Features
+- **Native Title Bar** - Standard macOS title bar for better window management
+- **External Links** - Shared/forwarded links now open in your default browser instead of inside the app
+
+### Bug Fixes
+- Fixed issue where forwarded links (via l.messenger.com) were opening inside Electron
+
+---
+
+## v1.2.0 (2025-12-26)
+
+### New Features
+- **Auto-Update Check** - Automatically checks for new versions on startup
+- **Keyboard Shortcuts** - Cmd+N for new message, Cmd+1-9 for conversations
+- **Toggle Sidebar** - Cmd+Shift+S to show/hide sidebar
+- **Welcome Screen** - First-launch guide showing features and shortcuts
+- **Power Saving** - Background throttling to reduce CPU/battery usage
+
+---
+
+## v1.1.0 (2025-12-25)
+
+### New Features
+- Persistent login sessions
+- Native macOS notifications
+
+---
+
+## v1.0.0 (2025-12-24)
+
+- Initial release
+- Basic Messenger wrapper for macOS

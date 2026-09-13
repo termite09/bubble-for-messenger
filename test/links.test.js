@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { isInternal, browserUrl } = require('../lib/links');
+const { isInternal, browserUrl } = require('../src/lib/links');
 
 test('messenger.com pages are internal', () => {
   assert.equal(isInternal('https://www.messenger.com/t/123'), true);
@@ -31,7 +31,7 @@ test('browserUrl refuses non-web schemes', () => {
   assert.equal(browserUrl('garbage'), null);
 });
 
-const { staysInPanel } = require('../lib/links');
+const { staysInPanel } = require('../src/lib/links');
 
 test('staysInPanel allows messenger.com and facebook.com auth pages', () => {
   assert.equal(staysInPanel('https://www.messenger.com/t/1/'), true);
