@@ -93,6 +93,24 @@
     .sub { font-size: 12px; line-height: 15px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .time { font-size: 11px; color: var(--dim); flex: none; }
 
+    /* Reply: ↩ at the banner's far end swaps the first line for a field. The field is the
+       only thing in the app that ever holds keyboard focus. */
+    #landed-reply {
+      flex: none; width: 24px; height: 24px; margin-right: -6px; border: 0; border-radius: 12px; padding: 0;
+      background: transparent; color: var(--dim); font: 14px/24px -apple-system, system-ui, sans-serif; cursor: default;
+    }
+    #landed-reply:hover { background: var(--rule); color: var(--ink); }
+    #landed-input {
+      display: none; width: 100%; box-sizing: border-box; margin: 0; padding: 0; border: 0; outline: 0;
+      background: transparent; color: var(--ink); font: 12px/15px -apple-system, system-ui, sans-serif;
+      -webkit-user-select: text; user-select: text;
+    }
+    #landed-input::placeholder { color: var(--dim); }
+    body.replying #landed-sub, body.replying #landed .time, body.replying #landed-reply { display: none; }
+    body.replying #landed-input { display: block; }
+    body.replying #landed:hover { background: var(--card); }
+    body.sending #landed-reply { display: none; }
+
     /* Reduce Motion: no travel, just the crossfade. */
     @media (prefers-reduced-motion: reduce) {
       #fan { transition: --p 120ms linear; }
@@ -110,8 +128,13 @@
       <div id="count"></div>
       <div id="landed" class="card">
         <div class="av" id="landed-av"></div>
-        <div class="text"><div class="name" id="landed-name"></div><div class="sub" id="landed-sub"></div></div>
+        <div class="text">
+          <div class="name" id="landed-name"></div>
+          <div class="sub" id="landed-sub"></div>
+          <input id="landed-input" type="text" maxlength="2000" autocomplete="off" spellcheck="true">
+        </div>
         <div class="time">now</div>
+        <button id="landed-reply" type="button" title="Reply" aria-label="Reply">&#x21A9;</button>
       </div>
     </div>
   </div>

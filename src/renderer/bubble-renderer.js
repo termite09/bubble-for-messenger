@@ -139,30 +139,75 @@ window.bubbleApi.onFan((data) => {
 window.bubbleApi.onActive((href) => { activeHref = href; markActive(); });
 
 // ---- "A message landed" ----------------------------------------------------------------------
+const landedInput = document.getElementById('landed-input');
+const landedReply = document.getElementById('landed-reply');
 let landedTimer;
 let landedHref = null;
+let sending = false; // one reply in flight at a time; ↩ is inert meanwhile
+const replying = () => body.classList.contains('replying');
+
+const fold = (after) => {
+  clearTimeout(landedTimer);
+  landedTimer = setTimeout(() => body.classList.remove('landed'), after);
+};
+
 window.bubbleApi.onLanded((item) => {
+  if (replying() || sending) return; // don't yank a reply out from under the user
   landedHref = item.href;
   fillAvatar(landedAv, item);
   landedName.textContent = item.name;
   landedSub.textContent = item.preview || 'New message';
+  landedInput.placeholder = 'Reply to ' + item.name;
   body.classList.add('landed');
-  clearTimeout(landedTimer);
-  landedTimer = setTimeout(() => body.classList.remove('landed'), 4000);
+  fold(4000);
 });
 // Clicking the banner opens that conversation. It lives inside the disc, so stop the press
 // from starting a drag and the release from counting as a disc click.
 landed.addEventListener('mousedown', (e) => e.stopPropagation());
-// Hovering holds the banner open; it folds shortly after the cursor leaves.
+// Hovering holds the banner open; it folds shortly after the cursor leaves (unless replying).
 landed.addEventListener('mouseenter', () => clearTimeout(landedTimer));
-landed.addEventListener('mouseleave', () => {
-  clearTimeout(landedTimer);
-  landedTimer = setTimeout(() => body.classList.remove('landed'), 1500);
-});
+landed.addEventListener('mouseleave', () => { if (!replying() && !sending) fold(1500); });
 landed.addEventListener('click', (e) => {
   e.stopPropagation();
-  if (!landedHref) return;
+  if (!landedHref || replying() || sending) return;
   body.classList.remove('landed');
   clearTimeout(landedTimer);
   window.bubbleApi.openChat(landedHref);
+});
+
+// ---- Reply from the banner --------------------------------------------------------------------
+// ↩ swaps the first line for a field and borrows keyboard focus for exactly as long as it is
+// open. Enter sends, Esc or a click anywhere else cancels; either way the focus goes back.
+function openReply() {
+  if (!landedHref || sending) return;
+  clearTimeout(landedTimer);
+  body.classList.add('replying');
+  landedInput.value = '';
+  window.bubbleApi.replyFocus(true);
+  landedInput.focus();
+}
+function closeReply() {
+  body.classList.remove('replying');
+  window.bubbleApi.replyFocus(false);
+}
+landedReply.addEventListener('click', (e) => { e.stopPropagation(); openReply(); });
+landedInput.addEventListener('click', (e) => e.stopPropagation());
+landedInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { e.preventDefault(); closeReply(); fold(300); }
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const text = landedInput.value.trim();
+  if (!text) return;
+  sending = true;
+  closeReply();
+  body.classList.add('sending');
+  landedSub.textContent = 'Sending…';
+  window.bubbleApi.sendReply(landedHref, text);
+});
+landedInput.addEventListener('blur', () => { if (replying()) { closeReply(); fold(300); } });
+window.bubbleApi.onReplyResult((ok) => {
+  sending = false;
+  body.classList.remove('sending');
+  landedSub.textContent = ok ? 'Sent' : 'Couldn’t send — opened the chat';
+  fold(ok ? 1200 : 300);
 });
