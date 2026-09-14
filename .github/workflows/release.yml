@@ -9,6 +9,10 @@ jobs:
     runs-on: macos-latest
     permissions:
       contents: write
+    env:
+      # Exposed at job level so the step below can gate on it: the `secrets`
+      # context is not allowed in a step `if`, but `env` is.
+      HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
 
     steps:
       - name: Check out app repo
@@ -50,7 +54,5 @@ jobs:
           fi
 
       - name: Update Homebrew tap cask
-        if: ${{ secrets.HOMEBREW_TAP_TOKEN != '' }}
-        env:
-          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        if: env.HOMEBREW_TAP_TOKEN != ''
         run: bash .github/scripts/update-homebrew-tap.sh "${{ steps.version.outputs.version }}"
