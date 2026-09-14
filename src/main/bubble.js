@@ -145,7 +145,9 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
   // then rests against the side edge again (it may now be too close to it, or past it).
   function resize(next) {
     stopSnap();
-    collapse();
+    // The stack (and any chat beside it) goes away with the old size; onClose lets the panel
+    // follow, as it does for a click on the disc.
+    if (expanded) { collapse(true); onClose('resize'); }
     const area = screen.getDisplayMatching(bounds()).workArea;
     const onTop = anchor.y <= area.y;
     const onBottom = anchor.y + SIZE >= area.y + area.height;
@@ -161,11 +163,19 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
 
   const COLLAPSE_MS = 240; // the fold transition is 220ms
 
-  function collapse() {
+  // Fold the stack away. `immediate` skips the fold for a change the window is about to be
+  // re-laid-out for anyway (a resize, a position reset), so the geometry that follows sees no
+  // rows rather than rows that vanish 240ms later.
+  function collapse(immediate = false) {
     if (!expanded) return;
     expanded = false;
     shield.hide();
     const gen = ++animGen;
+    if (immediate) {
+      win.webContents.send('bubble:fan', { animate: 'clear' });
+      fanCount = 0;
+      return;
+    }
     win.webContents.send('bubble:fan', { animate: 'out' });
     // Let the fold play, then drop the rows and shrink the window. Sizing on fanCount (not
     // `expanded`) keeps the window large while rows still take layout height.
@@ -326,7 +336,7 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
     },
     resetPosition: () => {
       stopSnap();
-      collapse();
+      if (expanded) { collapse(true); onClose('reset'); }
       const p = defaultPosition(SIZE);
       moveTo(p.x, p.y);
     },
