@@ -22,7 +22,12 @@ if (!fs.existsSync(userData) && fs.existsSync(legacyUserData)) {
   try { fs.renameSync(legacyUserData, userData); } catch (e) {}
 }
 app.setPath('userData', userData);
-removeStaleLockFiles(userData);
+
+// One copy at a time: a second launch hands over to the running one and leaves. This must come
+// before the lock cleanup below, which would otherwise unlock the running copy's stores.
+const primary = app.requestSingleInstanceLock();
+if (!primary) app.quit();
+else removeStaleLockFiles(userData);
 const settingsPath = path.join(app.getPath('userData'), 'settings.json');
 
 function loadSettings() {
@@ -312,7 +317,10 @@ function createMenu() {
   ]));
 }
 
+app.on('second-instance', () => { if (bubble) showStack(); });
+
 app.whenReady().then(() => {
+  if (!primary) return;
   if (app.dock) app.dock.hide();
   createMenu();
   persistFacebookCookies();
