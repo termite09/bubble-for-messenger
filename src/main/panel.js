@@ -1,9 +1,10 @@
-const { BrowserWindow, shell, screen, powerMonitor } = require('electron');
+const { BrowserWindow, shell, screen, powerMonitor, nativeTheme } = require('electron');
 const { panelPosition } = require('../lib/layout');
 const { unreadFromTitle } = require('../lib/unread');
 const { isInternal, staysInPanel, browserUrl } = require('../lib/links');
 const { shouldRefresh, looksLikeErrorPage, errorRetryDelay } = require('../lib/refresh');
 const scrape = require('./scrape');
+const { joinAllSpaces } = require('./workspaces');
 
 const REFRESH_TICK_MS = 60 * 1000;
 
@@ -23,7 +24,7 @@ function createPanel({ onUnread, onShown = () => {}, overFullscreen = true }) {
     },
   });
   win.setAlwaysOnTop(true, 'floating');
-  win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: overFullscreen });
+  joinAllSpaces(win, overFullscreen);
   win.loadURL('https://www.messenger.com');
 
   win.on('blur', () => win.hide());
@@ -33,7 +34,15 @@ function createPanel({ onUnread, onShown = () => {}, overFullscreen = true }) {
   win.webContents.on('did-finish-load', () => {
     scrape.setFrame(win.webContents, true);
     scrape.setCompact(win.webContents, compact);
+    applyTheme();
   });
+
+  // The page's theme follows the app's Appearance setting: main.js sets nativeTheme.themeSource
+  // from it, so shouldUseDarkColors is the answer for System (macOS decides) and Light / Dark
+  // alike, and 'updated' fires for either kind of change. Messenger renders its own choice into
+  // <html> on every load, hence the re-apply above.
+  const applyTheme = () => scrape.setTheme(win.webContents, nativeTheme.shouldUseDarkColors);
+  nativeTheme.on('updated', applyTheme);
 
   // Keep the hidden page live: reload it after the Mac wakes and every quarter hour in the
   // background (never while it is showing), and retry Facebook's static error page with backoff.
@@ -171,10 +180,7 @@ function createPanel({ onUnread, onShown = () => {}, overFullscreen = true }) {
     openInbox: (bubbleBounds) => enqueue(() => stageInbox(bubbleBounds)),
     // Serialised with opens; the queue swallows rejections into undefined, hence `=== true`.
     sendReply: (href, text) => enqueue(() => stageReply(href, text)).then((ok) => ok === true),
-    setOverFullscreen: (on) => {
-      win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: on });
-      if (on && win.isVisible()) win.show();
-    },
+    setOverFullscreen: (on) => joinAllSpaces(win, on),
   };
   return api;
 }

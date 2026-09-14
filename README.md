@@ -83,8 +83,8 @@ Right-click the bubble → **Settings…** (or Cmd+,). Every switch applies at o
 - **macOS notifications from Messenger** — Messenger's own Notification Center banners, in
   addition to the bubble.
 - **Unread count on the bubble.**
-- **Appearance** (system / light / dark) for the panel — only when Messenger's own theme is set
-  to Device, which is how Messenger decides.
+- **Appearance** (system / light / dark) for the Messenger panel, whatever Messenger's own theme
+  preference says.
 - **Spell check** in the panel.
 - **Block Facebook telemetry** — cancels Facebook's logging beacons at the network layer; nothing
   Messenger needs to work is touched. On by default.

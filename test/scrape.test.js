@@ -71,3 +71,20 @@ test('deliverReply gives up after the budget', async () => {
   const { deps } = scripted([snap({ onThread: false })]);
   assert.equal(await deliverReply({}, '/t/1/', 'hi', deps), false);
 });
+
+const { setTheme } = require('../src/main/scrape');
+
+// Messenger picks its theme once, at load, from its own preference; the app steers it by
+// swapping the classes Messenger's own toggle uses on <html>.
+test('setTheme swaps Messenger\'s own dark/light classes on <html>', async () => {
+  const ran = [];
+  const wc = { executeJavaScript: async (js) => { ran.push(js); } };
+  await setTheme(wc, true);
+  await setTheme(wc, false);
+  assert.equal(ran.length, 2);
+  assert.match(ran[0], /documentElement/);
+  assert.match(ran[0], /add\('__fb-dark-mode'\)/);
+  assert.match(ran[0], /remove\('__fb-light-mode'\)/);
+  assert.match(ran[1], /add\('__fb-light-mode'\)/);
+  assert.match(ran[1], /remove\('__fb-dark-mode'\)/);
+});

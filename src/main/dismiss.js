@@ -1,6 +1,7 @@
 const { BrowserWindow, screen } = require('electron');
 const path = require('path');
 const { centerWithin } = require('../lib/layout');
+const { joinAllSpaces } = require('./workspaces');
 
 const SIZE = 120; // window; the visible target is centred inside it
 const HIT_RADIUS = 70; // how close the bubble centre must get to trigger dismissal
@@ -20,7 +21,7 @@ function createDismissTarget({ overFullscreen = true } = {}) {
     },
   });
   win.setAlwaysOnTop(true, 'screen-saver');
-  win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: overFullscreen });
+  joinAllSpaces(win, overFullscreen);
   win.setIgnoreMouseEvents(true);
   win.loadFile(path.join(__dirname, '..', 'renderer', 'dismiss.html'));
 
@@ -48,10 +49,7 @@ function createDismissTarget({ overFullscreen = true } = {}) {
     setHot(hot) {
       win.webContents.send('dismiss:hot', hot);
     },
-    setOverFullscreen: (on) => {
-      win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: on });
-      if (on && center) win.showInactive();
-    },
+    setOverFullscreen: (on) => joinAllSpaces(win, on),
   };
 }
 

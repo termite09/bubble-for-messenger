@@ -335,6 +335,19 @@ function setFrame(wc, on) {
   })()`, true).catch(() => {}).then(() => setStyle(wc, 'mb-frame-css', on ? FRAME_CSS : ''));
 }
 
+// Messenger decides its theme once, at load, from its own preference (Light / Dark / Device);
+// only "Device" follows prefers-color-scheme, so setting nativeTheme alone did nothing for most
+// accounts. Its toggle works by swapping two classes on <html>, which every theme variable
+// (--card-background, --primary-text, --web-wash ...) keys off; the app swaps them itself.
+function setTheme(wc, dark) {
+  const [add, remove] = dark ? ['__fb-dark-mode', '__fb-light-mode'] : ['__fb-light-mode', '__fb-dark-mode'];
+  return wc.executeJavaScript(`(() => {
+    const c = document.documentElement.classList;
+    c.remove('${remove}');
+    c.add('${add}');
+  })()`, true).catch(() => {});
+}
+
 // Back to the chat list. In the narrow layout an open thread shows a Back button.
 function openInbox(wc) {
   if (!onMessenger(wc)) return wc.loadURL('https://www.messenger.com/').catch(() => {});
@@ -344,4 +357,4 @@ function openInbox(wc) {
   })()`, true).catch(() => {});
 }
 
-module.exports = { readRecentChats, openThread, openInbox, setCompact, setFrame, sendReply, deliverReply, replyActions, RECENT_CHATS_SCRIPT, FRAME_CSS };
+module.exports = { readRecentChats, openThread, openInbox, setCompact, setFrame, setTheme, sendReply, deliverReply, replyActions, RECENT_CHATS_SCRIPT, FRAME_CSS };

@@ -3,6 +3,7 @@ const path = require('path');
 const { isClick, clampToArea, fanLayout, windowFrame, snapToEdge, EDGE_MARGIN } = require('../lib/layout');
 const { isThreadHref } = require('../lib/recent');
 const { validReply } = require('../lib/reply');
+const { joinAllSpaces } = require('./workspaces');
 
 const RENDERER = path.join(__dirname, '..', 'renderer');
 
@@ -34,7 +35,7 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onOp
     },
   });
   win.setAlwaysOnTop(true, 'screen-saver');
-  win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: overFullscreen });
+  joinAllSpaces(win, overFullscreen);
   win.setIgnoreMouseEvents(true, { forward: true });
   win.loadFile(path.join(RENDERER, 'bubble.html'));
   win.once('ready-to-show', () => { win.showInactive(); applyBounds(); });
@@ -51,7 +52,7 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onOp
     webPreferences: { preload: path.join(RENDERER, 'shield-preload.js'), contextIsolation: true, nodeIntegration: false },
   });
   shield.setAlwaysOnTop(true, 'floating');
-  shield.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: overFullscreen });
+  joinAllSpaces(shield, overFullscreen);
   shield.loadFile(path.join(RENDERER, 'shield.html'));
 
   const bounds = () => ({ x: anchor.x, y: anchor.y, width: SIZE, height: SIZE });
@@ -260,13 +261,8 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onOp
     replyResult: (ok) => win.webContents.send('bubble:reply-result', Boolean(ok)),
     // Whether the disc (and the shield beneath an open stack) float over full-screen apps.
     setOverFullscreen: (on) => {
-      win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: on });
-      shield.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: on });
-      if (on && !expanded) {
-        win.showInactive();
-      } else if (on && expanded && !shield.isVisible()) {
-        shield.showInactive();
-      }
+      joinAllSpaces(win, on);
+      joinAllSpaces(shield, on);
     },
     setSettings: (s) => { lastSettings = s; win.webContents.send('bubble:settings', s); },
     resetPosition: () => {

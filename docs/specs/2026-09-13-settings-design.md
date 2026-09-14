@@ -16,7 +16,7 @@ applied immediately and saved to the existing `settings.json`.
 | `quickReply` | `true` | Messages | **Reply from the banner.** The ↩ on the banner. Off if the bubble should never take the keyboard. |
 | `notifications` | `true` | Messages | **macOS notifications from Messenger.** Messenger's own Notification Center banners, in addition to the bubble. |
 | `badge` | `true` | Messages | **Unread count on the bubble.** |
-| `theme` | `'system'` | Panel | **Appearance**: System / Light / Dark. Applies only when Messenger's own theme is set to "Device" (Messenger → Preferences → Dark mode). |
+| `theme` | `'system'` | Panel | **Appearance**: System / Light / Dark, of the Messenger panel. System follows macOS. |
 | `spellcheck` | `true` | Panel | **Spell check.** |
 | `blockTelemetry` | `true` | Privacy | **Block Facebook telemetry.** Cancels Facebook's logging beacons (Banzai, Quick Metrics, Pixel, error reports). Nothing Messenger needs to work is touched. |
 
@@ -41,14 +41,14 @@ apply-point; a change re-runs only the ones whose value differs from `prev`.
 
 | Key | Apply |
 | --- | --- |
-| `overFullscreen` | `bubble.setOverFullscreen(on)`, `panel.setOverFullscreen(on)`, `dismiss.setOverFullscreen(on)`, settings window likewise. Each calls `win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: on })` (the bubble module covers its shield too). |
+| `overFullscreen` | `bubble.setOverFullscreen(on)`, `panel.setOverFullscreen(on)`, `dismiss.setOverFullscreen(on)`, settings window likewise. Each goes through `joinAllSpaces(win, on)` (`src/main/workspaces.js`), which passes `skipTransformProcessType: true`: Electron's default re-transforms the process on every call, which brought the Dock icon back and blinked every window when the setting was turned off. The bubble module covers its shield too. |
 | `startAtLogin` | `app.setLoginItemSettings({ openAtLogin: on })`, only when `app.isPackaged` — under `npm start` it would register Electron.app itself. |
 | `banner` | `refreshRecent` skips `bubble.landed(...)`. |
 | `bannerPreview` | `refreshRecent` passes `{ ...landed, preview: '' }`; the renderer already shows "New message" for an empty preview. |
 | `quickReply` | `bubble.setSettings({ quickReply })` → renderer toggles `body.no-reply`, which hides ↩ (`#landed-reply`). |
 | `notifications` | `restrictPermissions`' request and check handlers grant `'notifications'` only when on. Messenger reads `Notification.permission` before each notification, so it takes effect for the next message. |
 | `badge` | `bubble.setBadge(on ? lastUnread : 0)`; `lastUnread` is kept from `onUnread` so switching on shows the count at once. |
-| `theme` | `nativeTheme.themeSource = theme`. |
+| `theme` | `nativeTheme.themeSource = theme`, and the panel swaps Messenger's own `__fb-dark-mode` / `__fb-light-mode` class on `<html>` from `nativeTheme.shouldUseDarkColors` (on every `nativeTheme` `updated` and every page load, since Messenger renders its own choice in). Messenger only follows `prefers-color-scheme` when its own preference is "Device", so the class swap is what makes the setting take effect for every account. |
 | `spellcheck` | `panel.session().setSpellCheckerEnabled(on)`. |
 | `blockTelemetry` | the `onBeforeRequest` handler cancels only when on. |
 
@@ -57,7 +57,7 @@ apply-point; a change re-runs only the ones whose value differs from `prev`.
 `src/main/settings-window.js` → `createSettingsWindow({ getSettings, onChange })` returning
 `{ open(displayBounds), setOverFullscreen(on) }`.
 
-- One `BrowserWindow`, created lazily on first open and then hidden/shown: 360×620, `frame: false`,
+- One `BrowserWindow`, created lazily on first open and then hidden/shown: 360×720, `frame: false`,
   `transparent: true`, `resizable: false`, `alwaysOnTop` at `'floating'`, `skipTaskbar: true`,
   visible on all workspaces (full-screen per the setting), focusable. Placed centred in the
   work area of the display the bubble is on. A second `open` focuses it.
@@ -73,7 +73,7 @@ apply-point; a change re-runs only the ones whose value differs from `prev`.
   hairline, `title` for row labels, `body` in ash for descriptions, `label` caps in ash for
   section headings with a hairline rule, system-blue for an "on" switch, a segmented control
   for Appearance. Rows are 44 px min, 16 px side padding. A ✕ in the top-right; the title
-  "Bubble" as the card's header. No scrolling needed at 620 px.
+  "Settings" as the card's header. The ten rows fit 720 px without scrolling.
 - IPC: `settings:get`, `settings:set` (main: `isSettingKey` + normalize, save, apply, then
   broadcast `settings:changed` with the full object), `settings:close`. Each handler checks
   `e.sender` is the settings window.

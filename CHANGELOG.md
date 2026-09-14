@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+- Turning **Show over full-screen apps** off brought the Dock icon back and blinked every
+  window: Electron re-transforms the process type on each visibility call, which the app
+  now skips (it hides the Dock itself).
+- The **macOS notifications from Messenger** switch is back in Settings; its row had been
+  dropped in 2.1.1.
+- **Appearance** now themes the Messenger panel for every account. Messenger only follows
+  the system scheme when its own preference is "Device"; the app now swaps Messenger's own
+  light/dark classes directly, on every change and every page load.
+
 ## v2.1.1 (2026-09-13) — Bubble for Messenger
 
 ### Fixed

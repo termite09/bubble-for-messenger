@@ -1,5 +1,6 @@
 const { BrowserWindow, ipcMain, screen } = require('electron');
 const path = require('path');
+const { joinAllSpaces } = require('./workspaces');
 
 const RENDERER = path.join(__dirname, '..', 'renderer');
 const WIDTH = 360;
@@ -23,7 +24,7 @@ function createSettingsWindow({ getSettings, setSetting, subscribe }) {
       },
     });
     win.setAlwaysOnTop(true, 'floating');
-    win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: overFullscreen });
+    joinAllSpaces(win, overFullscreen);
     win.loadFile(path.join(RENDERER, 'settings.html'));
     win.on('closed', () => { win = null; });
     return win;
@@ -46,10 +47,7 @@ function createSettingsWindow({ getSettings, setSetting, subscribe }) {
     },
     setOverFullscreen(on) {
       overFullscreen = on;
-      if (win) {
-        win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: on });
-        if (on && !win.isVisible()) win.show();
-      }
+      if (win) joinAllSpaces(win, on);
     },
   };
 }
