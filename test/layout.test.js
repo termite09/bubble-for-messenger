@@ -142,3 +142,22 @@ test('windowFrame takes room above and/or below, keeping the content in place', 
   // A bare number still means "below", as before.
   assert.deepEqual(windowFrame(c, null, 36), windowFrame(c, null, { below: 36 }));
 });
+
+// A column taller than the work area fits neither way. Rather than push the disc off-screen,
+// the fan keeps the disc where it is and shows as many rows as the roomier side holds.
+test('fanLayout caps the rows when the column fits neither above nor below', () => {
+  const area = { x: 0, y: 0, width: 800, height: 400 };
+  const disc = { x: 100, y: 300, width: 44, height: 44 }; // 300 above, 56 below
+  const r = fanLayout(disc, 11, area); // 11 × 52 = 572 > 400
+  assert.equal(r.direction, 'up');
+  assert.equal(r.shown, 5); // floor(300 / 52)
+  assert.equal(r.bounds.y, 300 - 5 * 52);
+  assert.equal(r.bounds.height, 44 + 5 * 52);
+  // The disc's own row is untouched, and a fit reports every row shown.
+  assert.equal(fanLayout(disc, 3, area).shown, 3);
+  const low = { x: 100, y: 20, width: 44, height: 44 }; // more room below
+  const d = fanLayout(low, 11, area);
+  assert.equal(d.direction, 'down');
+  assert.equal(d.shown, Math.floor((400 - 64) / 52));
+  assert.equal(d.bounds.y, 20);
+});

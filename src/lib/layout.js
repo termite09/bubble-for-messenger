@@ -27,13 +27,23 @@ const FAN_ITEM = FAN_ROW + FAN_GAP; // pitch
 const PAD = 32;        // transparent margin around the content: the 8+24px shadow and the count pill
 
 // Content rect (disc plus the stack) when `itemCount` fan rows are shown. The disc keeps its
-// screen position; the column grows upward when it fits, otherwise downward. `scale` is the
-// bubble size relative to the 44px disc the pitch is drawn for.
+// screen position; the column grows upward when it fits, otherwise downward — and when it fits
+// neither way it grows toward the roomier side with only as many rows (`shown`) as fit, so the
+// disc never leaves the screen. `scale` is the bubble size relative to the 44px disc the pitch
+// is drawn for.
 function fanLayout(bubble, itemCount, area, scale = 1) {
-  const extra = itemCount * FAN_ITEM * scale;
-  const up = bubble.y - extra >= area.y;
+  const pitch = FAN_ITEM * scale;
+  const roomAbove = bubble.y - area.y;
+  const roomBelow = area.y + area.height - (bubble.y + bubble.height);
+  let up = itemCount * pitch <= roomAbove;
+  let shown = itemCount;
+  if (!up && itemCount * pitch > roomBelow) {
+    up = roomAbove >= roomBelow;
+    shown = Math.max(0, Math.floor((up ? roomAbove : roomBelow) / pitch));
+  }
+  const extra = shown * pitch;
   const bounds = { x: bubble.x, y: up ? bubble.y - extra : bubble.y, width: bubble.width, height: bubble.height + extra };
-  return { direction: up ? 'up' : 'down', bounds: { ...bounds, ...clampToArea(bounds, area) } };
+  return { direction: up ? 'up' : 'down', shown, bounds: { ...bounds, ...clampToArea(bounds, area) } };
 }
 
 // The window that holds a content rect: PAD on every side, and stretched vertically so it also

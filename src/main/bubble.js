@@ -68,6 +68,7 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
   let expanded = false;
   let animGen = 0;    // guards the deferred collapse shrink against a rapid re-expand
   let fanCount = 0;   // rows currently in the fan (incl. the inbox entry)
+  let shownRows = null; // fewer than fanCount when the screen has no room for them all
   let direction = 'up';
   let replying = false;   // the landed banner has grown its reply row (keyboard focus is lent)
   let bannerExtra = 0;    // page px the landed banner needs beyond the disc row (its wrapped text, its reply row)
@@ -85,6 +86,7 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
     // decided by whether its extra rows fit above the disc.
     const column = fanCount ? fanLayout(bounds(), fanCount, area, scale) : { direction: anchor.y - extra >= area.y ? 'up' : 'down', bounds: bounds() };
     direction = column.direction;
+    if (fanCount && column.shown < fanCount) shownRows = column.shown; // the page is told to trim
     const side = edge();
     const banner = BANNER * scale;
     // The content rect spans the banner width from the disc toward the screen centre.
@@ -181,7 +183,14 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
     animGen += 1;
     fanCount = items.length + 1;
     expanded = true;
+    shownRows = null;
     applyBounds();
+    // No room for every row: keep the inbox head and the rows nearest it.
+    if (shownRows !== null && shownRows < fanCount) {
+      items = items.slice(Math.max(0, items.length - Math.max(0, shownRows - 1)));
+      fanCount = items.length + 1;
+      applyBounds();
+    }
     shield.setBounds(screen.getDisplayMatching(bounds()).bounds);
     if (!shield.isVisible()) shield.showInactive();
     // 'in' plays the deploy; 'update' just swaps the contents (used by the periodic refresh).
