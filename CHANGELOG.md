@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v2.2.0 (2026-09-14) — Bubble for Messenger
 
 ### Added
 - Settings are on three tabs — Bubble, Messages, Panel — and the card is only as tall as the

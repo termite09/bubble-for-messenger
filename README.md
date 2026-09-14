@@ -48,9 +48,9 @@ if you want your login gone too, `~/Library/Application Support/Bubble for Messe
 
 ## How it works
 
-- **The bubble** — a 44 px grey disc with the Messenger mark that floats over every app and every
-  Space (including full-screen apps). Drag it anywhere; when you let go it snaps to the nearest
-  side and its position is remembered. A blue count shows total unread.
+- **The bubble** — a small grey disc with the Messenger mark that floats over every app and every
+  Space, full-screen apps included (both are settings). Drag it anywhere; when you let go it snaps
+  to the nearest side and its position is remembered. A blue count shows total unread.
 - **A message lands** — the disc unrolls into a banner (avatar, name, first line) for four
   seconds, then folds back.
 - **Reply right there** — the ↩ at the end of the banner opens a reply field. Type, press Enter,
@@ -131,13 +131,13 @@ Releases are built by GitHub Actions when a `v*` tag is pushed; nothing is built
 2. Tag and push:
 
    ```bash
-   git tag v2.1.1
-   git push origin main v2.1.1
+   git tag v2.2.0
+   git push origin main v2.2.0
    ```
 
 The workflow ([release.yml](.github/workflows/release.yml)) refuses a tag that doesn't match
 `package.json`, runs the tests, builds the arm64 DMG and zip, creates the GitHub release with
-the changelog as notes, and updates the cask in
+the changelog's top section as its notes, and updates the cask in
 [termite09/homebrew-tap](https://github.com/termite09/homebrew-tap) with the new version and
 checksum. The tap step needs a `HOMEBREW_TAP_TOKEN` repository secret: a fine-grained personal
 access token with *Contents: Read and write* on `homebrew-tap` only. Without it the release is
