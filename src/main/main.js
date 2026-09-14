@@ -218,11 +218,12 @@ async function newMessage() {
   })()`);
 }
 
-// Open a conversation beside the stack, bringing the stack up if it isn't already.
-function openChat(href) {
+// Open a conversation beside the stack, bringing the stack up if it isn't already. The stack
+// must be up before the panel is placed: it is placed beside the column, not the disc.
+async function openChat(href) {
   lastChat = null;
   activeHref = href;
-  if (!bubble.isExpanded()) showStack();
+  if (!bubble.isExpanded()) await showStack();
   bubble.setActive(href);
   panel.openThread(href, bubble.getStackBounds());
 }
