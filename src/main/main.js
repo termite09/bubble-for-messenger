@@ -90,9 +90,17 @@ let activeHref = null; // thread the panel is showing; null = inbox
 // click from reopening for settings.reopenLast seconds. (Reopening brings the stack up beside
 // it, so nothing is lost by not distinguishing how it was closed.)
 let lastChat = null; // { href, closedAt }
+// Putting a chat away: remember it for reopening, and it is no longer the open one — the
+// stack's ring comes off it, and a later close of the stack alone remembers nothing.
 function rememberChat() {
-  if (activeHref) lastChat = { href: activeHref, closedAt: Date.now() };
+  if (!activeHref) return;
+  lastChat = { href: activeHref, closedAt: Date.now() };
+  activeHref = null;
+  syncActive();
 }
+
+// The open conversation's banner reads as active in the stack.
+const syncActive = () => bubble && bubble.setActive(activeHref);
 
 // Re-read the chat list from the Messenger page, refresh the fan if it is open, and unroll a
 // "message landed" banner when a chat turns unread (or a new unread chat reaches the top).
@@ -317,9 +325,6 @@ app.whenReady().then(() => {
   persistFacebookCookies();
   restrictPermissions();
   blockTelemetry();
-
-  // The open conversation's banner reads as active in the stack.
-  const syncActive = () => bubble && bubble.setActive(activeHref);
 
   panel = createPanel({
     overFullscreen: settings.overFullscreen,
