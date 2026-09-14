@@ -1,15 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="${1:?usage: $0 <version>}"
+VERSION="${1:?usage: $0 <version> <dmg-path>}"
+DMG="${2:?usage: $0 <version> <dmg-path>}"
+: "${HOMEBREW_TAP_TOKEN:?HOMEBREW_TAP_TOKEN is not set}"
 REPO="termite09/homebrew-tap"
 TAP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TAP_DIR"' EXIT
 
-curl -L --fail "https://github.com/termite09/bubble-for-messenger/releases/download/v${VERSION}/Bubble-${VERSION}-arm64.dmg" -o "$TAP_DIR/Bubble-${VERSION}-arm64.dmg"
-SHA256="$(shasum -a 256 "$TAP_DIR/Bubble-${VERSION}-arm64.dmg" | awk '{print $1}')"
+# The checksum is of the artifact this run built — not of whatever is at the download URL.
+SHA256="$(shasum -a 256 "$DMG" | awk '{print $1}')"
 
-git clone "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/${REPO}.git" "$TAP_DIR/tap"
+# The token travels in a header, never in the remote URL (which git writes to .git/config) —
+# the form actions/checkout uses.
+AUTH="AUTHORIZATION: basic $(printf 'x-access-token:%s' "${HOMEBREW_TAP_TOKEN}" | base64 | tr -d '\n')"
+git -c "http.extraheader=${AUTH}" clone --depth 1 "https://github.com/${REPO}.git" "$TAP_DIR/tap"
 cd "$TAP_DIR/tap"
 
 mkdir -p Casks
@@ -60,4 +65,4 @@ if git diff --cached --quiet; then
 fi
 
 git commit -m "Update bubble-for-messenger to ${VERSION}"
-git push origin HEAD:main
+git -c "http.extraheader=${AUTH}" push origin HEAD:main

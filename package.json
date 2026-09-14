@@ -36,7 +36,6 @@
         "dmg",
         "zip"
       ],
-      "hardenedRuntime": true,
       "gatekeeperAssess": false,
       "electronLanguages": [
         "en"

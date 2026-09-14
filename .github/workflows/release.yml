@@ -3,36 +3,43 @@ name: Release
 # One release per version: pushing a `vX.Y.Z` tag builds the app once, publishes
 # the GitHub release, and bumps the Homebrew cask. Ordinary pushes to main do not
 # rebuild, so a published version's DMG (and its checksum) never changes.
+# `workflow_dispatch` with dry_run builds and checksums without publishing anything.
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Build and checksum only; publish nothing
+        type: boolean
+        default: true
 
 jobs:
   release:
     runs-on: macos-latest
     permissions:
       contents: write
-    env:
-      # Exposed at job level so the step below can gate on it: the `secrets`
-      # context is not allowed in a step `if`, but `env` is.
-      HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
 
     steps:
       - name: Check out app repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: npm
 
       - name: Read app version
         id: version
+        env:
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' }}
         run: |
           VERSION="$(node -p "require('./package.json').version")"
           test -n "$VERSION"
-          if [ "v${VERSION}" != "$GITHUB_REF_NAME" ]; then
+          if [ "$DRY_RUN" != "true" ] && [ "v${VERSION}" != "$GITHUB_REF_NAME" ]; then
             echo "Tag ${GITHUB_REF_NAME} does not match package.json version ${VERSION}." >&2
             exit 1
           fi
@@ -49,25 +56,40 @@ jobs:
         # below handles the release itself.
         run: npm run build -- --publish never
 
+      - name: Checksum the artifacts
+        id: sums
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          cd dist
+          shasum -a 256 "Bubble-${VERSION}-arm64.dmg" "Bubble-${VERSION}-arm64-mac.zip" | tee SHA256SUMS
+          echo "dmg=dist/Bubble-${VERSION}-arm64.dmg" >> "$GITHUB_OUTPUT"
+
       - name: Upload release assets
+        if: ${{ github.event_name != 'workflow_dispatch' || !inputs.dry_run }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           TAG="v${VERSION}"
-          DIST_DIR="dist"
-          ASSET_DMG="${DIST_DIR}/Bubble-${VERSION}-arm64.dmg"
-          ASSET_ZIP="${DIST_DIR}/Bubble-${VERSION}-arm64-mac.zip"
+          ASSETS=("dist/Bubble-${VERSION}-arm64.dmg" "dist/Bubble-${VERSION}-arm64-mac.zip" "dist/SHA256SUMS")
 
           # Release notes: the changelog's top section (this version), not the whole file.
           awk '/^## /{ if (seen) exit; seen = 1; next } seen' CHANGELOG.md > release-notes.md
 
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$ASSET_DMG" "$ASSET_ZIP" --clobber
+            gh release upload "$TAG" "${ASSETS[@]}" --clobber
           else
-            gh release create "$TAG" "$ASSET_DMG" "$ASSET_ZIP" --title "Bubble for Messenger ${VERSION}" --notes-file release-notes.md
+            gh release create "$TAG" "${ASSETS[@]}" --title "Bubble for Messenger ${VERSION}" --notes-file release-notes.md
           fi
 
+      # The tap token is exposed to this one step only (the `secrets` context is not
+      # allowed in a step `if`, hence the probe writing an output).
+      - name: Is the tap token configured?
+        id: tap
+        run: echo "enabled=${{ secrets.HOMEBREW_TAP_TOKEN != '' }}" >> "$GITHUB_OUTPUT"
+
       - name: Update Homebrew tap cask
-        if: env.HOMEBREW_TAP_TOKEN != ''
-        run: bash .github/scripts/update-homebrew-tap.sh "${{ steps.version.outputs.version }}"
+        if: ${{ steps.tap.outputs.enabled == 'true' && (github.event_name != 'workflow_dispatch' || !inputs.dry_run) }}
+        env:
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: bash .github/scripts/update-homebrew-tap.sh "${{ steps.version.outputs.version }}" "${{ steps.sums.outputs.dmg }}"
