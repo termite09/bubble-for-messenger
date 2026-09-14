@@ -126,3 +126,19 @@ test('fanLayout and windowFrame take a scale for a larger bubble', () => {
   // Scale 1 is exactly what it was.
   assert.deepEqual(fanLayout({ x: 100, y: 500, width: 44, height: 44 }, 3, area, 1), fanLayout({ x: 100, y: 500, width: 44, height: 44 }, 3, area));
 });
+
+// The landed banner grows away from the screen edge: room above the content when the disc is
+// near the bottom, below it otherwise. Content stays where it was on screen either way.
+test('windowFrame takes room above and/or below, keeping the content in place', () => {
+  const c = { x: 100, y: 500, width: 44, height: 44 };
+  const above = windowFrame(c, null, { above: 60 });
+  assert.equal(above.y, 500 - 60 - PAD);
+  assert.equal(above.height, 44 + 60 + 2 * PAD);
+  assert.equal(above.contentY, 60 + PAD);
+  const below = windowFrame(c, null, { below: 60 });
+  assert.equal(below.y, 500 - PAD);
+  assert.equal(below.height, 44 + 60 + 2 * PAD);
+  assert.equal(below.contentY, PAD);
+  // A bare number still means "below", as before.
+  assert.deepEqual(windowFrame(c, null, 36), windowFrame(c, null, { below: 36 }));
+});

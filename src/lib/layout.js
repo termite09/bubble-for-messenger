@@ -38,13 +38,15 @@ function fanLayout(bubble, itemCount, area, scale = 1) {
 
 // The window that holds a content rect: PAD on every side, and stretched vertically so it also
 // covers `dockY` (the panel's top edge, where the open chat's avatar docks) when that lies
-// outside the content, plus `extra` below it (the reply row the landed banner grows while a
-// reply is typed). Returns the window rect plus where the content sits inside it. The padding
-// holds a shadow drawn in page pixels, so it grows with the bubble `scale`.
-function windowFrame(content, dockY, extra = 0, scale = 1) {
+// outside the content, plus `room` — `{ above, below }`, or a number meaning below — for what
+// grows out of the disc row (the landed banner, and its reply row). Returns the window rect
+// plus where the content sits inside it. The padding holds a shadow drawn in page pixels, so
+// it grows with the bubble `scale`.
+function windowFrame(content, dockY, room = 0, scale = 1) {
+  const { above = 0, below = 0 } = typeof room === 'number' ? { below: room } : room;
   const pad = PAD * scale;
-  let top = content.y;
-  let bottom = content.y + content.height;
+  let top = content.y - above;
+  let bottom = content.y + content.height + below;
   if (typeof dockY === 'number') {
     top = Math.min(top, dockY);
     bottom = Math.max(bottom, dockY + content.width);
@@ -53,7 +55,7 @@ function windowFrame(content, dockY, extra = 0, scale = 1) {
     x: content.x - pad,
     y: top - pad,
     width: content.width + 2 * pad,
-    height: bottom - top + 2 * pad + extra,
+    height: bottom - top + 2 * pad,
     contentX: pad,
     contentY: content.y - top + pad,
   };

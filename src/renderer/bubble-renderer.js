@@ -44,9 +44,10 @@ function fillAvatar(target, item) {
 }
 
 // A head: the contact's photo filling a 44px disc, name as the tooltip, blue dot when unread.
+// Right-click pins or unpins it (main shows the menu).
 function headEl(item) {
   const el = document.createElement('div');
-  el.className = 'head card' + (item.unread ? ' unread' : '');
+  el.className = 'head card' + (item.unread ? ' unread' : '') + (item.pinned ? ' pinned' : '');
   el.dataset.href = item.href;
   el.title = item.name;
   if (item.avatar) {
@@ -64,17 +65,20 @@ function headEl(item) {
   dot.className = 'dot';
   el.appendChild(dot);
   el.addEventListener('click', () => window.bubbleApi.openChat(item.href));
+  el.addEventListener('contextmenu', (e) => { e.preventDefault(); e.stopPropagation(); window.bubbleApi.headMenu(item.href); });
   return el;
 }
 
+// The inbox head: a tray glyph on paper, captioned "Inbox" beside it.
 function inboxEl() {
   const el = document.createElement('div');
   el.className = 'head inbox card';
-  el.title = 'Open Messenger';
-  const img = document.createElement('img');
-  img.src = '../../assets/icon.png';
-  img.alt = '';
-  el.appendChild(img);
+  el.title = 'Inbox';
+  el.innerHTML = '<svg viewBox="0 0 22 22" aria-hidden="true"><path d="M3 12l2.2-6.5A1 1 0 0 1 6.2 5h9.6a1 1 0 0 1 1 .5L19 12v4.5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M3 12h4.5l1 2h5l1-2H19"/></svg>';
+  const caption = document.createElement('div');
+  caption.className = 'caption';
+  caption.textContent = 'Inbox';
+  el.appendChild(caption);
   el.addEventListener('click', () => window.bubbleApi.openInbox());
   return el;
 }
@@ -121,8 +125,10 @@ window.bubbleApi.onFan((data) => {
   if (data.animate === 'out') { body.classList.remove('open'); return; }
   const wasOpen = body.classList.contains('open');
   fan.replaceChildren();
-  // items arrive newest-first and read top-down; Open Messenger closes the list.
+  // items arrive newest-first and read top-down, pinned ones last; the inbox closes the list.
   const els = data.items.map(headEl);
+  const firstPinned = els.find((el) => el.classList.contains('pinned'));
+  if (firstPinned && firstPinned !== els[0]) firstPinned.classList.add('first-pinned');
   els.push(inboxEl());
   for (const el of els) fan.appendChild(el);
   setDistances();
@@ -145,6 +151,18 @@ let landedTimer;
 let landedHref = null;
 let sending = false; // one reply in flight at a time; ↩ is inert meanwhile
 const replying = () => body.classList.contains('replying');
+
+// Whatever changes the banner — it landing or folding, its text, the reply row — the page
+// measures what it needs beyond the disc row and tells main, which makes the room.
+let reportedExtra = -1;
+function reportBanner() {
+  const extra = body.classList.contains('landed') ? Math.max(0, landed.offsetHeight - disc.offsetHeight) : 0;
+  if (extra === reportedExtra) return;
+  reportedExtra = extra;
+  window.bubbleApi.bannerExtra(extra);
+}
+new MutationObserver(reportBanner).observe(body, { attributes: true, attributeFilter: ['class'] });
+new MutationObserver(reportBanner).observe(landed, { childList: true, characterData: true, subtree: true });
 
 const fold = (after) => {
   clearTimeout(landedTimer);

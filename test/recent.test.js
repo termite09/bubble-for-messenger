@@ -119,3 +119,41 @@ test('empty or invalid input gives an empty list', () => {
   assert.deepEqual(normalizeRows(undefined), []);
   assert.deepEqual(normalizeRows('x'), []);
 });
+
+const { reopenOpen } = require('../src/lib/recent');
+
+// A chat closed by clicking away is one disc click from reopening for `seconds`.
+test('reopenOpen: within the window, and only then', () => {
+  const last = { href: '/t/1/', closedAt: 1000 };
+  assert.equal(reopenOpen(last, 1000 + 29_000, 30), true);
+  assert.equal(reopenOpen(last, 1000 + 30_000, 30), true);
+  assert.equal(reopenOpen(last, 1000 + 30_001, 30), false);
+  assert.equal(reopenOpen(last, 5000, 0), false);        // off
+  assert.equal(reopenOpen(null, 5000, 30), false);       // nothing to reopen
+  assert.equal(reopenOpen({ href: 'junk', closedAt: 1000 }, 2000, 30), false);
+});
+
+const { mergeHeads } = require('../src/lib/recent');
+
+// The stack: up to five recent chats, then the pinned ones next to the inbox head (nearest
+// the disc when the stack grows up). A pinned chat that is also recent shows once, as pinned,
+// with what the recent row knows (unread, preview, fresh name and avatar).
+test('mergeHeads: recent minus pinned, then pins in pin order, refreshed from recent', () => {
+  const pins = [{ href: '/t/9/', name: 'Old Name', avatarUrl: 'old' }, { href: '/t/2/', name: 'B', avatarUrl: null }];
+  const recent = [
+    { href: '/t/1/', name: 'A', avatarUrl: 'a', unread: true, preview: 'hi' },
+    { href: '/t/2/', name: 'B2', avatarUrl: 'b', unread: true, preview: 'yo' },
+    { href: '/t/3/', name: 'C', avatarUrl: 'c', unread: false, preview: '' },
+  ];
+  const out = mergeHeads(pins, recent);
+  assert.deepEqual(out.map((i) => [i.href, i.pinned]), [['/t/1/', false], ['/t/3/', false], ['/t/9/', true], ['/t/2/', true]]);
+  assert.deepEqual(out[3], { href: '/t/2/', name: 'B2', avatarUrl: 'b', unread: true, preview: 'yo', pinned: true });
+  assert.deepEqual(out[2], { href: '/t/9/', name: 'Old Name', avatarUrl: 'old', unread: false, preview: '', pinned: true });
+});
+
+test('mergeHeads caps recent at the limit after removing pins', () => {
+  const recent = Array.from({ length: 7 }, (_, i) => ({ href: `/t/${i}/`, name: `N${i}`, avatarUrl: null, unread: false, preview: '' }));
+  const out = mergeHeads([{ href: '/t/0/', name: 'N0', avatarUrl: null }], recent, 5);
+  assert.deepEqual(out.map((i) => i.href), ['/t/1/', '/t/2/', '/t/3/', '/t/4/', '/t/5/', '/t/0/']);
+  assert.deepEqual(mergeHeads([], []), []);
+});

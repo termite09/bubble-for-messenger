@@ -12,7 +12,6 @@ const RENDERER = path.join(__dirname, '..', 'renderer');
 // length below is in page pixels and is multiplied by `scale` where it meets the screen.
 const BASE = BUBBLE_SIZES.small;
 const BANNER = 250;    // the landed banner; the window extends this far from the disc toward the screen centre
-const REPLY_ROW = 36;  // the row the landed banner grows below the disc while a reply is typed
 
 function defaultPosition(size) {
   const { workArea } = screen.getPrimaryDisplay();
@@ -23,7 +22,7 @@ function defaultPosition(size) {
 // padding (room for shadows and the count pill) plus whatever is showing: the banner stack above
 // or below the disc, the "message landed" banner, and the docked avatar beside an open panel.
 // Clicks fall through the padding: the renderer reports when the cursor is over a card.
-function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onOpenChat, onOpenInbox, onDismiss, onReply, dismiss, overFullscreen = true, size = BASE }) {
+function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHeadMenu, onOpenChat, onOpenInbox, onDismiss, onReply, dismiss, overFullscreen = true, size = BASE }) {
   let SIZE = size;          // the disc, on screen
   let scale = SIZE / BASE;  // page zoom
   const start = position || defaultPosition(SIZE);
@@ -50,6 +49,7 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onOp
   win.webContents.on('did-finish-load', () => {
     win.webContents.setZoomFactor(scale);
     if (lastSettings) win.webContents.send('bubble:settings', lastSettings);
+    applyBounds(); // the page's placement inside the window, lost with the old document
   });
 
   // While the stack is open, an invisible shield covers the display beneath it (and the panel):
@@ -69,7 +69,8 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onOp
   let animGen = 0;    // guards the deferred collapse shrink against a rapid re-expand
   let fanCount = 0;   // rows currently in the fan (incl. the inbox entry)
   let direction = 'up';
-  let replying = false; // the landed banner has grown its reply row
+  let replying = false;   // the landed banner has grown its reply row (keyboard focus is lent)
+  let bannerExtra = 0;    // page px the landed banner needs beyond the disc row (its wrapped text, its reply row)
 
   // Which screen edge the disc rests on decides which way banners extend.
   const edge = () => {
@@ -79,7 +80,10 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onOp
 
   function layout() {
     const area = screen.getDisplayMatching(bounds()).workArea;
-    const column = fanCount ? fanLayout(bounds(), fanCount, area, scale) : { direction, bounds: bounds() };
+    const extra = bannerExtra * scale;
+    // The banner grows away from the screen edge, like the stack; with no stack up, that is
+    // decided by whether its extra rows fit above the disc.
+    const column = fanCount ? fanLayout(bounds(), fanCount, area, scale) : { direction: anchor.y - extra >= area.y ? 'up' : 'down', bounds: bounds() };
     direction = column.direction;
     const side = edge();
     const banner = BANNER * scale;
@@ -88,7 +92,7 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onOp
       x: side === 'right' ? column.bounds.x + SIZE - banner : column.bounds.x,
       y: column.bounds.y, width: banner, height: column.bounds.height,
     };
-    const frame = windowFrame(content, null, replying ? REPLY_ROW * scale : 0, scale);
+    const frame = windowFrame(content, null, direction === 'up' ? { above: extra } : { below: extra }, scale);
     // The page works in its own (zoomed) pixels: offsets cross over divided by the scale.
     return {
       content,
@@ -192,7 +196,7 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onOp
     if (!owns(e) || drag) return;
     stopSnap();
     const collapsedOnPress = expanded;
-    if (expanded) { collapse(); onClose(); }
+    if (expanded) { collapse(); onClose('disc'); }
     const cursor = screen.getCursorScreenPoint();
     drag = { offsetX: cursor.x - anchor.x, offsetY: cursor.y - anchor.y, cursor, collapsedOnPress, moved: false, timer: null };
     drag.timer = setInterval(() => {
@@ -232,6 +236,9 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onOp
     if (!collapsedOnPress) onClick();
   });
 
+  ipcMain.on('bubble:head-menu', (e, href) => {
+    if (owns(e) && isThreadHref(href)) onHeadMenu(href);
+  });
   ipcMain.on('bubble:context-menu', (e) => {
     if (owns(e)) onContextMenu();
   });
@@ -250,7 +257,7 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onOp
   ipcMain.on('shield:click', (e) => {
     if (e.sender !== shield.webContents) return;
     collapse();
-    onClose();
+    onClose('shield');
   });
   // The window is mostly transparent padding; only pass clicks through when over a card.
   ipcMain.on('bubble:hit', (e, over) => {
@@ -262,9 +269,17 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onOp
   ipcMain.on('bubble:reply-focus', (e, on) => {
     if (!owns(e)) return;
     replying = Boolean(on);
-    applyBounds(); // room for the banner's reply row below the disc
     win.setFocusable(replying);
     if (replying) win.focus();
+  });
+  // The page measures the banner whenever it changes and reports what it needs beyond the disc
+  // row; the window makes that room on the side the banner grows toward.
+  ipcMain.on('bubble:banner-extra', (e, px) => {
+    if (!owns(e)) return;
+    const next = Math.max(0, Math.min(600, Number(px) || 0));
+    if (next === bannerExtra) return;
+    bannerExtra = next;
+    applyBounds();
   });
   ipcMain.on('bubble:reply', (e, href, text) => {
     if (!owns(e) || !validReply(href, text)) return;

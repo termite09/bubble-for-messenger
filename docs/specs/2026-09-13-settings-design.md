@@ -18,6 +18,7 @@ design language, applied immediately and saved to the existing `settings.json`.
 | `notifications` | `true` | Messages | **macOS notifications from Messenger.** Messenger's own Notification Center banners, in addition to the bubble. |
 | `badge` | `'steady'` | Bubble | **Unread count**: Off / Steady / Pulsing. Pulsing breathes the pill between full and a third while anything is unread. A boolean in an older `settings.json` migrates (`true` → steady, `false` → off). |
 | `theme` | `'system'` | Panel | **Appearance**: System / Light / Dark, of the Messenger panel. System follows macOS. |
+| `reopenLast` | `30` | Panel | **Reopen the last chat**: Off / 15 s / 30 s / 1 min / 5 min (seconds `0, 15, 30, 60, 300`). See `2026-09-14-stack-and-banner-design.md`. |
 
 Not a setting, but a row: **New-message sound** (Messages) explains that the sound is Messenger's
 own switch (Preferences → Notification sounds) and its *Open* button opens the panel on that
@@ -25,7 +26,8 @@ dialog. Messenger keeps that preference per browser profile, so the app's copy s
 | `spellcheck` | `true` | Panel | **Spell check.** |
 | `blockTelemetry` | `true` | Privacy | **Block Facebook telemetry.** Cancels Facebook's logging beacons (Banzai, Quick Metrics, Pixel, error reports). Nothing Messenger needs to work is touched. |
 
-The existing `bubble` key (disc position) stays in the same file, untouched by the page.
+The existing `bubble` key (disc position) stays in the same file, untouched by the page; so do
+the `pins` (see the stack-and-banner spec).
 
 ## Model
 

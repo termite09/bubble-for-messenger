@@ -57,4 +57,23 @@ function listAtTop(row, root) {
   return true;
 }
 
-module.exports = { normalizeRows, isThreadHref, spanText, listAtTop, LIMIT };
+// What the stack shows: up to `limit` recent chats that are not pinned, then the pinned chats
+// in pin order — next to the inbox head, which is nearest the disc when the stack grows up. A
+// pinned chat also in the list is refreshed from its row (name, avatar, unread, preview); one
+// that is not shows as it was pinned, never unread.
+const MAX_PINS = 5;
+function mergeHeads(pins, recent, limit = LIMIT) {
+  const byHref = new Map(recent.map((r) => [r.href, r]));
+  const pinnedHrefs = new Set(pins.map((p) => p.href));
+  const rest = recent.filter((r) => !pinnedHrefs.has(r.href)).slice(0, limit).map((r) => ({ ...r, pinned: false }));
+  const pinned = pins.map((p) => ({ unread: false, preview: '', ...p, ...(byHref.get(p.href) || {}), pinned: true }));
+  return [...rest, ...pinned];
+}
+
+// A chat the user closed by clicking away stays one disc click from reopening for `seconds`.
+function reopenOpen(lastChat, now, seconds) {
+  if (!seconds || !lastChat || !isThreadHref(lastChat.href)) return false;
+  return now - lastChat.closedAt <= seconds * 1000;
+}
+
+module.exports = { mergeHeads, MAX_PINS, reopenOpen, normalizeRows, isThreadHref, spanText, listAtTop, LIMIT };

@@ -6,7 +6,7 @@ const { createPanel } = require('./panel');
 const { createDismissTarget } = require('./dismiss');
 const { createSettingsWindow } = require('./settings-window');
 const { fetchAvatar } = require('./avatars');
-const { LIMIT: RECENT_LIMIT } = require('../lib/recent');
+const { LIMIT: RECENT_LIMIT, MAX_PINS, reopenOpen, mergeHeads } = require('../lib/recent');
 const { isMetaHost } = require('../lib/links');
 const { isTelemetryUrl } = require('../lib/telemetry');
 const { normalizeSettings, isSettingKey, isPermissionGranted, BUBBLE_SIZES } = require('../lib/settings');
@@ -80,6 +80,15 @@ function applySettings(prev) {
 let recent = []; // [{ href, name, avatar (data URL), unread }]
 let activeHref = null; // thread the panel is showing; null = inbox
 
+// A chat put away by clicking elsewhere (the shield, or the panel losing focus) stays one disc
+// click from reopening for settings.reopenLast seconds. Closing on the disc is deliberate and
+// forgets it — including the blur that press can cause a moment later.
+let lastChat = null; // { href, closedAt }
+let discClosedAt = 0;
+function rememberChat() {
+  if (activeHref && Date.now() - discClosedAt > 500) lastChat = { href: activeHref, closedAt: Date.now() };
+}
+
 // Re-read the chat list from the Messenger page, refresh the fan if it is open, and unroll a
 // "message landed" banner when a chat turns unread (or a new unread chat reaches the top).
 let recentKey = '';
@@ -90,7 +99,7 @@ async function refreshRecent() {
   if (!rows) return; // the list is scrolled: keep what we last knew rather than read the wrong rows
   const ses = panel.session();
   const next = await Promise.all(rows.map(async (r) => ({
-    href: r.href, name: r.name, unread: r.unread, preview: r.preview, time: r.time, avatar: await fetchAvatar(ses, r.avatarUrl),
+    href: r.href, name: r.name, unread: r.unread, preview: r.preview, time: r.time, avatarUrl: r.avatarUrl, avatar: await fetchAvatar(ses, r.avatarUrl),
   })));
   const key = JSON.stringify(next.map((r) => [r.href, r.name, r.unread, r.preview, r.time, Boolean(r.avatar)]));
   if (key === recentKey) return;
@@ -105,8 +114,52 @@ async function refreshRecent() {
   recentKey = key;
   recent = next;
   seeded = true;
-  if (bubble.isExpanded()) bubble.expand(recent, false);
+  refreshPins();
+  if (bubble.isExpanded()) showStack(false);
   else if (landed && settings.banner) bubble.landed(settings.bannerPreview ? landed : { ...landed, preview: '' });
+}
+
+// The stack: recent chats and pinned ones (lib/recent mergeHeads), each with its picture. A
+// pinned chat missing from the list gets its picture from the URL saved when it was pinned.
+async function stackItems() {
+  const ses = panel.session();
+  return Promise.all(mergeHeads(settings.pins, recent).map(async (it) => ('avatar' in it ? it : { ...it, avatar: await fetchAvatar(ses, it.avatarUrl) })));
+}
+async function showStack(animate = true) {
+  bubble.expand(await stackItems(), animate);
+}
+
+// A pinned chat that is in the list again keeps its saved name and picture URL fresh, so it
+// still shows after the old picture URL has expired.
+function refreshPins() {
+  const byHref = new Map(recent.map((r) => [r.href, r]));
+  let changed = false;
+  const pins = settings.pins.map((p) => {
+    const row = byHref.get(p.href);
+    if (!row || (row.name === p.name && row.avatarUrl === p.avatarUrl)) return p;
+    changed = true;
+    return { href: p.href, name: row.name, avatarUrl: row.avatarUrl };
+  });
+  if (changed) { settings = normalizeSettings({ ...settings, pins }); saveSettings(); }
+}
+
+function setPins(pins) {
+  settings = normalizeSettings({ ...settings, pins });
+  saveSettings();
+  if (bubble.isExpanded()) showStack(false);
+}
+
+// Right-click on a head: pin it, or unpin it.
+function headMenu(href) {
+  const pinned = settings.pins.some((p) => p.href === href);
+  const row = recent.find((r) => r.href === href);
+  const full = settings.pins.length >= MAX_PINS;
+  Menu.buildFromTemplate([
+    pinned
+      ? { label: 'Unpin', click: () => setPins(settings.pins.filter((p) => p.href !== href)) }
+      : { label: full ? `Pin (${MAX_PINS} pinned already)` : 'Pin', enabled: !full && Boolean(row),
+          click: () => setPins([...settings.pins, { href, name: row.name, avatarUrl: row.avatarUrl }]) },
+  ]).popup({ window: bubble.win });
 }
 
 // Facebook issues session cookies; re-issue them with a 1-year expiry so login survives restarts.
@@ -167,8 +220,9 @@ async function newMessage() {
 
 // Open a conversation beside the stack, bringing the stack up if it isn't already.
 function openChat(href) {
+  lastChat = null;
   activeHref = href;
-  if (!bubble.isExpanded()) bubble.expand(recent);
+  if (!bubble.isExpanded()) showStack();
   bubble.setActive(href);
   panel.openThread(href, bubble.getStackBounds());
 }
@@ -281,6 +335,7 @@ app.whenReady().then(() => {
       refreshRecent();
     },
     onShown: syncActive,
+    onBlurred: rememberChat,
   });
   setInterval(refreshRecent, RECENT_POLL_MS);
 
@@ -292,10 +347,21 @@ app.whenReady().then(() => {
     dismiss,
     overFullscreen: settings.overFullscreen,
     size: BUBBLE_SIZES[settings.bubbleSize],
-    onClick: () => bubble.expand(recent),
-    // Pressing the disc while the stack is open, or anywhere outside it, puts it all away.
-    onClose: () => panel.hide(),
+    // A disc click brings the stack up — or, soon after a chat was put away by clicking
+    // elsewhere, that chat straight back.
+    onClick: () => {
+      if (reopenOpen(lastChat, Date.now(), settings.reopenLast)) openChat(lastChat.href);
+      else showStack();
+    },
+    // Pressing the disc while the stack is open, or anywhere outside it (the shield), puts it
+    // all away; only the latter counts as "clicked away" for reopening.
+    onClose: (reason) => {
+      if (reason === 'shield') rememberChat();
+      else { lastChat = null; discClosedAt = Date.now(); }
+      panel.hide();
+    },
     onContextMenu: bubbleContextMenu,
+    onHeadMenu: headMenu,
     // A conversation opens beyond the stack, which stays (or comes) up so the other chats are
     // one click away without fanning out again.
     onOpenChat: (href) => openChat(href),

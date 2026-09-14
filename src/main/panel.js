@@ -9,8 +9,9 @@ const { joinAllSpaces } = require('./workspaces');
 const REFRESH_TICK_MS = 60 * 1000;
 
 // `onShown` fires once the panel is actually visible to the user (not merely staged at opacity
-// 0), so the bubble can dock the open chat's avatar beside it at the right moment.
-function createPanel({ onUnread, onShown = () => {}, overFullscreen = true }) {
+// 0), so the bubble can dock the open chat's avatar beside it at the right moment. `onBlurred`
+// fires when the panel put itself away because it lost focus (the user went elsewhere).
+function createPanel({ onUnread, onShown = () => {}, onBlurred = () => {}, overFullscreen = true }) {
   // Transparent so the page can draw its own card silhouette (scrape.FRAME_CSS: 16px corners and
   // a hairline) instead of the square window edge; macOS casts a shadow that follows the shape.
   const win = new BrowserWindow({
@@ -27,7 +28,7 @@ function createPanel({ onUnread, onShown = () => {}, overFullscreen = true }) {
   joinAllSpaces(win, overFullscreen);
   win.loadURL('https://www.messenger.com');
 
-  win.on('blur', () => win.hide());
+  win.on('blur', () => { win.hide(); onBlurred(); });
 
   // Re-apply the frame and compact styling after any navigation (a full reload drops injected CSS).
   let compact = false;

@@ -48,10 +48,21 @@
        It is a full-size card whose clip-path starts as the disc's own circle, so the reveal is
        one element growing along the panel side with no layout work. */
     #landed {
-      position: absolute; top: -1px; width: 252px; height: 44px; border-radius: 22px;
-      display: flex; align-items: center; gap: 10px; padding: 0 14px 0 5px;
-      transition: clip-path 220ms var(--ease), opacity 120ms linear; opacity: 0; pointer-events: none;
+      position: absolute; width: 252px; min-height: 44px; border-radius: 22px; box-sizing: border-box;
+      padding: 5px 14px 5px 5px; transition: clip-path 220ms var(--ease), opacity 120ms linear; opacity: 0; pointer-events: none;
+      /* avatar | name … time ↩ / the message across the rest / (the reply field) */
+      display: grid; grid-template-columns: 32px 1fr auto auto; grid-template-rows: auto auto; column-gap: 10px; align-items: center;
     }
+    #landed .av { grid-row: 1 / 3; grid-column: 1; }
+    #landed .text { display: contents; }
+    #landed .name { grid-row: 1; grid-column: 2; }
+    #landed .sub { grid-row: 2; grid-column: 2 / -1; }
+    #landed .time { grid-row: 1; grid-column: 3; }
+    #landed-reply { grid-row: 1; grid-column: 4; }
+    /* It grows away from the screen edge: hung from the disc row when the stack would grow up
+       (its top edge stays on the disc's), standing on it otherwise. */
+    body.up #landed { bottom: -1px; }
+    body.down #landed { top: -1px; }
     body.landed #landed { pointer-events: auto; }
     #landed:hover { background: var(--raised); }
     body.edge-right #landed { right: -1px; clip-path: inset(0 0 0 208px round 22px); }
@@ -75,10 +86,21 @@
     }
     .head img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
     .head .initial { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font: 600 15px -apple-system, system-ui, sans-serif; }
-    /* Open Messenger is the one paper disc in the column, so it never reads as another contact. */
-    .head.inbox { background: var(--ink); }
-    .head.inbox img { width: 24px; height: 24px; margin: 9px; border-radius: 0; }
+    /* The inbox is the one paper disc in the column, so it never reads as another contact: a
+       tray glyph in graphite, and a caption on a graphite chip beside it (the side away from the
+       screen edge) that says what it is. Both share the head's fold and fade. */
+    .head.inbox { background: var(--ink); color: var(--card); }
+    .head.inbox svg { width: 22px; height: 22px; margin: 10px; display: block; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .head .caption {
+      position: absolute; top: 50%; transform: translateY(-50%); white-space: nowrap; pointer-events: none;
+      padding: 0 8px; border-radius: 10px; background: var(--card); border: 1px solid var(--rule); box-shadow: var(--lift);
+      font: 400 11px/18px -apple-system, system-ui, sans-serif; color: var(--ink);
+    }
+    body.edge-right .head .caption { right: 52px; }
+    body.edge-left .head .caption { left: 52px; }
     .head:hover { border-color: rgba(255,255,255,.28); }
+    /* A hairline in the gap above the first pinned head parts the pinned from the recent. */
+    .head.first-pinned::before { content: ''; position: absolute; left: 6px; right: 6px; top: -5px; height: 1px; background: var(--rule); }
     /* The open conversation: a paper ring outside the hairline. */
     .head.active { box-shadow: var(--lift), 0 0 0 2px var(--ink); }
     .dot {
@@ -91,15 +113,17 @@
     .av { width: 32px; height: 32px; border-radius: 16px; flex: none; overflow: hidden; background: #3a3a3c;
           display: flex; align-items: center; justify-content: center; font: 600 13px -apple-system, system-ui, sans-serif; color: #fff; }
     .av img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
-    .name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .sub { font-size: 12px; line-height: 15px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .name { min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    /* The whole message, wrapped, up to six lines. */
+    .sub { font-size: 12px; line-height: 15px; color: var(--dim); overflow: hidden; overflow-wrap: anywhere;
+           display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 6; }
     .time { font-size: 11px; color: var(--dim); flex: none; }
 
     /* Reply: ↩ at the banner's far end swaps the first line for a field. The field is the
        only thing in the app that ever holds keyboard focus. */
     #landed-reply {
-      flex: none; width: 24px; height: 24px; margin-right: -6px; border: 0; border-radius: 12px; padding: 0;
+      /* Taller than the name row it sits in; the negative margins keep the row at text height. */
+      width: 24px; height: 24px; margin: -4px -6px -4px 0; border: 0; border-radius: 12px; padding: 0;
       background: transparent; color: var(--dim); font: 14px/24px -apple-system, system-ui, sans-serif; cursor: default;
     }
     #landed-reply:hover { background: var(--rule); color: var(--ink); }
@@ -115,12 +139,8 @@
     #landed-input::selection { background: rgba(255,255,255,.24); }
     #landed-input:focus { border-color: rgba(255,255,255,.28); }
     body.replying #landed-sub, body.replying #landed .time, body.replying #landed-reply { display: none; }
-    body.replying #landed {
-      height: 88px; display: grid; grid-template-columns: 32px 1fr; grid-template-rows: 44px 36px;
-      column-gap: 10px; align-items: center;
-    }
-    body.replying #landed .av { grid-row: 1; grid-column: 1; }
-    body.replying #landed .text { grid-row: 1; grid-column: 2; }
+    body.replying #landed { grid-template-rows: 44px 36px; padding-top: 0; padding-bottom: 0; }
+    body.replying #landed .av { grid-row: 1; }
     body.replying #landed-input { display: block; grid-row: 2; grid-column: 1 / -1; margin: 0 0 14px 9px; }
     body.replying #landed:hover { background: var(--card); }
     body.sending #landed-reply { display: none; }

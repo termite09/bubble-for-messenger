@@ -51,17 +51,21 @@ if you want your login gone too, `~/Library/Application Support/Bubble for Messe
 - **The bubble** — a small grey disc with the Messenger mark that floats over every app and every
   Space, full-screen apps included (both are settings). Drag it anywhere; when you let go it snaps
   to the nearest side and its position is remembered. A blue count shows total unread.
-- **A message lands** — the disc unrolls into a banner (avatar, name, first line) for four
-  seconds, then folds back.
+- **A message lands** — the disc unrolls into a banner (avatar, name, the whole message, up to
+  six lines) for four seconds, then folds back.
 - **Reply right there** — the ↩ at the end of the banner opens a reply field. Type, press Enter,
   and it's sent without opening the panel; Esc cancels. The bubble only takes the keyboard while
   that field is open.
 - **Click the bubble** to deploy a stack of your five most recent chats as round heads, newest
-  at the top (hover for the name; a blue dot means unread), plus a paper *Open Messenger* head
-  for the full inbox. Pick one and that conversation opens in a compact sheet beside the stack;
-  the open chat wears a white ring, and the others stay one click away. Click anywhere else, or
-  the bubble, to put it all away. Messenger stays loaded in the background, so messages keep
+  at the top (hover for the name; a blue dot means unread), plus a paper *Inbox* head for the
+  full inbox. Pick one and that conversation opens in a compact sheet beside the stack; the open
+  chat wears a white ring, and the others stay one click away. Click anywhere else, or the
+  bubble, to put it all away. Messenger stays loaded in the background, so messages keep
   arriving.
+- **Pin a chat** — right-click a head → *Pin*. Up to five pinned chats sit next to the Inbox
+  head, under a hairline, whether or not they're recent; *Unpin* the same way.
+- **Straight back** — if you clicked away from a chat, clicking the bubble within the next
+  30 seconds (a setting) reopens that chat instead of the stack.
 - **Drag to dismiss** — drag the bubble onto the ✕ target that appears at the bottom of the
   screen to quit the app.
 - **Right-click the bubble** for *Open Messenger*, *Reload Messenger*, *Settings…*, *Reset Bubble
@@ -96,6 +100,8 @@ Right-click the bubble → **Settings…** (or Cmd+,). Every switch applies at o
 - **Appearance** (system / light / dark) for the Messenger panel, whatever Messenger's own theme
   preference says.
 - **Spell check** in the panel.
+- **Reopen the last chat** — Off / 15 s / 30 s / 1 min / 5 min: how long after clicking away
+  a bubble click goes straight back to that chat.
 - **Block Facebook telemetry** — cancels Facebook's logging beacons at the network layer; nothing
   Messenger needs to work is touched. On by default.
 
