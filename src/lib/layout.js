@@ -27,9 +27,10 @@ const FAN_ITEM = FAN_ROW + FAN_GAP; // pitch
 const PAD = 32;        // transparent margin around the content: the 8+24px shadow and the count pill
 
 // Content rect (disc plus the stack) when `itemCount` fan rows are shown. The disc keeps its
-// screen position; the column grows upward when it fits, otherwise downward.
-function fanLayout(bubble, itemCount, area) {
-  const extra = itemCount * FAN_ITEM;
+// screen position; the column grows upward when it fits, otherwise downward. `scale` is the
+// bubble size relative to the 44px disc the pitch is drawn for.
+function fanLayout(bubble, itemCount, area, scale = 1) {
+  const extra = itemCount * FAN_ITEM * scale;
   const up = bubble.y - extra >= area.y;
   const bounds = { x: bubble.x, y: up ? bubble.y - extra : bubble.y, width: bubble.width, height: bubble.height + extra };
   return { direction: up ? 'up' : 'down', bounds: { ...bounds, ...clampToArea(bounds, area) } };
@@ -38,8 +39,10 @@ function fanLayout(bubble, itemCount, area) {
 // The window that holds a content rect: PAD on every side, and stretched vertically so it also
 // covers `dockY` (the panel's top edge, where the open chat's avatar docks) when that lies
 // outside the content, plus `extra` below it (the reply row the landed banner grows while a
-// reply is typed). Returns the window rect plus where the content sits inside it.
-function windowFrame(content, dockY, extra = 0) {
+// reply is typed). Returns the window rect plus where the content sits inside it. The padding
+// holds a shadow drawn in page pixels, so it grows with the bubble `scale`.
+function windowFrame(content, dockY, extra = 0, scale = 1) {
+  const pad = PAD * scale;
   let top = content.y;
   let bottom = content.y + content.height;
   if (typeof dockY === 'number') {
@@ -47,12 +50,12 @@ function windowFrame(content, dockY, extra = 0) {
     bottom = Math.max(bottom, dockY + content.width);
   }
   return {
-    x: content.x - PAD,
-    y: top - PAD,
-    width: content.width + 2 * PAD,
-    height: bottom - top + 2 * PAD + extra,
-    contentX: PAD,
-    contentY: content.y - top + PAD,
+    x: content.x - pad,
+    y: top - pad,
+    width: content.width + 2 * pad,
+    height: bottom - top + 2 * pad + extra,
+    contentX: pad,
+    contentY: content.y - top + pad,
   };
 }
 

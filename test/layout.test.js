@@ -110,3 +110,19 @@ test('windowFrame grows below the content by the extra it is given, keeping the 
   assert.equal(grown.height, plain.height + 40);
   assert.deepEqual(windowFrame({ x: 100, y: 500, width: 44, height: 44 }, null, 0), plain);
 });
+
+// A larger disc means larger heads, gaps and shadows: the fan's pitch and the window's padding
+// scale with it, so the column and its padding stay proportional at every bubble size.
+test('fanLayout and windowFrame take a scale for a larger bubble', () => {
+  const area = { x: 0, y: 0, width: 1440, height: 900 };
+  const big = { x: 100, y: 500, width: 66, height: 66 };
+  const r = fanLayout(big, 2, area, 1.5);
+  assert.equal(r.bounds.height, 66 + 2 * 52 * 1.5);
+  assert.equal(r.bounds.y, 500 - 2 * 52 * 1.5);
+  const f = windowFrame(big, null, 0, 1.5);
+  assert.equal(f.x, 100 - PAD * 1.5);
+  assert.equal(f.width, 66 + 2 * PAD * 1.5);
+  assert.equal(f.contentX, PAD * 1.5);
+  // Scale 1 is exactly what it was.
+  assert.deepEqual(fanLayout({ x: 100, y: 500, width: 44, height: 44 }, 3, area, 1), fanLayout({ x: 100, y: 500, width: 44, height: 44 }, 3, area));
+});

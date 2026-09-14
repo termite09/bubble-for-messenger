@@ -40,6 +40,9 @@
       text-align: center; display: none; pointer-events: none;
     }
     #count.visible { display: block; }
+    /* Pulsing count: the pill breathes between full and a third while anything is unread. */
+    @keyframes breathe { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+    body.pulse #count.visible { animation: breathe 2.4s ease-in-out infinite; }
 
     /* "A message landed": a banner unrolls out of the disc for a few seconds, then rolls back.
        It is a full-size card whose clip-path starts as the disc's own circle, so the reveal is
@@ -125,6 +128,7 @@
 
     /* Reduce Motion: no travel, just the crossfade. */
     @media (prefers-reduced-motion: reduce) {
+      body.pulse #count.visible { animation: none; }
       #fan { transition: --p 120ms linear; }
       .head { transform: none; }
       #landed { transition: opacity 120ms linear; }

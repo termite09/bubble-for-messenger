@@ -3,25 +3,30 @@ const path = require('path');
 const { isClick, clampToArea, fanLayout, windowFrame, snapToEdge, EDGE_MARGIN } = require('../lib/layout');
 const { isThreadHref } = require('../lib/recent');
 const { validReply } = require('../lib/reply');
+const { BUBBLE_SIZES } = require('../lib/settings');
 const { joinAllSpaces } = require('./workspaces');
 
 const RENDERER = path.join(__dirname, '..', 'renderer');
 
-const SIZE = 44;       // the disc
+// The page is drawn for a 44px disc; a larger bubble is the same page zoomed, so every
+// length below is in page pixels and is multiplied by `scale` where it meets the screen.
+const BASE = BUBBLE_SIZES.small;
 const BANNER = 250;    // the landed banner; the window extends this far from the disc toward the screen centre
 const REPLY_ROW = 36;  // the row the landed banner grows below the disc while a reply is typed
 
-function defaultPosition() {
+function defaultPosition(size) {
   const { workArea } = screen.getPrimaryDisplay();
-  return { x: workArea.x + workArea.width - SIZE - EDGE_MARGIN, y: workArea.y + workArea.height - SIZE - EDGE_MARGIN };
+  return { x: workArea.x + workArea.width - size - EDGE_MARGIN, y: workArea.y + workArea.height - size - EDGE_MARGIN };
 }
 
 // The disc's position (`anchor`) is the source of truth. The window around it is transparent
 // padding (room for shadows and the count pill) plus whatever is showing: the banner stack above
 // or below the disc, the "message landed" banner, and the docked avatar beside an open panel.
 // Clicks fall through the padding: the renderer reports when the cursor is over a card.
-function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onOpenChat, onOpenInbox, onDismiss, onReply, dismiss, overFullscreen = true }) {
-  const start = position || defaultPosition();
+function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onOpenChat, onOpenInbox, onDismiss, onReply, dismiss, overFullscreen = true, size = BASE }) {
+  let SIZE = size;          // the disc, on screen
+  let scale = SIZE / BASE;  // page zoom
+  const start = position || defaultPosition(SIZE);
   const anchor = clampToArea({ ...start, width: SIZE, height: SIZE }, screen.getDisplayNearestPoint(start).workArea);
 
   const win = new BrowserWindow({
@@ -32,6 +37,7 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onOp
       preload: path.join(RENDERER, 'bubble-preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      zoomFactor: scale,
     },
   });
   win.setAlwaysOnTop(true, 'screen-saver');
@@ -41,7 +47,10 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onOp
   win.once('ready-to-show', () => { win.showInactive(); applyBounds(); });
   // Settings arrive before the page has loaded at startup; hand them over again once it has.
   let lastSettings = null;
-  win.webContents.on('did-finish-load', () => { if (lastSettings) win.webContents.send('bubble:settings', lastSettings); });
+  win.webContents.on('did-finish-load', () => {
+    win.webContents.setZoomFactor(scale);
+    if (lastSettings) win.webContents.send('bubble:settings', lastSettings);
+  });
 
   // While the stack is open, an invisible shield covers the display beneath it (and the panel):
   // a press anywhere that is not a banner puts the stack away, the way a popover closes. It is
@@ -70,21 +79,23 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onOp
 
   function layout() {
     const area = screen.getDisplayMatching(bounds()).workArea;
-    const column = fanCount ? fanLayout(bounds(), fanCount, area) : { direction, bounds: bounds() };
+    const column = fanCount ? fanLayout(bounds(), fanCount, area, scale) : { direction, bounds: bounds() };
     direction = column.direction;
     const side = edge();
+    const banner = BANNER * scale;
     // The content rect spans the banner width from the disc toward the screen centre.
     const content = {
-      x: side === 'right' ? column.bounds.x + SIZE - BANNER : column.bounds.x,
-      y: column.bounds.y, width: BANNER, height: column.bounds.height,
+      x: side === 'right' ? column.bounds.x + SIZE - banner : column.bounds.x,
+      y: column.bounds.y, width: banner, height: column.bounds.height,
     };
-    const frame = windowFrame(content, null, replying ? REPLY_ROW : 0);
+    const frame = windowFrame(content, null, replying ? REPLY_ROW * scale : 0, scale);
+    // The page works in its own (zoomed) pixels: offsets cross over divided by the scale.
     return {
       content,
       window: { x: frame.x, y: frame.y, width: frame.width, height: frame.height },
       renderer: {
-        contentX: side === 'right' ? frame.contentX + BANNER - SIZE : frame.contentX,
-        contentY: frame.contentY + (column.bounds.height - SIZE) * (direction === 'up' ? 1 : 0),
+        contentX: (side === 'right' ? frame.contentX + banner - SIZE : frame.contentX) / scale,
+        contentY: (frame.contentY + (column.bounds.height - SIZE) * (direction === 'up' ? 1 : 0)) / scale,
         edge: side,
         direction,
       },
@@ -121,6 +132,25 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onOp
       moveTo(Math.round(startX + (targetX - startX) * eased), y);
       if (i >= steps) stopSnap();
     }, 12);
+  }
+
+  // A new disc size: the page zooms, and the disc keeps its centre — except that one resting
+  // on the top or bottom of the screen stays resting on it, so sizes round-trip without drift —
+  // then rests against the side edge again (it may now be too close to it, or past it).
+  function resize(next) {
+    stopSnap();
+    collapse();
+    const area = screen.getDisplayMatching(bounds()).workArea;
+    const onTop = anchor.y <= area.y;
+    const onBottom = anchor.y + SIZE >= area.y + area.height;
+    const cx = anchor.x + SIZE / 2;
+    const cy = anchor.y + SIZE / 2;
+    SIZE = next;
+    scale = SIZE / BASE;
+    win.webContents.setZoomFactor(scale);
+    const y = onTop ? area.y : onBottom ? area.y + area.height - SIZE : cy - SIZE / 2;
+    const at = clampToArea({ x: cx - SIZE / 2, y, width: SIZE, height: SIZE }, area);
+    moveTo(snapToEdge({ ...at, width: SIZE, height: SIZE }, area).x, at.y);
   }
 
   const COLLAPSE_MS = 240; // the fold transition is 220ms
@@ -264,11 +294,16 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onOp
       joinAllSpaces(win, on);
       joinAllSpaces(shield, on);
     },
-    setSettings: (s) => { lastSettings = s; win.webContents.send('bubble:settings', s); },
+    setSettings: (s) => {
+      lastSettings = s;
+      win.webContents.send('bubble:settings', s);
+      const next = BUBBLE_SIZES[s.bubbleSize] || BASE;
+      if (next !== SIZE) resize(next);
+    },
     resetPosition: () => {
       stopSnap();
       collapse();
-      const p = defaultPosition();
+      const p = defaultPosition(SIZE);
       moveTo(p.x, p.y);
     },
   };

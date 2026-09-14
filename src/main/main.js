@@ -9,7 +9,7 @@ const { fetchAvatar } = require('./avatars');
 const { LIMIT: RECENT_LIMIT } = require('../lib/recent');
 const { isMetaHost } = require('../lib/links');
 const { isTelemetryUrl } = require('../lib/telemetry');
-const { normalizeSettings, isSettingKey, isPermissionGranted } = require('../lib/settings');
+const { normalizeSettings, isSettingKey, isPermissionGranted, BUBBLE_SIZES } = require('../lib/settings');
 const { removeStaleLockFiles } = require('../lib/storage');
 
 const RECENT_POLL_MS = 5000;
@@ -59,6 +59,9 @@ function updateSetting(key, value) {
   return settings;
 }
 
+// What the bubble page needs to know: the reply control, how the count shows, and the disc size.
+const rendererSettings = () => ({ quickReply: settings.quickReply, badge: settings.badge, bubbleSize: settings.bubbleSize });
+
 // Every setting has one place it takes effect. `prev` is the state before a change (null at
 // startup): only what differs is re-applied, so flipping one switch never touches the rest.
 function applySettings(prev) {
@@ -68,8 +71,8 @@ function applySettings(prev) {
   }
   // Under `npm start` this would register Electron.app itself as the login item.
   if (changed('startAtLogin') && app.isPackaged) app.setLoginItemSettings({ openAtLogin: settings.startAtLogin });
-  if (changed('badge') && bubble) bubble.setBadge(settings.badge ? lastUnread : 0);
-  if (changed('quickReply') && bubble) bubble.setSettings({ quickReply: settings.quickReply });
+  if (changed('badge') && bubble) bubble.setBadge(settings.badge !== 'off' ? lastUnread : 0);
+  if ((changed('quickReply') || changed('badge') || changed('bubbleSize')) && bubble) bubble.setSettings(rendererSettings());
   if (changed('theme')) nativeTheme.themeSource = settings.theme;
   if (changed('spellcheck') && panel) panel.session().setSpellCheckerEnabled(settings.spellcheck);
   // banner, bannerPreview, notifications and blockTelemetry are read where they matter.
@@ -271,7 +274,7 @@ app.whenReady().then(() => {
     onUnread: (n) => {
       if (!bubble) return;
       lastUnread = n;
-      bubble.setBadge(settings.badge ? n : 0);
+      bubble.setBadge(settings.badge !== 'off' ? n : 0);
       refreshRecent();
     },
     onShown: syncActive,
@@ -285,6 +288,7 @@ app.whenReady().then(() => {
     position: settings.bubble,
     dismiss,
     overFullscreen: settings.overFullscreen,
+    size: BUBBLE_SIZES[settings.bubbleSize],
     onClick: () => bubble.expand(recent),
     // Pressing the disc while the stack is open, or anywhere outside it, puts it all away.
     onClose: () => panel.hide(),
@@ -313,6 +317,8 @@ app.whenReady().then(() => {
     getSettings: () => settings,
     setSetting: updateSetting,
     subscribe: (fn) => settingsListeners.add(fn),
+    // Messenger's own switches (notification sounds among them) live in its Preferences.
+    onOpenMessengerPreferences: () => { activeHref = null; panel.openPreferences(bubble.getBounds()); },
   });
 
   applySettings(null);

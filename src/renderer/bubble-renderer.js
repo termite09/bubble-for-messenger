@@ -212,5 +212,8 @@ window.bubbleApi.onReplyResult((ok) => {
   fold(ok ? 1200 : 300);
 });
 
-// Settings that change what the banner offers.
-window.bubbleApi.onSettings((s) => { body.classList.toggle('no-reply', !s.quickReply); });
+// Settings that change what the banner offers and how the count shows.
+window.bubbleApi.onSettings((s) => {
+  body.classList.toggle('no-reply', !s.quickReply);
+  body.classList.toggle('pulse', s.badge === 'pulse');
+});
