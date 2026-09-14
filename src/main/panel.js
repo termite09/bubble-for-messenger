@@ -122,8 +122,16 @@ function createPanel({ onUnread, onShown = () => {}, onBlurred = () => {}, overF
     win.setPosition(x, y);
   }
 
+  // Staging shows the window at opacity 0 so page clicks dispatch; while it is invisible it
+  // must not swallow the user's own clicks on whatever is underneath.
+  function stage() {
+    win.setOpacity(0);
+    win.setIgnoreMouseEvents(true);
+    win.showInactive();
+  }
   function reveal() {
     win.setOpacity(1);
+    win.setIgnoreMouseEvents(false);
     win.show();
     win.focus();
     onShown();
@@ -139,9 +147,8 @@ function createPanel({ onUnread, onShown = () => {}, onBlurred = () => {}, overF
     resize('compact');
     // Stage the reload + row click invisibly (opacity 0 but rendered, so the click still
     // dispatches), then reveal only once the conversation is showing — the list is never seen.
-    win.setOpacity(0);
     place(bubbleBounds);
-    win.showInactive();
+    stage();
     try {
       await scrape.setCompact(win.webContents, true);
       await scrape.openThread(win.webContents, href);
@@ -174,12 +181,12 @@ function createPanel({ onUnread, onShown = () => {}, onBlurred = () => {}, overF
   // panel is already showing, it simply switches to that thread in view.
   async function stageReply(href, text) {
     const wasHidden = !win.isVisible();
-    if (wasHidden) { win.setOpacity(0); win.showInactive(); }
+    if (wasHidden) stage();
     try {
       return await scrape.sendReply(win.webContents, href, text);
     } finally {
       // Never leave the invisible window up: it would swallow clicks meant for what's under it.
-      if (wasHidden) { win.hide(); win.setOpacity(1); }
+      if (wasHidden) { win.hide(); win.setOpacity(1); win.setIgnoreMouseEvents(false); }
     }
   }
 
