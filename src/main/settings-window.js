@@ -38,7 +38,7 @@ function createSettingsWindow({ getSettings, setSetting, subscribe, onOpenMessen
   ipcMain.on('settings:close', (e) => { if (owns(e)) win.hide(); });
   // The page reports how tall the pane it shows is; the card's top edge stays put.
   ipcMain.on('settings:resize', (e, height) => {
-    if (!owns(e) || typeof height !== 'number') return;
+    if (!owns(e) || !Number.isFinite(height)) return;
     const h = Math.round(Math.min(Math.max(height, MIN_HEIGHT), MAX_HEIGHT));
     const { x, y } = win.getBounds();
     win.setBounds({ x, y, width: WIDTH, height: h }, true);

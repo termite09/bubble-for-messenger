@@ -10,7 +10,7 @@ const { LIMIT: RECENT_LIMIT, MAX_PINS, reopenOpen, mergeHeads } = require('../li
 const { isMetaHost } = require('../lib/links');
 const { shouldPersistCookie, persistentCookie } = require('../lib/cookies');
 const { isTelemetryUrl } = require('../lib/telemetry');
-const { normalizeSettings, isSettingKey, isPermissionGranted, BUBBLE_SIZES } = require('../lib/settings');
+const { normalizeSettings, isSettingKey, isPermissionGranted, isMetaOrigin, BUBBLE_SIZES } = require('../lib/settings');
 const { removeStaleLockFiles } = require('../lib/storage');
 
 const RECENT_POLL_MS = 5000;
@@ -179,13 +179,11 @@ function persistFacebookCookies() {
 // Electron grants every permission request by default. Only Messenger (and the facebook.com
 // login pages the panel may visit) get anything, and only what a chat client needs.
 function restrictPermissions() {
-  const allowed = (url) => { try { return isMetaHost(new URL(url).hostname); } catch (e) { return false; } };
-  const granted = (permission) => isPermissionGranted(permission, settings);
   session.defaultSession.setPermissionRequestHandler((wc, permission, callback, details) => {
-    callback(allowed(details.requestingUrl || wc.getURL()) && granted(permission));
+    callback(isMetaOrigin(details.requestingUrl || wc.getURL()) && isPermissionGranted(permission, settings, details));
   });
   session.defaultSession.setPermissionCheckHandler((wc, permission, origin) =>
-    allowed(origin) && granted(permission));
+    isMetaOrigin(origin) && isPermissionGranted(permission, settings));
 }
 
 // Drop Facebook's logging beacons at the network layer. Only the pure telemetry sinks listed in
@@ -280,14 +278,17 @@ function createMenu() {
     {
       label: 'View',
       submenu: [
-        { role: 'reload' },
-        { role: 'forceReload' },
-        { type: 'separator' },
         { role: 'resetZoom' },
         { role: 'zoomIn' },
         { role: 'zoomOut' },
-        { type: 'separator' },
-        { role: 'toggleDevTools', accelerator: 'CmdOrCtrl+Option+I' },
+        // Reload and DevTools act on the focused window — usually the logged-in Messenger page.
+        // Development only: DevTools on that page is the "paste this in the console" trap.
+        ...(app.isPackaged ? [] : [
+          { type: 'separator' },
+          { role: 'reload' },
+          { role: 'forceReload' },
+          { role: 'toggleDevTools', accelerator: 'CmdOrCtrl+Option+I' },
+        ]),
       ],
     },
     {

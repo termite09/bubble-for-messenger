@@ -1,6 +1,7 @@
 // The user's choices, as saved in settings.json (which they may edit by hand) and as they
 // arrive from the settings page. One normalizer turns anything into the full shape.
 const { isThreadHref, MAX_PINS } = require('./recent');
+const { isMetaHost } = require('./links');
 const THEMES = ['system', 'light', 'dark'];
 const BADGES = ['off', 'steady', 'pulse'];       // the unread count on the disc
 const BUBBLE_SIZES = Object.freeze({ small: 44, medium: 56, large: 68 }); // the disc, in px
@@ -25,8 +26,21 @@ const DEFAULTS = Object.freeze({
 const CHOICES = { theme: THEMES, badge: BADGES, bubbleSize: Object.keys(BUBBLE_SIZES), reopenLast: REOPEN_SECONDS };
 
 const GRANTED_PERMISSIONS = new Set(['media', 'clipboard-read', 'clipboard-sanitized-write', 'fullscreen']);
-function isPermissionGranted(permission, settings) {
+const MEDIA_TYPES = new Set(['audio', 'video']); // a call's camera and microphone; never the screen
+function isPermissionGranted(permission, settings, details = {}) {
+  if (permission === 'media' && Array.isArray(details.mediaTypes)) return details.mediaTypes.every((t) => MEDIA_TYPES.has(t));
   return GRANTED_PERMISSIONS.has(permission) || (permission === 'notifications' && settings.notifications);
+}
+
+// Only Messenger and the facebook.com pages the panel may visit are granted anything, and only
+// over https.
+function isMetaOrigin(url) {
+  try {
+    const u = new URL(url);
+    return u.protocol === 'https:' && isMetaHost(u.hostname);
+  } catch (e) {
+    return false;
+  }
 }
 
 const isSettingKey = (key) => typeof key === 'string' && Object.prototype.hasOwnProperty.call(DEFAULTS, key);
@@ -40,10 +54,18 @@ function normalizeSettings(raw) {
   }
   // The unread count was a switch before 2.2; a saved boolean keeps meaning what it meant.
   if (typeof src.badge === 'boolean') out.badge = src.badge ? 'steady' : 'off';
-  // The disc position is saved in the same file; it is not a setting the page shows.
-  out.bubble = src.bubble && typeof src.bubble === 'object' ? src.bubble : null;
+  // The disc position is saved in the same file; it is not a setting the page shows. It is
+  // hand-editable, so anything that is not two finite numbers reads as "no saved position".
+  out.bubble = normalizePosition(src.bubble);
   out.pins = normalizePins(src.pins);
   return out;
+}
+
+function normalizePosition(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const x = Number(raw.x);
+  const y = Number(raw.y);
+  return Number.isFinite(x) && Number.isFinite(y) ? { x: Math.round(x), y: Math.round(y) } : null;
 }
 
 // Pinned chats, likewise not a page setting: thread hrefs only, no duplicates, MAX_PINS at most.
@@ -60,4 +82,4 @@ function normalizePins(raw) {
   return out;
 }
 
-module.exports = { DEFAULTS, THEMES, BADGES, BUBBLE_SIZES, REOPEN_SECONDS, normalizeSettings, isSettingKey, isPermissionGranted };
+module.exports = { DEFAULTS, THEMES, BADGES, BUBBLE_SIZES, REOPEN_SECONDS, normalizeSettings, isSettingKey, isPermissionGranted, isMetaOrigin };

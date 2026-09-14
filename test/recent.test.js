@@ -157,3 +157,12 @@ test('mergeHeads caps recent at the limit after removing pins', () => {
   assert.deepEqual(out.map((i) => i.href), ['/t/1/', '/t/2/', '/t/3/', '/t/4/', '/t/5/', '/t/0/']);
   assert.deepEqual(mergeHeads([], []), []);
 });
+
+// Strings from the page reach the settings file and the screen: bounded, whatever the page says.
+test('normalizeRows caps the length of what it keeps', () => {
+  const long = (n) => 'x'.repeat(n);
+  const [row] = normalizeRows([{ href: '/t/1/', name: long(500), preview: long(5000), avatarUrl: 'https://a/' + long(5000), unread: 1 }]);
+  assert.equal(row.name.length, 200);
+  assert.equal(row.preview.length, 1000);
+  assert.equal(row.avatarUrl.length, 2048);
+});

@@ -29,6 +29,14 @@ function createPanel({ onUnread, onShown = () => {}, onBlurred = () => {}, overF
   win.loadURL('https://www.messenger.com');
 
   win.on('blur', () => { win.hide(); onBlurred(); });
+  // The panel is the app's connection to Messenger: it is only ever hidden, never closed (Cmd+W
+  // or a page's window.close would otherwise destroy it), and a crashed page is loaded again.
+  win.on('close', (event) => { event.preventDefault(); win.hide(); });
+  let crashes = 0;
+  win.webContents.on('render-process-gone', (_event, details) => {
+    if (details.reason === 'clean-exit') return;
+    setTimeout(() => { if (!win.isDestroyed()) win.webContents.reload(); }, errorRetryDelay(crashes++));
+  });
 
   // Re-apply the frame and compact styling after any navigation (a full reload drops injected CSS).
   let compact = false;

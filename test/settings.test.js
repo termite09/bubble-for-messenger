@@ -41,8 +41,14 @@ test('a boolean badge from an older settings.json migrates', () => {
   assert.equal(normalizeSettings({ badge: false }).badge, 'off');
 });
 
-test('the bubble position rides along untouched', () => {
+test('the bubble position rides along when it is a real position, else null', () => {
   assert.deepEqual(normalizeSettings({ bubble: { x: 10, y: 20 } }).bubble, { x: 10, y: 20 });
+  assert.deepEqual(normalizeSettings({ bubble: { x: 10.7, y: -20.2, z: 1 } }).bubble, { x: 11, y: -20 });
+  // settings.json is hand-editable: anything that is not two finite numbers would crash the
+  // window placement at startup, so it reads as "no saved position".
+  for (const bad of [{ x: 'a', y: 1 }, { x: 1 }, {}, [1, 2], 'x', { x: NaN, y: 1 }, { x: Infinity, y: 1 }]) {
+    assert.equal(normalizeSettings({ bubble: bad }).bubble, null, JSON.stringify(bad));
+  }
 });
 
 test('isSettingKey knows the twelve keys and nothing else', () => {
@@ -58,6 +64,24 @@ test('native notification permission is granted only for Meta pages and when the
   assert.equal(isPermissionGranted('media', DEFAULTS), true);
   assert.equal(isPermissionGranted('clipboard-read', DEFAULTS), true);
   assert.equal(isPermissionGranted('geolocation', DEFAULTS), false);
+});
+
+// "media" is the camera and microphone a call needs; a request that also asks for the screen
+// is not one Messenger makes, and is refused whole.
+test('media is granted for audio and video only', () => {
+  assert.equal(isPermissionGranted('media', DEFAULTS, { mediaTypes: ['audio', 'video'] }), true);
+  assert.equal(isPermissionGranted('media', DEFAULTS, { mediaTypes: ['audio'] }), true);
+  assert.equal(isPermissionGranted('media', DEFAULTS, { mediaTypes: ['audio', 'screen'] }), false);
+  assert.equal(isPermissionGranted('media', DEFAULTS, {}), true); // a check, not a request: no types
+});
+
+const { isMetaOrigin } = require('../src/lib/settings');
+test('only https Meta origins may be granted anything', () => {
+  assert.equal(isMetaOrigin('https://www.messenger.com/t/1/'), true);
+  assert.equal(isMetaOrigin('https://www.facebook.com'), true);
+  assert.equal(isMetaOrigin('http://www.messenger.com/'), false);
+  assert.equal(isMetaOrigin('https://evil.com/?messenger.com'), false);
+  assert.equal(isMetaOrigin('not a url'), false);
 });
 
 // Pinned chats ride along in settings.json like the disc position: not a page setting, but

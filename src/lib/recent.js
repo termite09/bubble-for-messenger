@@ -24,6 +24,10 @@ function spanText(node) {
 }
 
 // Clean up the raw rows scraped from messenger.com's chat list into what the bubble renders.
+// Strings are bounded: they reach the screen and settings.json, whatever the page says.
+const MAX_NAME = 200;
+const MAX_PREVIEW = 1000;
+const MAX_URL = 2048;
 function normalizeRows(raw) {
   if (!Array.isArray(raw)) return [];
   const seen = new Set();
@@ -31,15 +35,16 @@ function normalizeRows(raw) {
   for (const r of raw) {
     if (!r || typeof r !== 'object') continue;
     const href = r.href;
-    const name = typeof r.name === 'string' ? r.name.trim() : '';
+    const name = typeof r.name === 'string' ? r.name.trim().slice(0, MAX_NAME) : '';
     if (!isThreadHref(href) || !name || seen.has(href)) continue;
     seen.add(href);
     // A preview needs a letter, digit or emoji; Messenger's lone "·" separator is no preview.
-    const rawPreview = typeof r.preview === 'string' ? r.preview.trim() : '';
+    const rawPreview = typeof r.preview === 'string' ? r.preview.trim().slice(0, MAX_PREVIEW) : '';
     const preview = /[\p{L}\p{N}\p{Extended_Pictographic}]/u.test(rawPreview) ? rawPreview : '';
     // A time stamp is short ("2m", "1h", "Yesterday"); anything longer is some other span.
     const time = typeof r.time === 'string' && r.time.trim().length <= 9 ? r.time.trim() : '';
-    out.push({ href, name, avatarUrl: typeof r.avatarUrl === 'string' ? r.avatarUrl : null, unread: Boolean(r.unread), preview, time });
+    const avatarUrl = typeof r.avatarUrl === 'string' ? r.avatarUrl.slice(0, MAX_URL) : null;
+    out.push({ href, name, avatarUrl, unread: Boolean(r.unread), preview, time });
     if (out.length === LIMIT) break;
   }
   return out;

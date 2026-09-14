@@ -14,6 +14,9 @@ function isAvatarUrl(url) {
   }
 }
 
+// The raster formats a profile picture comes in; anything else (SVG in particular) is refused.
+const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+
 // Fetch a profile picture through the Messenger session and return a data URL the bubble can
 // render under its strict CSP. Memoised; failures are cached as null.
 function fetchAvatar(ses, url) {
@@ -21,8 +24,9 @@ function fetchAvatar(ses, url) {
   if (cache.has(url)) return cache.get(url);
   const p = ses.fetch(url)
     .then(async (res) => {
-      const type = res.headers.get('content-type') || '';
-      if (!res.ok || !type.startsWith('image/')) return null;
+      const type = (res.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+      if (!res.ok || !IMAGE_TYPES.has(type)) return null;
+      if (Number(res.headers.get('content-length')) > MAX_BYTES) return null;
       const buf = Buffer.from(await res.arrayBuffer());
       if (buf.length > MAX_BYTES) return null;
       return `data:${type};base64,${buf.toString('base64')}`;
