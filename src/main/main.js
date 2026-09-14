@@ -80,13 +80,12 @@ function applySettings(prev) {
 let recent = []; // [{ href, name, avatar (data URL), unread }]
 let activeHref = null; // thread the panel is showing; null = inbox
 
-// A chat put away by clicking elsewhere (the shield, or the panel losing focus) stays one disc
-// click from reopening for settings.reopenLast seconds. Closing on the disc is deliberate and
-// forgets it — including the blur that press can cause a moment later.
+// A chat put away — on the disc, on the shield, or by the panel losing focus — stays one disc
+// click from reopening for settings.reopenLast seconds. (Reopening brings the stack up beside
+// it, so nothing is lost by not distinguishing how it was closed.)
 let lastChat = null; // { href, closedAt }
-let discClosedAt = 0;
 function rememberChat() {
-  if (activeHref && Date.now() - discClosedAt > 500) lastChat = { href: activeHref, closedAt: Date.now() };
+  if (activeHref) lastChat = { href: activeHref, closedAt: Date.now() };
 }
 
 // Re-read the chat list from the Messenger page, refresh the fan if it is open, and unroll a
@@ -354,10 +353,9 @@ app.whenReady().then(() => {
       else showStack();
     },
     // Pressing the disc while the stack is open, or anywhere outside it (the shield), puts it
-    // all away; only the latter counts as "clicked away" for reopening.
-    onClose: (reason) => {
-      if (reason === 'shield') rememberChat();
-      else { lastChat = null; discClosedAt = Date.now(); }
+    // all away — and remembers the open chat for a while.
+    onClose: () => {
+      rememberChat();
       panel.hide();
     },
     onContextMenu: bubbleContextMenu,

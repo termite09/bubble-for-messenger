@@ -23,9 +23,9 @@ the stack; and the paper "Open Messenger" head says what it is.
 
 ## 2. Reopen the last chat
 
-- When the panel hides because the user **clicked away** — its own blur, or the click-outside
-  shield — while a chat was open, main remembers `lastChat = { href, closedAt }`. Closing by
-  clicking the disc (a deliberate close) clears it; so does opening another chat.
+- When the panel hides with a chat open — the disc, the click-outside shield, or the panel's
+  own blur — main remembers `lastChat = { href, closedAt }`. Opening another chat replaces it.
+  (Reopening brings the stack up beside the chat, so how it was closed need not matter.)
 - Clicking the disc while nothing is open and `Date.now() - closedAt <= reopenLast * 1000`
   opens that chat directly (`openChat(href)`: stack up, chat beside it). Otherwise the stack
   opens as today.
@@ -42,23 +42,23 @@ the stack; and the paper "Open Messenger" head says what it is.
 - **Model.** `pins: [{ href, name, avatarUrl }]` in `settings.json`, in the order pinned,
   passed through the normaliser like `bubble` (valid thread hrefs only, strings for
   name/avatarUrl, max 5, no duplicates). Not a page-visible setting.
-- **Stack.** `mergeHeads(pins, recent)` (`lib/recent.js`) → pinned first in pin order, each
-  refreshed from the recent row when present (name, avatarUrl, unread, preview), then recent
-  rows not pinned, at most 5. Each item carries `pinned: true|false`. Pinned chats absent from
+- **Stack.** `mergeHeads(pins, recent)` (`lib/recent.js`) → up to 5 recent rows that are not
+  pinned, then the pins in pin order (next to the inbox head), each refreshed from its recent
+  row when present (name, avatarUrl, unread, preview). Each item carries `pinned: true|false`. Pinned chats absent from
   the list have `unread: false`. Their avatars go through `fetchAvatar` from the stored URL;
   when that fails (Messenger's CDN URLs expire) the head shows the initial, and the stored URL
   is replaced the next time the chat appears in the list.
-- **Look.** A hairline between the last pinned head and the first recent one, drawn in the gap
-  (the pitch is unchanged). Cmd+1–5 keep meaning the five most recent chats.
+- **Look.** A hairline between the last recent head and the first pinned one, drawn in the gap
+  (the pitch is unchanged), and a small paper pin at each pinned head's foot (opposite the
+  unread dot). Cmd+1–5 keep meaning the five most recent chats.
 - The landed banner and Reopen ignore pins.
 
 ## 4. The inbox head
 
 - The paper head shows an **inbox glyph** (a tray: three short lines over a base, in graphite)
   instead of the Messenger mark, `title` "Inbox".
-- While the stack is open a small caption **"Inbox"** sits beside it on the side away from the
-  screen edge: `label` type on a graphite chip (the raised tone with the hairline), so it reads
-  over any wallpaper. It fades with the stack.
+- Hovering it shows a small caption **"Inbox"** beside it on the side away from the screen
+  edge: `label` type on a graphite chip with the hairline, so it reads over any wallpaper.
 
 ## Settings and window
 
@@ -72,8 +72,9 @@ the stack; and the paper "Open Messenger" head says what it is.
   cap, duplicates), `reopenOpen` (window, off, no last chat), `windowFrame` with room above,
   `reopenLast` choices.
 - Live (driver): a long preview wraps and the window grows the right way at each edge; a chat
-  closed by blur reopens on the next disc click and not after a deliberate close; pin/unpin
-  from the head menu, pinned order, the hairline; the inbox caption.
+  closed either way reopens on the next disc click, and not once the window has passed;
+  pin/unpin from the head menu, pinned order, the hairline and pin badge; the inbox caption
+  on hover.
 
 ## Out of scope
 

@@ -64,6 +64,10 @@ function headEl(item) {
   const dot = document.createElement('div');
   dot.className = 'dot';
   el.appendChild(dot);
+  const pin = document.createElement('div');
+  pin.className = 'pin';
+  pin.innerHTML = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M7.5 1l3.5 3.5-1.2 1.2-.6-.3L7 7.6V9l-.7.7L4.5 7.9 1.9 10.5 1.2 9.8l2.6-2.6-1.8-1.8.7-.7h1.4l2.2-2.2-.3-.6z"/></svg>';
+  el.appendChild(pin);
   el.addEventListener('click', () => window.bubbleApi.openChat(item.href));
   el.addEventListener('contextmenu', (e) => { e.preventDefault(); e.stopPropagation(); window.bubbleApi.headMenu(item.href); });
   return el;

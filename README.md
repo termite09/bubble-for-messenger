@@ -58,14 +58,14 @@ if you want your login gone too, `~/Library/Application Support/Bubble for Messe
   that field is open.
 - **Click the bubble** to deploy a stack of your five most recent chats as round heads, newest
   at the top (hover for the name; a blue dot means unread), plus a paper *Inbox* head for the
-  full inbox. Pick one and that conversation opens in a compact sheet beside the stack; the open
+  full inbox (hover it for its label). Pick one and that conversation opens in a compact sheet beside the stack; the open
   chat wears a white ring, and the others stay one click away. Click anywhere else, or the
   bubble, to put it all away. Messenger stays loaded in the background, so messages keep
   arriving.
 - **Pin a chat** — right-click a head → *Pin*. Up to five pinned chats sit next to the Inbox
   head, under a hairline, whether or not they're recent; *Unpin* the same way.
-- **Straight back** — if you clicked away from a chat, clicking the bubble within the next
-  30 seconds (a setting) reopens that chat instead of the stack.
+- **Straight back** — after closing a chat, clicking the bubble within the next 30 seconds (a
+  setting) reopens that chat, stack and all, instead of just the stack.
 - **Drag to dismiss** — drag the bubble onto the ✕ target that appears at the bottom of the
   screen to quit the app.
 - **Right-click the bubble** for *Open Messenger*, *Reload Messenger*, *Settings…*, *Reset Bubble

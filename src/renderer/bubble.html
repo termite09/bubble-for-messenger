@@ -95,7 +95,9 @@
       position: absolute; top: 50%; transform: translateY(-50%); white-space: nowrap; pointer-events: none;
       padding: 0 8px; border-radius: 10px; background: var(--card); border: 1px solid var(--rule); box-shadow: var(--lift);
       font: 400 11px/18px -apple-system, system-ui, sans-serif; color: var(--ink);
+      opacity: 0; transition: opacity 120ms linear;
     }
+    .head:hover .caption { opacity: 1; }
     body.edge-right .head .caption { right: 52px; }
     body.edge-left .head .caption { left: 52px; }
     .head:hover { border-color: rgba(255,255,255,.28); }
@@ -108,6 +110,13 @@
       border: 2px solid var(--card); box-sizing: border-box; display: none;
     }
     .unread .dot { display: block; }
+    /* A pinned head wears a small paper pin at its foot, opposite the unread dot. */
+    .pin {
+      position: absolute; left: -2px; bottom: -2px; width: 16px; height: 16px; border-radius: 8px; background: var(--ink);
+      border: 2px solid var(--card); box-sizing: border-box; display: none; align-items: center; justify-content: center; color: var(--card);
+    }
+    .pin svg { width: 9px; height: 9px; display: block; fill: currentColor; }
+    .pinned .pin { display: flex; }
 
     /* Landed-banner internals */
     .av { width: 32px; height: 32px; border-radius: 16px; flex: none; overflow: hidden; background: #3a3a3c;

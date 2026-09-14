@@ -7,10 +7,10 @@
   the screen edge.
 - **Pinned chats**: right-click a head → Pin. Up to five sit next to the Inbox head under a
   hairline, whether or not they're recent.
-- **Reopen the last chat** (Panel): after clicking away from a chat, a bubble click within
-  30 seconds (Off / 15 s / 30 s / 1 min / 5 min) goes straight back to it.
-- The paper head is now an inbox tray with an "Inbox" caption, so it no longer looks like a
-  second Messenger bubble.
+- **Reopen the last chat** (Panel): after closing a chat, a bubble click within 30 seconds
+  (Off / 15 s / 30 s / 1 min / 5 min) goes straight back to it.
+- The paper head is now an inbox tray, captioned "Inbox" on hover, so it no longer looks
+  like a second Messenger bubble.
 
 ## v2.2.0 (2026-09-14) — Bubble for Messenger
 
