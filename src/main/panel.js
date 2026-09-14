@@ -81,11 +81,20 @@ function createPanel({ onUnread, onShown = () => {}, onBlurred = () => {}, overF
     return { action: 'deny' };
   });
 
-  win.webContents.on('will-navigate', (event, url) => {
+  // A navigation the panel may not follow goes to the browser instead. `will-navigate` covers
+  // what the page starts; `will-redirect` covers where a server sends it (a 30x off Meta's hosts
+  // would otherwise carry the session out); `did-navigate` is the last resort should either be
+  // bypassed: back to the inbox.
+  const guardNavigation = (event, url) => {
     if (staysInPanel(url)) return;
     event.preventDefault();
     const target = browserUrl(url);
     if (target) shell.openExternal(target);
+  };
+  win.webContents.on('will-navigate', guardNavigation);
+  win.webContents.on('will-redirect', guardNavigation);
+  win.webContents.on('did-navigate', (_event, url) => {
+    if (!staysInPanel(url)) win.loadURL('https://www.messenger.com/').catch(() => {});
   });
 
   // A single open thread is shorter than the full inbox. It is kept the same width, though:

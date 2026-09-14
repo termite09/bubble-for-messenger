@@ -68,3 +68,16 @@ test('isMetaHost matches Meta domains by suffix only, with or without a leading 
   assert.equal(isMetaHost('facebook.com.evil.example'), false);
   assert.equal(isMetaHost(undefined), false);
 });
+
+// Meta's /l.php link shim exists on messenger.com too (and on any of its subdomains): it is a
+// redirect out, never a page to keep in the panel with the session.
+test('/l.php on messenger.com hosts is the link shim, not an internal page', () => {
+  for (const host of ['www.messenger.com', 'messenger.com', 'm.facebook.com']) {
+    const url = `https://${host}/l.php?u=https%3A%2F%2Fexample.com%2Fx`;
+    assert.equal(isInternal(url), false, host);
+    assert.equal(staysInPanel(url), false, host);
+    assert.equal(browserUrl(url), 'https://example.com/x', host);
+  }
+  assert.equal(isInternal('https://www.messenger.com/lol.php'), true);
+  assert.equal(isInternal('https://www.messenger.com/l.php/extra'), true);
+});

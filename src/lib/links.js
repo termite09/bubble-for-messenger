@@ -17,12 +17,12 @@ function hostOf(url) {
 
 const onDomain = (host, domain) => host === domain || host.endsWith('.' + domain);
 
-// Meta wraps outbound links in a tracking redirect: the l.* / lm.* shim hosts, or /l.php on
-// facebook.com itself. Only the exact /l.php path counts there; the rest of facebook.com is pages.
+// Meta wraps outbound links in a tracking redirect: the l.* / lm.* shim hosts, or /l.php on any
+// of its own hosts (facebook.com, messenger.com and their subdomains). Only the exact /l.php path
+// counts there; the rest of those sites is pages.
 function isRedirect(u) {
   const host = u.hostname.toLowerCase();
-  return REDIRECT_HOSTS.includes(host) ||
-    ((host === 'facebook.com' || host === 'www.facebook.com') && u.pathname === '/l.php');
+  return REDIRECT_HOSTS.includes(host) || (isMetaHost(host) && u.pathname === '/l.php');
 }
 
 // True for a cookie/permission origin on Meta's own domains (suffix match, never substring).
