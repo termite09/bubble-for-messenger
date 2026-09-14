@@ -31,7 +31,9 @@ jobs:
         run: npm test
 
       - name: Build macOS app
-        run: npm run build
+        # electron-builder auto-publishes when it detects CI; the upload step
+        # below handles the release itself.
+        run: npm run build -- --publish never
 
       - name: Read app version
         id: version
