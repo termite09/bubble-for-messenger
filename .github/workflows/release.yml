@@ -1,8 +1,11 @@
 name: Release
 
+# One release per version: pushing a `vX.Y.Z` tag builds the app once, publishes
+# the GitHub release, and bumps the Homebrew cask. Ordinary pushes to main do not
+# rebuild, so a published version's DMG (and its checksum) never changes.
 on:
   push:
-    branches: [main]
+    tags: ["v*"]
 
 jobs:
   release:
@@ -24,6 +27,17 @@ jobs:
           node-version: 22
           cache: npm
 
+      - name: Read app version
+        id: version
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          test -n "$VERSION"
+          if [ "v${VERSION}" != "$GITHUB_REF_NAME" ]; then
+            echo "Tag ${GITHUB_REF_NAME} does not match package.json version ${VERSION}." >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
       - name: Install dependencies
         run: npm ci
 
@@ -34,13 +48,6 @@ jobs:
         # electron-builder auto-publishes when it detects CI; the upload step
         # below handles the release itself.
         run: npm run build -- --publish never
-
-      - name: Read app version
-        id: version
-        run: |
-          VERSION="$(node -p "require('./package.json').version")"
-          test -n "$VERSION"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Upload release assets
         env:

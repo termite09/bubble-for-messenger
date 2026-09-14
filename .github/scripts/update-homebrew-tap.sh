@@ -42,8 +42,10 @@ cask "bubble-for-messenger" do
   ]
 
   caveats <<~CAVEATS
-    Bubble is not signed with an Apple developer certificate. Install with
-    --no-quarantine, or right-click Bubble.app -> Open on the first launch.
+    Bubble is not signed with an Apple developer certificate, so macOS blocks
+    the first launch. Right-click Bubble.app in Applications -> Open -> Open,
+    or clear the quarantine flag once:
+      xattr -d com.apple.quarantine /Applications/Bubble.app
   CAVEATS
 end
 EOF

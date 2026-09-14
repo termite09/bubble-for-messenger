@@ -16,15 +16,20 @@ build from source (below).
 brew install --cask termite09/tap/bubble-for-messenger
 ```
 
-Because the app is not signed with an Apple developer certificate, macOS may still block the
-first launch. If that happens, right-click the app in Applications → Open → Open, or clear the
-quarantine flag once in Terminal with:
+Use the full `termite09/tap/…` name: since Homebrew 6, third-party taps must be trusted, and
+installing by full name trusts just this cask. (If Homebrew prints a notice about *other*
+untrusted taps on your machine, that is unrelated and can be ignored.)
+
+Because the app is not signed with an Apple developer certificate, macOS will block the first
+launch. Right-click the app in Applications → Open → Open, or clear the quarantine flag once in
+Terminal with:
 
 ```bash
 xattr -d com.apple.quarantine /Applications/Bubble.app
 ```
 
-Update later with `brew upgrade --cask bubble-for-messenger`.
+Update later with `brew upgrade --cask bubble-for-messenger`; uninstall with
+`brew uninstall --cask bubble-for-messenger` (add `--zap` to remove your login and settings too).
 
 **By hand:**
 
@@ -93,7 +98,7 @@ Right-click the bubble → **Settings…** (or Cmd+,). Every switch applies at o
 
 ## Build from source
 
-Prerequisites: Node.js 18+ and npm.
+Prerequisites: Node.js 22+ and npm.
 
 ```bash
 git clone https://github.com/termite09/bubble-for-messenger.git
@@ -101,25 +106,47 @@ cd bubble-for-messenger
 npm install
 
 npm start        # run in development mode
-npm test         # unit tests (layout, unread parsing, link handling)
+npm test         # unit tests for src/lib and the scrape/frame scripts
 npm run build    # build Bubble.app and a DMG into dist/ for this Mac's architecture
 ```
 
 The app keeps its own profile in `~/Library/Application Support/Bubble for Messenger`, so it
 can run alongside the original MessengerApp without sharing (or corrupting) its login data.
 
+## Releasing
+
+Releases are built by GitHub Actions when a `v*` tag is pushed; nothing is built by hand.
+
+1. Bump `version` in `package.json` and add the entry to `CHANGELOG.md`; commit to `main`.
+2. Tag and push:
+
+   ```bash
+   git tag v2.1.1
+   git push origin main v2.1.1
+   ```
+
+The workflow ([release.yml](.github/workflows/release.yml)) refuses a tag that doesn't match
+`package.json`, runs the tests, builds the arm64 DMG and zip, creates the GitHub release with
+the changelog as notes, and updates the cask in
+[termite09/homebrew-tap](https://github.com/termite09/homebrew-tap) with the new version and
+checksum. The tap step needs a `HOMEBREW_TAP_TOKEN` repository secret: a fine-grained personal
+access token with *Contents: Read and write* on `homebrew-tap` only. Without it the release is
+still published; only the cask bump is skipped.
+
 ## Project layout
 
 ```
+.github/        the release workflow and the script that bumps the Homebrew cask
 src/main/       Electron main process
   main.js         app lifecycle, settings, cookie persistence, menu, wiring
   bubble.js       the disc window: drag, edge-snap, click, the stack, the landed banner, the shield
   panel.js        the Messenger panel: placement beside the stack, card frame, compact/full mode
   dismiss.js      the ✕ drop target shown while dragging
+  settings-window.js  the Settings… window
   scrape.js       scripts run inside messenger.com: recent chats, open a thread, frame, compact CSS
   avatars.js      profile pictures fetched through the Messenger session as data URLs
-src/renderer/   the pages inside the transparent windows (bubble, shield, dismiss) and their preloads
-src/lib/        pure helpers (layout, unread parsing, link policy, row normalisation), covered by test/
+src/renderer/   the pages inside the bubble, shield, dismiss and settings windows, and their preloads
+src/lib/        pure helpers (layout, unread parsing, link policy, settings, refresh, reply, telemetry), covered by test/
 test/           node --test unit tests
 assets/         app icon
 docs/           design specs and plans
