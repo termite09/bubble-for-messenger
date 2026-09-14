@@ -8,6 +8,7 @@ const { createSettingsWindow } = require('./settings-window');
 const { fetchAvatar } = require('./avatars');
 const { LIMIT: RECENT_LIMIT, MAX_PINS, reopenOpen, mergeHeads } = require('../lib/recent');
 const { isMetaHost } = require('../lib/links');
+const { shouldPersistCookie, persistentCookie } = require('../lib/cookies');
 const { isTelemetryUrl } = require('../lib/telemetry');
 const { normalizeSettings, isSettingKey, isPermissionGranted, BUBBLE_SIZES } = require('../lib/settings');
 const { removeStaleLockFiles } = require('../lib/storage');
@@ -166,23 +167,12 @@ function headMenu(href) {
   ]).popup({ window: bubble.win });
 }
 
-// Facebook issues session cookies; re-issue them with a 1-year expiry so login survives restarts.
-// Every other attribute is copied as issued — in particular SameSite, so a cookie Facebook left
-// Lax-by-default does not come back as SameSite=None.
+// Facebook issues the login cookies as session cookies; re-issue those (and only those) with an
+// expiry so the login survives restarts. The rule and the rewrite live in lib/cookies.
 function persistFacebookCookies() {
-  session.defaultSession.cookies.on('changed', (_event, cookie, _cause, removed) => {
-    if (removed || !cookie.session || !isMetaHost(cookie.domain)) return;
-    session.defaultSession.cookies.set({
-      url: `https://${cookie.domain.replace(/^\./, '')}${cookie.path}`,
-      name: cookie.name,
-      value: cookie.value,
-      domain: cookie.domain,
-      path: cookie.path,
-      secure: cookie.secure,
-      httpOnly: cookie.httpOnly,
-      sameSite: cookie.sameSite || 'unspecified',
-      expirationDate: Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60,
-    }).catch(() => {});
+  session.defaultSession.cookies.on('changed', (_event, cookie, cause, removed) => {
+    if (!shouldPersistCookie(cookie, cause, removed)) return;
+    session.defaultSession.cookies.set(persistentCookie(cookie, Date.now())).catch(() => {});
   });
 }
 
