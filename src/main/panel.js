@@ -1,4 +1,4 @@
-const { BrowserWindow, shell, screen, powerMonitor, nativeTheme } = require('electron');
+const { app, BrowserWindow, shell, screen, powerMonitor, nativeTheme } = require('electron');
 const { panelPosition } = require('../lib/layout');
 const { unreadFromTitle } = require('../lib/unread');
 const { isInternal, staysInPanel, browserUrl } = require('../lib/links');
@@ -30,8 +30,11 @@ function createPanel({ onUnread, onShown = () => {}, onBlurred = () => {}, overF
 
   win.on('blur', () => { win.hide(); onBlurred(); });
   // The panel is the app's connection to Messenger: it is only ever hidden, never closed (Cmd+W
-  // or a page's window.close would otherwise destroy it), and a crashed page is loaded again.
-  win.on('close', (event) => { event.preventDefault(); win.hide(); });
+  // or a page's window.close would otherwise destroy it) — except by the app quitting, which
+  // closes every window and must not be held up. A crashed page is loaded again.
+  let quitting = false;
+  app.on('before-quit', () => { quitting = true; });
+  win.on('close', (event) => { if (!quitting) { event.preventDefault(); win.hide(); } });
   let crashes = 0;
   win.webContents.on('render-process-gone', (_event, details) => {
     if (details.reason === 'clean-exit') return;
