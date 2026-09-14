@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v2.3.0 (2026-09-14) — Bubble for Messenger
 
 ### Added
 - The landed banner shows the whole message, wrapped up to six lines, and grows away from
