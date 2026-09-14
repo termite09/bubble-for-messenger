@@ -225,14 +225,22 @@ landedInput.addEventListener('keydown', (e) => {
   body.classList.add('sending');
   landedSub.textContent = 'Sending…';
   window.bubbleApi.sendReply(landedHref, text);
+  // Main answers within its 12 s budget; should the answer never come (a crashed page, say),
+  // the banner must not stay mute forever.
+  clearTimeout(sendTimer);
+  sendTimer = setTimeout(() => replyResult(false), 30000);
 });
 landedInput.addEventListener('blur', () => { if (replying()) { closeReply(); fold(300); } });
-window.bubbleApi.onReplyResult((ok) => {
+let sendTimer;
+function replyResult(ok) {
+  if (!sending) return;
+  clearTimeout(sendTimer);
   sending = false;
   body.classList.remove('sending');
   landedSub.textContent = ok ? 'Sent' : 'Couldn’t send — opened the chat';
   fold(ok ? 1200 : 300);
-});
+}
+window.bubbleApi.onReplyResult(replyResult);
 
 // Settings that change what the banner offers and how the count shows.
 window.bubbleApi.onSettings((s) => {
