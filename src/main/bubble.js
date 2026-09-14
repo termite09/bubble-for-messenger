@@ -26,7 +26,7 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onOp
 
   const win = new BrowserWindow({
     x: anchor.x, y: anchor.y, width: SIZE, height: SIZE,
-    frame: false, transparent: true, hasShadow: false, resizable: false,
+    frame: false, transparent: true, hasShadow: false, resizable: false, fullscreenable: false,
     alwaysOnTop: true, skipTaskbar: true, focusable: false, show: false,
     webPreferences: {
       preload: path.join(RENDERER, 'bubble-preload.js'),
@@ -47,7 +47,7 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onOp
   // a press anywhere that is not a banner puts the stack away, the way a popover closes. It is
   // non-focusable so the click never activates anything, and it sits below the bubble's level.
   const shield = new BrowserWindow({
-    frame: false, transparent: true, hasShadow: false, resizable: false, focusable: false, show: false,
+    frame: false, transparent: true, hasShadow: false, resizable: false, fullscreenable: false, focusable: false, show: false,
     alwaysOnTop: true, skipTaskbar: true,
     webPreferences: { preload: path.join(RENDERER, 'shield-preload.js'), contextIsolation: true, nodeIntegration: false },
   });

@@ -14,7 +14,7 @@ function createPanel({ onUnread, onShown = () => {}, overFullscreen = true }) {
   // Transparent so the page can draw its own card silhouette (scrape.FRAME_CSS: 16px corners and
   // a hairline) instead of the square window edge; macOS casts a shadow that follows the shape.
   const win = new BrowserWindow({
-    width: 420, height: 640, resizable: false,
+    width: 420, height: 640, resizable: false, fullscreenable: false,
     show: false, frame: false, transparent: true, alwaysOnTop: true, skipTaskbar: true,
     webPreferences: {
       contextIsolation: true,

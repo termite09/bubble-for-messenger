@@ -12,7 +12,7 @@ const BOTTOM_MARGIN = 40;
 function createDismissTarget({ overFullscreen = true } = {}) {
   const win = new BrowserWindow({
     width: SIZE, height: SIZE,
-    frame: false, transparent: true, hasShadow: false, resizable: false,
+    frame: false, transparent: true, hasShadow: false, resizable: false, fullscreenable: false,
     alwaysOnTop: true, skipTaskbar: true, focusable: false, show: false,
     webPreferences: {
       preload: path.join(__dirname, '..', 'renderer', 'dismiss-preload.js'),

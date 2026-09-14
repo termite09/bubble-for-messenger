@@ -16,7 +16,7 @@ function createSettingsWindow({ getSettings, setSetting, subscribe }) {
     if (win) return win;
     win = new BrowserWindow({
       width: WIDTH, height: HEIGHT, show: false,
-      frame: false, transparent: true, resizable: false, alwaysOnTop: true, skipTaskbar: true,
+      frame: false, transparent: true, resizable: false, fullscreenable: false, alwaysOnTop: true, skipTaskbar: true,
       webPreferences: {
         preload: path.join(RENDERER, 'settings-preload.js'),
         contextIsolation: true,
