@@ -4,15 +4,16 @@ const { shouldPersistCookie, persistentCookie, LOGIN_COOKIES, PERSIST_DAYS } = r
 
 const base = { name: 'xs', value: 'v', domain: '.messenger.com', hostOnly: false, path: '/', secure: true, httpOnly: true, session: true, sameSite: 'lax' };
 
-// Only the login pair (and Facebook's device cookies) are kept past the session, only when
-// Facebook itself sets them, and only on Meta's hosts.
-test('shouldPersistCookie: login cookies set explicitly by the site, nothing else', () => {
+// Only the login pair (and Facebook's device cookies) are kept past the session, whenever the
+// site sets them as session cookies, and only on Meta's hosts.
+test('shouldPersistCookie: session login cookies from the site, nothing else', () => {
   assert.equal(shouldPersistCookie(base, 'explicit', false), true);
   assert.equal(shouldPersistCookie({ ...base, name: 'c_user' }, 'explicit', false), true);
   assert.equal(shouldPersistCookie({ ...base, name: 'presence' }, 'explicit', false), false); // transient
   assert.equal(shouldPersistCookie({ ...base, name: 'wd' }, 'explicit', false), false);
   assert.equal(shouldPersistCookie({ ...base, session: false }, 'explicit', false), false); // already persistent (our own rewrite included)
-  assert.equal(shouldPersistCookie(base, 'overwrite', false), false);
+  assert.equal(shouldPersistCookie(base, 'inserted-no-change-overwrite', false), true); // a same-value re-issue drops the expiry
+  assert.equal(shouldPersistCookie(base, 'overwrite', false), true);
   assert.equal(shouldPersistCookie(base, 'explicit', true), false); // a removal
   assert.equal(shouldPersistCookie({ ...base, domain: '.evil.com' }, 'explicit', false), false);
   assert.equal(shouldPersistCookie(null, 'explicit', false), false);

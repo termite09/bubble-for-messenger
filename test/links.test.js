@@ -81,3 +81,11 @@ test('/l.php on messenger.com hosts is the link shim, not an internal page', () 
   assert.equal(isInternal('https://www.messenger.com/lol.php'), true);
   assert.equal(isInternal('https://www.messenger.com/l.php/extra'), true);
 });
+
+// facebook.com/flx/warn/ is the "you're leaving Facebook" interstitial the link shim 302s to;
+// it carries the destination in ?u= just like l.php and is never a page to keep.
+test('the flx/warn interstitial is a redirect too', () => {
+  const url = 'https://www.facebook.com/flx/warn/?u=https%3A%2F%2Fexample.com%2Fx&h=abc';
+  assert.equal(staysInPanel(url), false);
+  assert.equal(browserUrl(url), 'https://example.com/x');
+});

@@ -7,10 +7,11 @@ const { isMetaHost } = require('./links');
 const LOGIN_COOKIES = new Set(['c_user', 'xs', 'datr', 'sb', 'fr']);
 const PERSIST_DAYS = 90;
 
-// Only a cookie the site just set ('explicit' — not our own rewrite, which arrives as
-// 'overwrite' and is no longer a session cookie anyway), on Meta's hosts, from the list.
+// A session cookie from the list, on Meta's hosts, whenever the site (re)sets it — including a
+// re-issue with the same value, which would otherwise quietly drop the expiry we gave it. Our
+// own rewrite never matches: it is not a session cookie. `cause` is only informative.
 function shouldPersistCookie(cookie, cause, removed) {
-  return !removed && cause === 'explicit' && Boolean(cookie) && cookie.session === true &&
+  return !removed && Boolean(cookie) && cookie.session === true &&
     LOGIN_COOKIES.has(cookie.name) && isMetaHost(cookie.domain);
 }
 

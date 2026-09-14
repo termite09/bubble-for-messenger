@@ -317,7 +317,9 @@ function createMenu() {
   ]));
 }
 
-app.on('second-instance', () => { if (bubble) showStack(); });
+// A second launch handed over to this one: show the stack — unless this one is on its way out.
+let quitting = false;
+app.on('second-instance', () => { if (bubble && !quitting) showStack().catch(() => {}); });
 
 app.whenReady().then(() => {
   if (!primary) return;
@@ -403,6 +405,7 @@ app.on('window-all-closed', () => {});
 // until the flush has landed and then quit again.
 let cookiesFlushed = false;
 app.on('before-quit', (event) => {
+  quitting = true;
   if (cookiesFlushed) return;
   event.preventDefault();
   session.defaultSession.cookies.flushStore()
