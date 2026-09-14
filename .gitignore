@@ -12,3 +12,4 @@ RELEASE_INSTRUCTIONS.md
 .impeccable/config.local.json
 .impeccable/review/
 .impeccable/questions/
+.claude/

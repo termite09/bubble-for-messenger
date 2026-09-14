@@ -1,6 +1,9 @@
 {
   "name": "bubble-for-messenger",
   "version": "2.3.0",
+  "engines": {
+    "node": ">=22"
+  },
   "description": "Facebook Messenger as a floating chat head for macOS",
   "homepage": "https://github.com/termite09/bubble-for-messenger",
   "repository": {

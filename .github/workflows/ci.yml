@@ -1,0 +1,21 @@
+name: CI
+
+# Tests on every push and pull request. They exercise the pure modules and a few main-process
+# modules with fakes, so no Electron binary is needed (--ignore-scripts skips its download).
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm test
