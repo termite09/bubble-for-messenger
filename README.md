@@ -75,8 +75,9 @@ Right-click the bubble → **Settings…** (or Cmd+,). Every switch applies at o
 `settings.json` next to the bubble's position.
 
 **Bubble**
-- **Show over full-screen apps** — off keeps the bubble to normal Spaces, so a full-screen video
-  or app hides it.
+- **Show over full-screen apps** — off keeps the bubble off full-screen video and apps. macOS
+  only allows that for a window that stays on one desktop, so while off the bubble doesn't follow
+  you to other desktops (Spaces) either.
 - **Start at login.**
 - **Size** — Small / Medium / Large, for the disc, the chat heads and the banner.
 - **Unread count** — Off, Steady, or Pulsing (the count breathes slowly while anything is unread).

@@ -9,7 +9,7 @@ design language, applied immediately and saved to the existing `settings.json`.
 
 | Key | Default | Section | Label / description |
 | --- | --- | --- | --- |
-| `overFullscreen` | `true` | Bubble | **Show over full-screen apps.** Off keeps the bubble to normal Spaces; a full-screen video or app hides it. |
+| `overFullscreen` | `true` | Bubble | **Show over full-screen apps.** Off keeps it off full-screen video and apps — and, since macOS draws any all-Spaces window in full-screen Spaces too, on the one desktop it's on. |
 | `startAtLogin` | `false` | Bubble | **Start at login.** |
 | `bubbleSize` | `'small'` | Bubble | **Size**: Small / Medium / Large — 44 / 56 / 68 px for the disc, the chat heads and the banner. |
 | `banner` | `true` | Messages | **Banner when a message lands.** The disc unrolls for a few seconds. |
@@ -47,7 +47,7 @@ apply-point; a change re-runs only the ones whose value differs from `prev`.
 
 | Key | Apply |
 | --- | --- |
-| `overFullscreen` | `bubble.setOverFullscreen(on)`, `panel.setOverFullscreen(on)`, `dismiss.setOverFullscreen(on)`, settings window likewise. Each goes through `joinAllSpaces(win, on)` (`src/main/workspaces.js`), which passes `skipTransformProcessType: true`: Electron's default re-transforms the process on every call, which brought the Dock icon back and blinked every window when the setting was turned off. The bubble module covers its shield too. |
+| `overFullscreen` | `bubble.setOverFullscreen(on)`, `panel.setOverFullscreen(on)`, `dismiss.setOverFullscreen(on)`, settings window likewise. Each goes through `joinAllSpaces(win, on)` (`src/main/workspaces.js`): on → `setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })`, off → `setVisibleOnAllWorkspaces(false, ...)` — measured on macOS 26: a window that joins all Spaces is drawn in full-screen Spaces whatever the auxiliary flag or window level, so off means one desktop. Always with `skipTransformProcessType: true` (Electron's default re-transforms the process on every call: Dock icon back, every window blinking), and every window is created `fullscreenable: false` (FullScreenPrimary conflicts with the auxiliary flag). The bubble module covers its shield too. |
 | `startAtLogin` | `app.setLoginItemSettings({ openAtLogin: on })`, only when `app.isPackaged` — under `npm start` it would register Electron.app itself. |
 | `banner` | `refreshRecent` skips `bubble.landed(...)`. |
 | `bannerPreview` | `refreshRecent` passes `{ ...landed, preview: '' }`; the renderer already shows "New message" for an empty preview. |

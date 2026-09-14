@@ -13,8 +13,12 @@
   it starts off in Bubble; the row's *Open* button opens Messenger's Preferences on it.
 
 ### Fixed
-- **Show over full-screen apps** now takes effect. Every window was created `fullscreenable`,
-  which made macOS ignore the flag the setting toggles.
+- **Show over full-screen apps** now takes effect. macOS draws any window that joins all
+  Spaces in full-screen Spaces too, so off now keeps the bubble on the desktop it is on
+  (it no longer follows you to other desktops while off). Windows are also no longer
+  `fullscreenable`, which conflicted with the flag the setting toggles.
+- The unread count no longer blinks: Messenger flashes its tab title with "Name messaged
+  you" while something is unread, which the app read as zero unread.
 - Turning **Show over full-screen apps** off brought the Dock icon back and blinked every
   window: Electron re-transforms the process type on each visibility call, which the app
   now skips (it hides the Dock itself).

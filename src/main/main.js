@@ -273,8 +273,11 @@ app.whenReady().then(() => {
     overFullscreen: settings.overFullscreen,
     onUnread: (n) => {
       if (!bubble) return;
-      lastUnread = n;
-      bubble.setBadge(settings.badge !== 'off' ? n : 0);
+      // A title flash ("Name messaged you") says nothing about the count: keep the last one.
+      if (n !== null) {
+        lastUnread = n;
+        bubble.setBadge(settings.badge !== 'off' ? n : 0);
+      }
       refreshRecent();
     },
     onShown: syncActive,

@@ -1,14 +1,15 @@
-// Every window of the app joins all Spaces; whether it also shows over full-screen apps is the
-// user's setting. Two things Electron does by default get in the way, and both are handled:
+// Every window of the app either joins all Spaces or lives on the desktop it is on, by the
+// user's "show over full-screen apps" setting. On current macOS a window that joins all
+// Spaces is drawn in full-screen Spaces too, whatever its level or the FullScreenAuxiliary
+// flag says (measured: the flag alone changed nothing, at 'floating' or 'screen-saver'), so
+// keeping the bubble off full-screen apps means not joining all Spaces at all.
 //
-// - This call re-transforms the process on every use — to a UI element when the window may
-//   float over full-screen apps, back to a foreground app (Dock icon and all) when it may not.
-//   main.js hides the Dock itself, so the transform is always skipped.
-// - A window that is `fullscreenable` (the default) carries FullScreenPrimary, and AppKit
-//   ignores FullScreenAuxiliary — the flag this call toggles — while Primary is set, so the
-//   setting did nothing either way. Every window is therefore created `fullscreenable: false`.
+// Two Electron defaults are avoided on the way: the call re-transforms the process type
+// (Dock icon back, every window blinking) unless told to skip it — main.js hides the Dock
+// itself — and a window that is `fullscreenable` carries FullScreenPrimary, which conflicts
+// with the auxiliary flag; every window is created `fullscreenable: false`.
 function joinAllSpaces(win, overFullscreen) {
-  win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: overFullscreen, skipTransformProcessType: true });
+  win.setVisibleOnAllWorkspaces(overFullscreen, { visibleOnFullScreen: overFullscreen, skipTransformProcessType: true });
 }
 
 module.exports = { joinAllSpaces };
