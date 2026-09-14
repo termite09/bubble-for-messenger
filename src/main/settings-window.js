@@ -4,11 +4,13 @@ const { joinAllSpaces } = require('./workspaces');
 
 const RENDERER = path.join(__dirname, '..', 'renderer');
 const WIDTH = 360;
-const HEIGHT = 720;
+const HEIGHT = 480;      // the tallest pane; the page asks for the exact height of the one it shows
+const MIN_HEIGHT = 200;
+const MAX_HEIGHT = 900;
 
 // The settings card. One window, made on first open and hidden after; it takes focus like a
 // normal window (it has controls to click) but floats with the rest of the app.
-function createSettingsWindow({ getSettings, setSetting, subscribe }) {
+function createSettingsWindow({ getSettings, setSetting, subscribe, onOpenMessengerPreferences }) {
   let win = null;
   let overFullscreen = true;
 
@@ -34,6 +36,14 @@ function createSettingsWindow({ getSettings, setSetting, subscribe }) {
   ipcMain.handle('settings:get', (e) => (owns(e) ? getSettings() : null));
   ipcMain.on('settings:set', (e, key, value) => { if (owns(e)) setSetting(key, value); });
   ipcMain.on('settings:close', (e) => { if (owns(e)) win.hide(); });
+  // The page reports how tall the pane it shows is; the card's top edge stays put.
+  ipcMain.on('settings:resize', (e, height) => {
+    if (!owns(e) || typeof height !== 'number') return;
+    const h = Math.round(Math.min(Math.max(height, MIN_HEIGHT), MAX_HEIGHT));
+    const { x, y } = win.getBounds();
+    win.setBounds({ x, y, width: WIDTH, height: h }, true);
+  });
+  ipcMain.on('settings:open-messenger-preferences', (e) => { if (owns(e)) onOpenMessengerPreferences(); });
   subscribe((s) => { if (win) win.webContents.send('settings:changed', s); });
 
   return {

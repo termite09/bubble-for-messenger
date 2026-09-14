@@ -74,15 +74,24 @@ if you want your login gone too, `~/Library/Application Support/Bubble for Messe
 Right-click the bubble → **Settings…** (or Cmd+,). Every switch applies at once and is kept in
 `settings.json` next to the bubble's position.
 
+**Bubble**
 - **Show over full-screen apps** — off keeps the bubble to normal Spaces, so a full-screen video
   or app hides it.
 - **Start at login.**
+- **Size** — Small / Medium / Large, for the disc, the chat heads and the banner.
+- **Unread count** — Off, Steady, or Pulsing (the count breathes slowly while anything is unread).
+
+**Messages**
 - **Banner when a message lands**, and whether it **shows the message** or only who wrote — for
   screen sharing or public places.
 - **Reply from the banner** — the ↩; off if the bubble should never take the keyboard.
 - **macOS notifications from Messenger** — Messenger's own Notification Center banners, in
   addition to the bubble.
-- **Unread count on the bubble.**
+- **New-message sound** — this is Messenger's own switch (Preferences → Notification sounds);
+  the *Open* button takes you there. Messenger keeps it per profile, so it starts off in Bubble
+  even if it's on in your browser.
+
+**Panel**
 - **Appearance** (system / light / dark) for the Messenger panel, whatever Messenger's own theme
   preference says.
 - **Spell check** in the panel.

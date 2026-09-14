@@ -30,8 +30,22 @@
     #close:hover { background: var(--raised); }
     #close:focus-visible { outline: 0; border-color: var(--rule-active); }
 
-    /* Groups: an ash caption, then rows on a hairline that starts at the text edge. */
+    /* Tabs: one segmented control under the title, in the Appearance control's clothes. A pane
+       is a plain block; only the chosen tab's pane is in the flow, so the card is as tall as it. */
+    nav { padding: 0 16px 10px; flex: none; }
+    nav .segments { width: 100%; }
+    nav .segments label { flex: 1; }
+    nav .segments span { text-align: center; }
     main { flex: 1; padding-bottom: 8px; }
+    section[hidden] { display: none; }
+
+    /* A row that opens something rather than switching it: a hairline button, like a segment. */
+    .open {
+      flex: none; padding: 0 12px; border: 1px solid var(--rule); border-radius: 8px; background: transparent;
+      color: var(--ink); font: 500 12px/24px -apple-system, system-ui, sans-serif; cursor: default;
+    }
+    .open:hover { background: var(--raised); border-color: var(--rule-active); }
+    .open:focus-visible { outline: 0; border-color: var(--rule-active); }
     h2 {
       margin: 0; padding: 10px 16px 2px; font: 400 11px/16px -apple-system, system-ui, sans-serif;
       color: var(--dim); text-transform: uppercase; letter-spacing: .04em;
@@ -90,21 +104,38 @@
       <h1>Settings</h1>
       <button id="close" type="button" aria-label="Close"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8"/></svg></button>
     </header>
+    <nav>
+      <div class="segments" role="tablist" aria-label="Settings sections">
+        <label><input type="radio" name="tab" value="bubble" checked><span>Bubble</span></label>
+        <label><input type="radio" name="tab" value="messages"><span>Messages</span></label>
+        <label><input type="radio" name="tab" value="panel"><span>Panel</span></label>
+      </div>
+    </nav>
     <main>
-      <section>
-        <h2>Bubble</h2>
+      <section data-tab="bubble">
         <label class="row"><div class="text"><div class="name">Show over full-screen apps</div><div class="sub">Off keeps the bubble to normal Spaces; a full-screen video or app hides it.</div></div><span class="switch"><input type="checkbox" data-key="overFullscreen"><span></span></span></label>
         <label class="row"><div class="text"><div class="name">Start at login</div></div><span class="switch"><input type="checkbox" data-key="startAtLogin"><span></span></span></label>
+        <div class="row"><div class="text"><div class="name">Size</div><div class="sub">Of the disc, the chat heads and the banner.</div></div>
+          <div class="segments" role="radiogroup" aria-label="Bubble size">
+            <label><input type="radio" name="bubbleSize" value="small"><span>Small</span></label>
+            <label><input type="radio" name="bubbleSize" value="medium"><span>Medium</span></label>
+            <label><input type="radio" name="bubbleSize" value="large"><span>Large</span></label>
+          </div></div>
+        <div class="row"><div class="text"><div class="name">Unread count</div><div class="sub">Pulsing breathes slowly while anything is unread.</div></div>
+          <div class="segments" role="radiogroup" aria-label="Unread count">
+            <label><input type="radio" name="badge" value="off"><span>Off</span></label>
+            <label><input type="radio" name="badge" value="steady"><span>Steady</span></label>
+            <label><input type="radio" name="badge" value="pulse"><span>Pulsing</span></label>
+          </div></div>
       </section>
-      <section>
-        <h2>Messages</h2>
+      <section data-tab="messages" hidden>
         <label class="row"><div class="text"><div class="name">Banner when a message lands</div><div class="sub">The disc unrolls for a few seconds.</div></div><span class="switch"><input type="checkbox" data-key="banner"><span></span></span></label>
         <label class="row"><div class="text"><div class="name">Show the message in the banner</div><div class="sub">Off shows only who wrote — for screen sharing or public places.</div></div><span class="switch"><input type="checkbox" data-key="bannerPreview"><span></span></span></label>
         <label class="row"><div class="text"><div class="name">Reply from the banner</div><div class="sub">The ↩ on the banner. Off if the bubble should never take the keyboard.</div></div><span class="switch"><input type="checkbox" data-key="quickReply"><span></span></span></label>
         <label class="row"><div class="text"><div class="name">macOS notifications from Messenger</div><div class="sub">Messenger's own Notification Center banners, in addition to the bubble.</div></div><span class="switch"><input type="checkbox" data-key="notifications"><span></span></span></label>
-        <label class="row"><div class="text"><div class="name">Unread count on the bubble</div></div><span class="switch"><input type="checkbox" data-key="badge"><span></span></span></label>
+        <div class="row"><div class="text"><div class="name">New-message sound</div><div class="sub">Messenger's own switch: Preferences → Notification sounds.</div></div><button class="open" id="open-sounds" type="button">Open</button></div>
       </section>
-      <section>
+      <section data-tab="panel" hidden>
         <h2>Panel</h2>
         <div class="row"><div class="text"><div class="name">Appearance</div><div class="sub">Of the Messenger panel. System follows macOS.</div></div>
           <div class="segments" role="radiogroup" aria-label="Appearance">
@@ -113,8 +144,6 @@
             <label><input type="radio" name="theme" value="dark"><span>Dark</span></label>
           </div></div>
         <label class="row"><div class="text"><div class="name">Spell check</div></div><span class="switch"><input type="checkbox" data-key="spellcheck"><span></span></span></label>
-      </section>
-      <section>
         <h2>Privacy</h2>
         <label class="row"><div class="text"><div class="name">Block Facebook telemetry</div><div class="sub">Cancels Facebook's logging beacons. Nothing Messenger needs to work is touched.</div></div><span class="switch"><input type="checkbox" data-key="blockTelemetry"><span></span></span></label>
       </section>

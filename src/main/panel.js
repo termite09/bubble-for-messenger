@@ -144,6 +144,13 @@ function createPanel({ onUnread, onShown = () => {}, overFullscreen = true }) {
     api.showAt(bubbleBounds);
   }
 
+  // The inbox with Messenger's Preferences dialog up (best effort: if its menu can't be found
+  // the inbox simply shows, and the gear is one click away).
+  async function stagePreferences(bubbleBounds) {
+    await stageInbox(bubbleBounds);
+    await scrape.openPreferences(win.webContents);
+  }
+
   // Send a reply through the page without showing it: a hidden window does not dispatch the
   // trusted row click, so stage it at opacity 0 like a thread open, then hide it again. If the
   // panel is already showing, it simply switches to that thread in view.
@@ -178,6 +185,7 @@ function createPanel({ onUnread, onShown = () => {}, overFullscreen = true }) {
     session: () => win.webContents.session,
     openThread: (href, bubbleBounds) => enqueue(() => stageThread(href, bubbleBounds)),
     openInbox: (bubbleBounds) => enqueue(() => stageInbox(bubbleBounds)),
+    openPreferences: (bubbleBounds) => enqueue(() => stagePreferences(bubbleBounds)),
     // Serialised with opens; the queue swallows rejections into undefined, hence `=== true`.
     sendReply: (href, text) => enqueue(() => stageReply(href, text)).then((ok) => ok === true),
     setOverFullscreen: (on) => joinAllSpaces(win, on),

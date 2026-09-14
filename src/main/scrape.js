@@ -348,6 +348,22 @@ function setTheme(wc, dark) {
   })()`, true).catch(() => {});
 }
 
+// Messenger's Preferences dialog, where its own switches (notification sounds, dark mode) are:
+// the account gear at the top of the inbox, then the first item of its menu.
+function openPreferences(wc) {
+  return wc.executeJavaScript(`(async () => {
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const gear = [...document.querySelectorAll('[aria-label]')].find((e) => /Settings, help and more$/.test(e.getAttribute('aria-label')));
+    if (!gear) return false;
+    gear.click();
+    await wait(500);
+    const item = [...document.querySelectorAll('[role="menuitem"]')].find((e) => /^Preferences/.test(e.innerText));
+    if (!item) return false;
+    item.click();
+    return true;
+  })()`, true).catch(() => false);
+}
+
 // Back to the chat list. In the narrow layout an open thread shows a Back button.
 function openInbox(wc) {
   if (!onMessenger(wc)) return wc.loadURL('https://www.messenger.com/').catch(() => {});
@@ -357,4 +373,4 @@ function openInbox(wc) {
   })()`, true).catch(() => {});
 }
 
-module.exports = { readRecentChats, openThread, openInbox, setCompact, setFrame, setTheme, sendReply, deliverReply, replyActions, RECENT_CHATS_SCRIPT, FRAME_CSS };
+module.exports = { readRecentChats, openThread, openInbox, openPreferences, setCompact, setFrame, setTheme, sendReply, deliverReply, replyActions, RECENT_CHATS_SCRIPT, FRAME_CSS };

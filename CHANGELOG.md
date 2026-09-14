@@ -2,7 +2,19 @@
 
 ## Unreleased
 
+### Added
+- Settings are on three tabs — Bubble, Messages, Panel — and the card is only as tall as the
+  tab it shows.
+- **Size** (Bubble): Small / Medium / Large. The disc, chat heads, banner and count scale
+  together.
+- **Unread count** (Bubble) is now Off / Steady / Pulsing; Pulsing breathes the count slowly
+  while anything is unread. An older on/off setting carries over.
+- **New-message sound** (Messages): the sound is Messenger's own switch, kept per profile, so
+  it starts off in Bubble; the row's *Open* button opens Messenger's Preferences on it.
+
 ### Fixed
+- **Show over full-screen apps** now takes effect. Every window was created `fullscreenable`,
+  which made macOS ignore the flag the setting toggles.
 - Turning **Show over full-screen apps** off brought the Dock icon back and blinked every
   window: Electron re-transforms the process type on each visibility call, which the app
   now skips (it hides the Dock itself).
