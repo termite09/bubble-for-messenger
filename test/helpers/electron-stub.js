@@ -18,6 +18,8 @@ function makeStub() {
     getURL() { return this.url; }
     executeJavaScript() { return Promise.resolve(null); }
     isLoading() { return false; }
+    setWindowOpenHandler(fn) { this.windowOpenHandler = fn; }
+    stop() {}
     isDestroyed() { return this.destroyed; }
     reload() { this.emit('did-finish-load'); }
   }

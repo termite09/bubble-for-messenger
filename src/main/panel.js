@@ -60,7 +60,7 @@ function createPanel({ onUnread, onShown = () => {}, onBlurred = () => {}, overF
     if (!shouldRefresh({ visible: win.isVisible(), loadedAt, now: Date.now(), resumed })) return;
     resumed = false;
     win.webContents.reload();
-  }, REFRESH_TICK_MS);
+  }, REFRESH_TICK_MS).unref();
   win.webContents.on('did-finish-load', async () => {
     scrape.setFrame(win.webContents, true);
     scrape.setCompact(win.webContents, compact);
