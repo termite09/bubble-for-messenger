@@ -11,22 +11,30 @@ const { CHANNELS } = require('../lib/ipc');
 const { normalizeRows } = require('../lib/recent');
 
 const LIVENESS_TICK_MS = 30 * 1000;
+// Messenger's page wash (--web-wash) in each theme: the window's own colour, so nothing shows
+// through before the page paints or around its edges.
+const washFor = (dark) => (dark ? '#1a1a1a' : '#f5f5f5');
+// Trial (audit, Sept 2026): set back to false if messages stop arriving while hidden.
+const PANEL_THROTTLE = true;
 const noLog = { debug() {}, info() {}, warn() {}, error() {} };
 
 // `onShown` fires once the panel is actually visible to the user (not merely staged at opacity
 // 0), so the bubble can dock the open chat's avatar beside it at the right moment. `onBlurred`
 // fires when the panel put itself away because it lost focus (the user went elsewhere).
 function createPanel({ onUnread, onRows = () => {}, onShown = () => {}, onBlurred = () => {}, overFullscreen = true, log = noLog }) {
-  // Transparent so the page can draw its own card silhouette (scrape.FRAME_CSS: 16px corners and
-  // a hairline) instead of the square window edge; macOS casts a shadow that follows the shape.
+  // Opaque, in the wash of the current theme, with macOS's own rounded corners and shadow: a
+  // transparent window with a shadow would be recomposited on every frame the page changes.
   const win = createFloatingWindow({
     level: 'floating', width: 420, height: 640, overFullscreen, hasShadow: true,
+    transparent: false, roundedCorners: true, backgroundColor: washFor(nativeTheme.shouldUseDarkColors),
     url: 'https://www.messenger.com',
     // The preload watches the chat list and reports its rows (see renderer/panel-preload.js).
     preload: 'panel-preload.js',
-    // The page spends its life hidden; throttled timers would let its live connection lapse.
-    // Its scripts are the same multi-megabyte bundle every load: cache them compiled.
-    webPreferences: { backgroundThrottling: false, v8CacheOptions: 'bypassHeatCheck' },
+    // The page spends its life hidden. Chromium's timer throttling for hidden pages is on
+    // (PANEL_THROTTLE): its keepalives survive it, messages arrive over the socket regardless,
+    // and the page idles instead of running its timers at full rate. Its scripts are the same
+    // multi-megabyte bundle every load: cache them compiled.
+    webPreferences: { backgroundThrottling: PANEL_THROTTLE, v8CacheOptions: 'bypassHeatCheck' },
   });
 
   win.on('blur', () => { win.hide(); onBlurred(); });
@@ -54,7 +62,10 @@ function createPanel({ onUnread, onRows = () => {}, onShown = () => {}, onBlurre
   // from it, so shouldUseDarkColors is the answer for System (macOS decides) and Light / Dark
   // alike, and 'updated' fires for either kind of change. Messenger renders its own choice into
   // <html> on every load, hence the re-apply above.
-  const applyTheme = () => scrape.setTheme(win.webContents, nativeTheme.shouldUseDarkColors);
+  const applyTheme = () => {
+    win.setBackgroundColor(washFor(nativeTheme.shouldUseDarkColors));
+    scrape.setTheme(win.webContents, nativeTheme.shouldUseDarkColors);
+  };
   nativeTheme.on('updated', applyTheme);
 
   // Keep the hidden page live. lib/liveness decides when a reload is due — after the Mac
