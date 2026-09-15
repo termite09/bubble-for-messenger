@@ -11,8 +11,13 @@ const PERSIST_DAYS = 90;
 // re-issue with the same value, which would otherwise quietly drop the expiry we gave it. Our
 // own rewrite never matches: it is not a session cookie. `cause` is only informative.
 function shouldPersistCookie(cookie, cause, removed) {
-  return !removed && Boolean(cookie) && cookie.session === true &&
-    LOGIN_COOKIES.has(cookie.name) && isMetaHost(cookie.domain);
+  return (
+    !removed &&
+    Boolean(cookie) &&
+    cookie.session === true &&
+    LOGIN_COOKIES.has(cookie.name) &&
+    isMetaHost(cookie.domain)
+  );
 }
 
 // The same cookie with an expiry. Every attribute is copied as issued — sameSite in particular,

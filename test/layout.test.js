@@ -1,6 +1,15 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { PAD, centerWithin, clampToArea, fanLayout, isClick, panelPosition, snapToEdge, windowFrame } = require('../src/lib/layout');
+const {
+  PAD,
+  centerWithin,
+  clampToArea,
+  fanLayout,
+  isClick,
+  panelPosition,
+  snapToEdge,
+  windowFrame,
+} = require('../src/lib/layout');
 
 const area = { x: 0, y: 0, width: 1440, height: 900 };
 const panel = { width: 420, height: 640 };
@@ -21,7 +30,11 @@ test('panel shifts up near the bottom edge', () => {
 });
 
 test('panel respects a display whose origin is not 0,0', () => {
-  const p = panelPosition({ x: 1500, y: 50, width: 64, height: 64 }, { x: 1440, y: 0, width: 1440, height: 900 }, panel);
+  const p = panelPosition(
+    { x: 1500, y: 50, width: 64, height: 64 },
+    { x: 1440, y: 0, width: 1440, height: 900 },
+    panel,
+  );
   assert.deepEqual(p, { x: 1572, y: 50 });
 });
 
@@ -35,7 +48,6 @@ test('isClick uses a 4px threshold', () => {
   assert.equal(isClick(0, 4), true);
   assert.equal(isClick(5, 0), false);
 });
-
 
 // Each fan row is a 44px head with an 8px gap (52px pitch), stacked away from the disc.
 test('fan grows upward when there is room above the bubble', () => {
@@ -55,30 +67,41 @@ test('fan with no items is just the bubble', () => {
   assert.deepEqual(r.bounds, { x: 100, y: 500, width: 44, height: 44 });
 });
 
-
 test('snapToEdge rests the bubble 16px in from the nearer side, keeping y', () => {
   assert.deepEqual(snapToEdge({ x: 100, y: 300, width: 64, height: 64 }, area), { x: 16, y: 300 });
-  assert.deepEqual(snapToEdge({ x: 1300, y: 300, width: 64, height: 64 }, area), { x: 1360, y: 300 });
+  assert.deepEqual(snapToEdge({ x: 1300, y: 300, width: 64, height: 64 }, area), {
+    x: 1360,
+    y: 300,
+  });
 });
 
 test('snapToEdge clamps y into the work area and respects a non-zero origin', () => {
   const off = { x: 1440, y: 0, width: 1440, height: 900 };
   assert.deepEqual(snapToEdge({ x: 1450, y: -50, width: 64, height: 64 }, off), { x: 1456, y: 0 });
-  assert.deepEqual(snapToEdge({ x: 2800, y: 2000, width: 64, height: 64 }, off), { x: 2800, y: 836 });
+  assert.deepEqual(snapToEdge({ x: 2800, y: 2000, width: 64, height: 64 }, off), {
+    x: 2800,
+    y: 836,
+  });
 });
-
 
 // The window is the content rect grown by PAD on every side (room for shadows and the count),
 // plus any room the landed banner asks for.
 test('windowFrame pads the content rect and reports the content offset inside it', () => {
   const f = windowFrame({ x: 100, y: 500, width: 44, height: 44 });
-  assert.deepEqual(f, { x: 100 - PAD, y: 500 - PAD, width: 44 + 2 * PAD, height: 44 + 2 * PAD, contentX: PAD, contentY: PAD });
+  assert.deepEqual(f, {
+    x: 100 - PAD,
+    y: 500 - PAD,
+    width: 44 + 2 * PAD,
+    height: 44 + 2 * PAD,
+    contentX: PAD,
+    contentY: PAD,
+  });
 });
 
 test('centerWithin measures from the rect centre', () => {
   const bubble = { x: 100, y: 100, width: 64, height: 64 }; // centre (132,132)
   assert.equal(centerWithin(bubble, { x: 132, y: 132 }, 70), true);
-  assert.equal(centerWithin(bubble, { x: 190, y: 132 }, 70), true);  // 58px away
+  assert.equal(centerWithin(bubble, { x: 190, y: 132 }, 70), true); // 58px away
   assert.equal(centerWithin(bubble, { x: 132, y: 220 }, 70), false); // 88px away
 });
 
@@ -106,7 +129,10 @@ test('fanLayout and windowFrame take a scale for a larger bubble', () => {
   assert.equal(f.width, 66 + 2 * PAD * 1.5);
   assert.equal(f.contentX, PAD * 1.5);
   // Scale 1 is exactly what it was.
-  assert.deepEqual(fanLayout({ x: 100, y: 500, width: 44, height: 44 }, 3, area, 1), fanLayout({ x: 100, y: 500, width: 44, height: 44 }, 3, area));
+  assert.deepEqual(
+    fanLayout({ x: 100, y: 500, width: 44, height: 44 }, 3, area, 1),
+    fanLayout({ x: 100, y: 500, width: 44, height: 44 }, 3, area),
+  );
 });
 
 // The landed banner grows away from the screen edge: room above the content when the disc is

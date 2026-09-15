@@ -34,10 +34,22 @@ test('the ✕ target hears only when hot changes; a drop on it dismisses, elsewh
   const over = (p) => p.x > 400;
   let m = move(d, { cursor: { x: 210, y: 130 }, anchor, size, area, overDismiss: over });
   assert.equal(m.hotChanged, false);
-  m = move(m.drag, { cursor: { x: 510, y: 130 }, anchor: m.position, size, area, overDismiss: over });
+  m = move(m.drag, {
+    cursor: { x: 510, y: 130 },
+    anchor: m.position,
+    size,
+    area,
+    overDismiss: over,
+  });
   assert.equal(m.hotChanged, true);
   assert.equal(m.drag.hot, true);
-  m = move(m.drag, { cursor: { x: 520, y: 130 }, anchor: m.position, size, area, overDismiss: over });
+  m = move(m.drag, {
+    cursor: { x: 520, y: 130 },
+    anchor: m.position,
+    size,
+    area,
+    overDismiss: over,
+  });
   assert.equal(m.hotChanged, false);
   assert.equal(release(m.drag, { overDismiss: true }), 'dismiss');
   assert.equal(release(m.drag, { overDismiss: false }), 'snap');

@@ -13,7 +13,11 @@ const makeBubble = (overrides = {}) => {
     onClick: () => calls.click++,
     onClose: (why) => calls.close.push(why),
     onMoved: (p) => calls.moved.push(p),
-    onContextMenu() {}, onHeadMenu() {}, onOpenChat() {}, onOpenInbox() {}, onReply() {},
+    onContextMenu() {},
+    onHeadMenu() {},
+    onOpenChat() {},
+    onOpenInbox() {},
+    onReply() {},
     onDismiss: () => calls.dismiss++,
     dismiss: null,
     ...overrides,
@@ -22,7 +26,8 @@ const makeBubble = (overrides = {}) => {
   win.emit('ready-to-show'); // first layout, as Electron would trigger it
   return { bubble, win, calls };
 };
-const sentOn = (win, channel) => win.webContents.sent.filter(([c]) => c === channel).map(([, ...a]) => a);
+const sentOn = (win, channel) =>
+  win.webContents.sent.filter(([c]) => c === channel).map(([, ...a]) => a);
 
 test('the bubble window is a sandboxed, non-focusable, screen-saver-level floating window on all Spaces', () => {
   const { win } = makeBubble();
@@ -31,7 +36,11 @@ test('the bubble window is a sandboxed, non-focusable, screen-saver-level floati
   assert.equal(win.opts.focusable, false);
   assert.equal(win.opts.fullscreenable, false);
   assert.equal(win.level, 'screen-saver');
-  assert.deepEqual(win.workspaces, { visible: true, visibleOnFullScreen: true, skipTransformProcessType: true });
+  assert.deepEqual(win.workspaces, {
+    visible: true,
+    visibleOnFullScreen: true,
+    skipTransformProcessType: true,
+  });
   assert.deepEqual(win.ignore, { on: true, forward: true });
 });
 
@@ -60,7 +69,10 @@ test('a press and release without movement is a click; with movement, a snap to 
 test('expand grows the window for the rows, tells the page, shows the shield; a press folds it and closes', async () => {
   const { bubble, win, calls } = makeBubble();
   const before = win.getBounds();
-  bubble.expand([{ href: '/t/1/', name: 'A' }, { href: '/t/2/', name: 'B' }]);
+  bubble.expand([
+    { href: '/t/1/', name: 'A' },
+    { href: '/t/2/', name: 'B' },
+  ]);
   assert.equal(bubble.isExpanded(), true);
   assert.equal(win.getBounds().height, before.height + 3 * FAN_ITEM); // two rows plus the inbox
   const fan = sentOn(win, CHANNELS.BUBBLE_FAN).pop()[0];
@@ -78,7 +90,7 @@ test('expand grows the window for the rows, tells the page, shows the shield; a 
   assert.equal(win.getBounds().height, before.height);
 });
 
-test('the banner\'s reported room grows the window above the disc near the bottom; nonsense is ignored', () => {
+test("the banner's reported room grows the window above the disc near the bottom; nonsense is ignored", () => {
   const { win } = makeBubble();
   const before = win.getBounds();
   electron.ipcMain.emit(CHANNELS.BUBBLE_BANNER_EXTRA, from(win), 60);

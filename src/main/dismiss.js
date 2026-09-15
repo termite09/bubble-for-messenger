@@ -19,8 +19,15 @@ function createDismissTarget({ overFullscreen = true } = {}) {
   function ensure() {
     if (win) return win;
     win = createFloatingWindow({
-      level: 'screen-saver', width: SIZE, height: SIZE, focusable: false, overFullscreen: over,
-      page: 'dismiss.html', preload: 'dismiss-preload.js', paintWhenInitiallyHidden: false, webPreferences: { webgl: false },
+      level: 'screen-saver',
+      width: SIZE,
+      height: SIZE,
+      focusable: false,
+      overFullscreen: over,
+      page: 'dismiss.html',
+      preload: 'dismiss-preload.js',
+      paintWhenInitiallyHidden: false,
+      webPreferences: { webgl: false },
     });
     win.setIgnoreMouseEvents(true);
     return win;

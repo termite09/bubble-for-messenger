@@ -21,12 +21,25 @@ const noLog = { debug() {}, info() {}, warn() {}, error() {} };
 // `onShown` fires once the panel is actually visible to the user (not merely staged at opacity
 // 0), so the bubble can dock the open chat's avatar beside it at the right moment. `onBlurred`
 // fires when the panel put itself away because it lost focus (the user went elsewhere).
-function createPanel({ onUnread, onRows = () => {}, onShown = () => {}, onBlurred = () => {}, overFullscreen = true, log = noLog }) {
+function createPanel({
+  onUnread,
+  onRows = () => {},
+  onShown = () => {},
+  onBlurred = () => {},
+  overFullscreen = true,
+  log = noLog,
+}) {
   // Opaque, in the wash of the current theme, with macOS's own rounded corners and shadow: a
   // transparent window with a shadow would be recomposited on every frame the page changes.
   const win = createFloatingWindow({
-    level: 'floating', width: 420, height: 640, overFullscreen, hasShadow: true,
-    transparent: false, roundedCorners: true, backgroundColor: washFor(nativeTheme.shouldUseDarkColors),
+    level: 'floating',
+    width: 420,
+    height: 640,
+    overFullscreen,
+    hasShadow: true,
+    transparent: false,
+    roundedCorners: true,
+    backgroundColor: washFor(nativeTheme.shouldUseDarkColors),
     url: 'https://www.messenger.com',
     // The preload watches the chat list and reports its rows (see renderer/panel-preload.js).
     preload: 'panel-preload.js',
@@ -37,19 +50,31 @@ function createPanel({ onUnread, onRows = () => {}, onShown = () => {}, onBlurre
     webPreferences: { backgroundThrottling: PANEL_THROTTLE, v8CacheOptions: 'bypassHeatCheck' },
   });
 
-  win.on('blur', () => { win.hide(); onBlurred(); });
+  win.on('blur', () => {
+    win.hide();
+    onBlurred();
+  });
   // The chat list's rows, pushed by the preload whenever they change.
   ipcFor(win).on(CHANNELS.PANEL_ROWS, (rows) => onRows(normalizeRows(rows)));
   // The panel is the app's connection to Messenger: it is only ever hidden, never closed (Cmd+W
   // or a page's window.close would otherwise destroy it) — except by the app quitting, which
   // closes every window and must not be held up. A crashed page is loaded again.
   let quitting = false;
-  app.on('before-quit', () => { quitting = true; });
-  win.on('close', (event) => { if (!quitting) { event.preventDefault(); win.hide(); } });
+  app.on('before-quit', () => {
+    quitting = true;
+  });
+  win.on('close', (event) => {
+    if (!quitting) {
+      event.preventDefault();
+      win.hide();
+    }
+  });
   let crashes = 0;
   win.webContents.on('render-process-gone', (_event, details) => {
     if (details.reason === 'clean-exit') return;
-    setTimeout(() => { if (!win.isDestroyed()) win.webContents.reload(); }, errorRetryDelay(crashes++));
+    setTimeout(() => {
+      if (!win.isDestroyed()) win.webContents.reload();
+    }, errorRetryDelay(crashes++));
   });
   win.webContents.on('unresponsive', () => log.warn('panel unresponsive'));
   win.webContents.on('responsive', () => log.info('panel responsive again'));
@@ -74,15 +99,34 @@ function createPanel({ onUnread, onRows = () => {}, onShown = () => {}, onBlurre
   // never while the panel is showing, never in a loop. Facebook's static error page is retried
   // with backoff separately.
   let live = liveness.initial(Date.now());
-  const note = (event) => { live = liveness.reduce(live, event, Date.now()); };
+  const note = (event) => {
+    live = liveness.reduce(live, event, Date.now());
+  };
   const ses = win.webContents.session;
-  const metaFilter = { urls: ['wss://edge-chat.messenger.com/*', 'wss://edge-chat.facebook.com/*', 'https://www.messenger.com/*', 'https://*.facebook.com/*'] };
-  ses.webRequest.onCompleted(metaFilter, (d) => note(d.resourceType === 'webSocket' ? 'socket-open' : 'request-ok'));
-  ses.webRequest.onErrorOccurred(metaFilter, (d) => { if (d.resourceType === 'webSocket') note('socket-error'); });
+  const metaFilter = {
+    urls: [
+      'wss://edge-chat.messenger.com/*',
+      'wss://edge-chat.facebook.com/*',
+      'https://www.messenger.com/*',
+      'https://*.facebook.com/*',
+    ],
+  };
+  ses.webRequest.onCompleted(metaFilter, (d) =>
+    note(d.resourceType === 'webSocket' ? 'socket-open' : 'request-ok'),
+  );
+  ses.webRequest.onErrorOccurred(metaFilter, (d) => {
+    if (d.resourceType === 'webSocket') note('socket-error');
+  });
   powerMonitor.on('resume', () => note('resume'));
-  win.webContents.on('did-fail-load', (_e, code, _desc, _url, isMainFrame) => { if (isMainFrame && code !== -3) note('fail-load'); });
+  win.webContents.on('did-fail-load', (_e, code, _desc, _url, isMainFrame) => {
+    if (isMainFrame && code !== -3) note('fail-load');
+  });
   setInterval(() => {
-    const verdict = liveness.decide(live, { visible: win.isVisible(), online: net.isOnline(), now: Date.now() });
+    const verdict = liveness.decide(live, {
+      visible: win.isVisible(),
+      online: net.isOnline(),
+      now: Date.now(),
+    });
     if (!verdict.reload || win.isVisible()) return;
     log.info('panel reload', { reason: verdict.reason });
     note('reload');
@@ -96,14 +140,24 @@ function createPanel({ onUnread, onRows = () => {}, onShown = () => {}, onBlurre
     applyTheme();
     note('loaded');
     clearTimeout(errorTimer);
-    const doc = await scrape.run(win.webContents, `({
+    const doc = await scrape
+      .run(
+        win.webContents,
+        `({
       elementCount: document.getElementsByTagName('*').length,
       interstitial: !!document.querySelector('.uiInterstitial, #back, #icon'),
-    })`).catch(() => null);
-    if (!looksLikeErrorPage(doc)) { errorRetries = 0; return; }
+    })`,
+      )
+      .catch(() => null);
+    if (!looksLikeErrorPage(doc)) {
+      errorRetries = 0;
+      return;
+    }
     // Never reload a page the user is looking at: a small login or checkpoint page can look
     // like Facebook's error page to the probe.
-    errorTimer = setTimeout(() => { if (!win.isVisible()) win.webContents.reload(); }, errorRetryDelay(errorRetries++));
+    errorTimer = setTimeout(() => {
+      if (!win.isVisible()) win.webContents.reload();
+    }, errorRetryDelay(errorRetries++));
   });
 
   win.webContents.on('page-title-updated', (_event, title) => onUnread(unreadFromTitle(title)));
@@ -170,7 +224,8 @@ function createPanel({ onUnread, onRows = () => {}, onShown = () => {}, onBlurre
   // Opens are serialised: a second fan click while one is still staging would otherwise
   // interleave its reload / row-click with the first. The chain never rejects.
   let queue = Promise.resolve();
-  const enqueue = (fn) => (queue = queue.then(fn).catch((err) => log.warn('panel action failed', { err })));
+  const enqueue = (fn) =>
+    (queue = queue.then(fn).catch((err) => log.warn('panel action failed', { err })));
 
   async function stageThread(href, bubbleBounds) {
     compact = true;
@@ -216,7 +271,11 @@ function createPanel({ onUnread, onRows = () => {}, onShown = () => {}, onBlurre
       return await scrape.sendReply(win.webContents, href, text);
     } finally {
       // Never leave the invisible window up: it would swallow clicks meant for what's under it.
-      if (wasHidden) { win.hide(); win.setOpacity(1); win.setIgnoreMouseEvents(false); }
+      if (wasHidden) {
+        win.hide();
+        win.setOpacity(1);
+        win.setIgnoreMouseEvents(false);
+      }
     }
   }
 

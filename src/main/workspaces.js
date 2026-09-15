@@ -9,7 +9,10 @@
 // itself — and a window that is `fullscreenable` carries FullScreenPrimary, which conflicts
 // with the auxiliary flag; every window is created `fullscreenable: false`.
 function joinAllSpaces(win, overFullscreen) {
-  win.setVisibleOnAllWorkspaces(overFullscreen, { visibleOnFullScreen: overFullscreen, skipTransformProcessType: true });
+  win.setVisibleOnAllWorkspaces(overFullscreen, {
+    visibleOnFullScreen: overFullscreen,
+    skipTransformProcessType: true,
+  });
 }
 
 module.exports = { joinAllSpaces };

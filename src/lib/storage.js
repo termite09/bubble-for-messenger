@@ -5,8 +5,16 @@ const path = require('node:path');
 // the store from opening again; these are the only places one can be, so only these are walked
 // (the Cache alone holds thousands of files that could never be one).
 const LEVELDB_DIRS = [
-  'Local Storage', 'Session Storage', 'IndexedDB', 'Service Worker', 'File System',
-  'Shared Dictionary', 'WebStorage', 'GPUCache', 'DawnGraphiteCache', 'DawnWebGPUCache',
+  'Local Storage',
+  'Session Storage',
+  'IndexedDB',
+  'Service Worker',
+  'File System',
+  'Shared Dictionary',
+  'WebStorage',
+  'GPUCache',
+  'DawnGraphiteCache',
+  'DawnWebGPUCache',
 ];
 
 // Remove LevelDB LOCK files under the profile's store directories. Meant for a start after a

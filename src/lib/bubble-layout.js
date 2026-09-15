@@ -3,11 +3,12 @@
 // zoomed by `scale`. Everything the page needs to place itself crosses over in page pixels.
 const { fanLayout, windowFrame, clampToArea, snapToEdge, FAN_ITEM } = require('./layout');
 
-const BASE = 44;       // the disc the page is drawn for
-const BANNER = 250;    // the landed banner; the window extends this far from the disc toward the screen centre
+const BASE = 44; // the disc the page is drawn for
+const BANNER = 250; // the landed banner; the window extends this far from the disc toward the screen centre
 
 // Which screen edge the disc rests on decides which way banners extend.
-const edgeOf = (anchor, size, area) => (anchor.x + size / 2 > area.x + area.width / 2 ? 'right' : 'left');
+const edgeOf = (anchor, size, area) =>
+  anchor.x + size / 2 > area.x + area.width / 2 ? 'right' : 'left';
 
 function bubbleLayout({ anchor, size, scale, fanCount, bannerExtra, area }) {
   const bounds = { x: anchor.x, y: anchor.y, width: size, height: size };
@@ -23,9 +24,15 @@ function bubbleLayout({ anchor, size, scale, fanCount, bannerExtra, area }) {
   // The content rect spans the banner width from the disc toward the screen centre.
   const content = {
     x: side === 'right' ? column.bounds.x + size - banner : column.bounds.x,
-    y: column.bounds.y, width: banner, height: column.bounds.height,
+    y: column.bounds.y,
+    width: banner,
+    height: column.bounds.height,
   };
-  const frame = windowFrame(content, direction === 'up' ? { above: extra } : { below: extra }, scale);
+  const frame = windowFrame(
+    content,
+    direction === 'up' ? { above: extra } : { below: extra },
+    scale,
+  );
   return {
     content,
     direction,
@@ -33,7 +40,8 @@ function bubbleLayout({ anchor, size, scale, fanCount, bannerExtra, area }) {
     window: { x: frame.x, y: frame.y, width: frame.width, height: frame.height },
     renderer: {
       contentX: (side === 'right' ? frame.contentX + banner - size : frame.contentX) / scale,
-      contentY: (frame.contentY + (column.bounds.height - size) * (direction === 'up' ? 1 : 0)) / scale,
+      contentY:
+        (frame.contentY + (column.bounds.height - size) * (direction === 'up' ? 1 : 0)) / scale,
       edge: side,
       direction,
       base: BASE,
@@ -49,7 +57,12 @@ function stackBounds(params) {
   const { anchor, size, fanCount, area } = params;
   if (!fanCount) return { x: anchor.x, y: anchor.y, width: size, height: size };
   const c = bubbleLayout(params).content;
-  return { x: edgeOf(anchor, size, area) === 'right' ? c.x + c.width - size : c.x, y: c.y, width: size, height: c.height };
+  return {
+    x: edgeOf(anchor, size, area) === 'right' ? c.x + c.width - size : c.x,
+    y: c.y,
+    width: size,
+    height: c.height,
+  };
 }
 
 // A new disc size: the disc keeps its centre — except that one resting on the top or bottom

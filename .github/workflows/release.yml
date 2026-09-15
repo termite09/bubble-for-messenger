@@ -6,7 +6,7 @@ name: Release
 # `workflow_dispatch` with dry_run builds and checksums without publishing anything.
 on:
   push:
-    tags: ["v*"]
+    tags: ['v*']
   workflow_dispatch:
     inputs:
       dry_run:

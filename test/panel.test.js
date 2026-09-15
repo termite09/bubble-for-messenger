@@ -5,12 +5,26 @@ const { createPanel } = require('../src/main/panel');
 
 const makePanel = () => {
   const opened = [];
-  electron.shell.openExternal = async (u) => { opened.push(u); };
+  electron.shell.openExternal = async (u) => {
+    opened.push(u);
+  };
   const panel = createPanel({ onUnread() {} });
   const win = electron.windows[electron.windows.length - 1];
   return { panel, win, opened };
 };
-const nav = (win, event, url) => { let prevented = false; win.webContents.emit(event, { preventDefault: () => { prevented = true; } }, url); return prevented; };
+const nav = (win, event, url) => {
+  let prevented = false;
+  win.webContents.emit(
+    event,
+    {
+      preventDefault: () => {
+        prevented = true;
+      },
+    },
+    url,
+  );
+  return prevented;
+};
 
 test('the panel is a sandboxed floating window that loads messenger.com', () => {
   const { win } = makePanel();
@@ -24,10 +38,20 @@ test('navigations and redirects off Meta go to the browser; Meta pages stay; a l
   const { win, opened } = makePanel();
   assert.equal(nav(win, 'will-navigate', 'https://www.messenger.com/t/1/'), false);
   assert.equal(nav(win, 'will-navigate', 'https://www.facebook.com/checkpoint/'), false);
-  assert.equal(nav(win, 'will-navigate', 'https://l.messenger.com/l.php?u=https%3A%2F%2Fexample.com%2Fa'), true);
+  assert.equal(
+    nav(win, 'will-navigate', 'https://l.messenger.com/l.php?u=https%3A%2F%2Fexample.com%2Fa'),
+    true,
+  );
   assert.equal(nav(win, 'will-redirect', 'https://evil.example/phish'), true);
-  assert.equal(nav(win, 'will-redirect', 'https://www.facebook.com/flx/warn/?u=https%3A%2F%2Fexample.com%2Fb'), true);
-  assert.deepEqual(opened, ['https://example.com/a', 'https://evil.example/phish', 'https://example.com/b']);
+  assert.equal(
+    nav(win, 'will-redirect', 'https://www.facebook.com/flx/warn/?u=https%3A%2F%2Fexample.com%2Fb'),
+    true,
+  );
+  assert.deepEqual(opened, [
+    'https://example.com/a',
+    'https://evil.example/phish',
+    'https://example.com/b',
+  ]);
   win.loaded = null;
   win.webContents.emit('did-navigate', {}, 'https://evil.example/landed');
   assert.equal(win.loaded, 'https://www.messenger.com/');
@@ -51,7 +75,11 @@ test('closing hides the panel, except when the app is quitting; blur hides and r
   const win = electron.windows[electron.windows.length - 1];
   win.show();
   let prevented = false;
-  win.emit('close', { preventDefault: () => { prevented = true; } });
+  win.emit('close', {
+    preventDefault: () => {
+      prevented = true;
+    },
+  });
   assert.equal(prevented, true);
   assert.equal(win.visible, false);
   win.show();
@@ -60,7 +88,11 @@ test('closing hides the panel, except when the app is quitting; blur hides and r
   assert.equal(blurred.length, 1);
   electron.app.emit('before-quit');
   prevented = false;
-  win.emit('close', { preventDefault: () => { prevented = true; } });
+  win.emit('close', {
+    preventDefault: () => {
+      prevented = true;
+    },
+  });
   assert.equal(prevented, false);
   assert.equal(panel.isVisible(), false);
 });

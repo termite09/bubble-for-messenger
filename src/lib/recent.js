@@ -14,7 +14,8 @@ function spanText(node) {
   if (node.nodeType === 3) return node.nodeValue || '';
   if (node.nodeType !== 1) return '';
   // A glyph is short and starts with a pictograph; anything wordier is a label, not an emoji.
-  const glyph = (v) => (v && v.length <= 24 && /^\p{Extended_Pictographic}/u.test(v.trim()) ? v.trim() : '');
+  const glyph = (v) =>
+    v && v.length <= 24 && /^\p{Extended_Pictographic}/u.test(v.trim()) ? v.trim() : '';
   if (node.tagName === 'IMG') {
     return /emoji/i.test(node.getAttribute('src') || '') ? glyph(node.getAttribute('alt')) : '';
   }
@@ -70,8 +71,17 @@ const MAX_PINS = 5;
 function mergeHeads(pins, recent, limit = LIMIT) {
   const byHref = new Map(recent.map((r) => [r.href, r]));
   const pinnedHrefs = new Set(pins.map((p) => p.href));
-  const rest = recent.filter((r) => !pinnedHrefs.has(r.href)).slice(0, limit).map((r) => ({ ...r, pinned: false }));
-  const pinned = pins.map((p) => ({ unread: false, preview: '', ...p, ...(byHref.get(p.href) || {}), pinned: true }));
+  const rest = recent
+    .filter((r) => !pinnedHrefs.has(r.href))
+    .slice(0, limit)
+    .map((r) => ({ ...r, pinned: false }));
+  const pinned = pins.map((p) => ({
+    unread: false,
+    preview: '',
+    ...p,
+    ...(byHref.get(p.href) || {}),
+    pinned: true,
+  }));
   return [...rest, ...pinned];
 }
 
@@ -81,4 +91,13 @@ function reopenOpen(lastChat, now, seconds) {
   return now - lastChat.closedAt <= seconds * 1000;
 }
 
-module.exports = { mergeHeads, MAX_PINS, reopenOpen, normalizeRows, isThreadHref, spanText, listAtTop, LIMIT };
+module.exports = {
+  mergeHeads,
+  MAX_PINS,
+  reopenOpen,
+  normalizeRows,
+  isThreadHref,
+  spanText,
+  listAtTop,
+  LIMIT,
+};

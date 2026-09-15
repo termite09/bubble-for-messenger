@@ -11,15 +11,32 @@ module.exports = [
   {
     // The pages: browsers, plus what each preload puts on window.
     files: ['src/renderer/*-renderer.js'],
-    languageOptions: { ecmaVersion: 2023, sourceType: 'script', globals: { ...globals.browser, bubbleApi: 'readonly', settingsApi: 'readonly', shieldApi: 'readonly', dismissApi: 'readonly' } },
+    languageOptions: {
+      ecmaVersion: 2023,
+      sourceType: 'script',
+      globals: {
+        ...globals.browser,
+        bubbleApi: 'readonly',
+        settingsApi: 'readonly',
+        shieldApi: 'readonly',
+        dismissApi: 'readonly',
+      },
+    },
   },
   {
     files: ['src/renderer/*-preload.js'],
-    languageOptions: { ecmaVersion: 2023, sourceType: 'commonjs', globals: { ...globals.browser, ...globals.node } },
+    languageOptions: {
+      ecmaVersion: 2023,
+      sourceType: 'commonjs',
+      globals: { ...globals.browser, ...globals.node },
+    },
   },
   {
     rules: {
-      'no-unused-vars': ['error', { args: 'after-used', argsIgnorePattern: '^_', caughtErrors: 'none' }],
+      'no-unused-vars': [
+        'error',
+        { args: 'after-used', argsIgnorePattern: '^_', caughtErrors: 'none' },
+      ],
       'no-empty': ['error', { allowEmptyCatch: true }],
     },
   },

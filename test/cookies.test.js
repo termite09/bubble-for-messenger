@@ -1,8 +1,23 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { shouldPersistCookie, persistentCookie, LOGIN_COOKIES, PERSIST_DAYS } = require('../src/lib/cookies');
+const {
+  shouldPersistCookie,
+  persistentCookie,
+  LOGIN_COOKIES,
+  PERSIST_DAYS,
+} = require('../src/lib/cookies');
 
-const base = { name: 'xs', value: 'v', domain: '.messenger.com', hostOnly: false, path: '/', secure: true, httpOnly: true, session: true, sameSite: 'lax' };
+const base = {
+  name: 'xs',
+  value: 'v',
+  domain: '.messenger.com',
+  hostOnly: false,
+  path: '/',
+  secure: true,
+  httpOnly: true,
+  session: true,
+  sameSite: 'lax',
+};
 
 // Only the login pair (and Facebook's device cookies) are kept past the session, whenever the
 // site sets them as session cookies, and only on Meta's hosts.
@@ -24,10 +39,20 @@ test('persistentCookie: same attributes, 90-day expiry, host-only stays host-onl
   const now = 1_700_000_000_000;
   const out = persistentCookie(base, now);
   assert.deepEqual(out, {
-    url: 'https://messenger.com/', name: 'xs', value: 'v', domain: '.messenger.com', path: '/',
-    secure: true, httpOnly: true, sameSite: 'lax', expirationDate: 1_700_000_000 + PERSIST_DAYS * 86400,
+    url: 'https://messenger.com/',
+    name: 'xs',
+    value: 'v',
+    domain: '.messenger.com',
+    path: '/',
+    secure: true,
+    httpOnly: true,
+    sameSite: 'lax',
+    expirationDate: 1_700_000_000 + PERSIST_DAYS * 86400,
   });
-  const hostOnly = persistentCookie({ ...base, domain: 'www.messenger.com', hostOnly: true, sameSite: undefined }, now);
+  const hostOnly = persistentCookie(
+    { ...base, domain: 'www.messenger.com', hostOnly: true, sameSite: undefined },
+    now,
+  );
   assert.equal('domain' in hostOnly, false); // the url's host makes it host-only, as issued
   assert.equal(hostOnly.url, 'https://www.messenger.com/');
   assert.equal(hostOnly.sameSite, 'unspecified');

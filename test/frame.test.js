@@ -5,8 +5,12 @@ const { FRAME_CSS } = require('../src/main/scrape');
 // On the messenger.com login page html and body are 0px tall (everything is positioned), so
 // the frame must pin html to the viewport and hand scrolling to body, or the panel shows
 // nothing. The window itself is opaque with rounded corners; the page only adds a hairline.
-const rulesFor = (selector) => FRAME_CSS.split('}').map((rule) => rule.split('{'))
-  .filter(([sel]) => sel.trim() === selector).map(([, decls]) => decls).join(';');
+const rulesFor = (selector) =>
+  FRAME_CSS.split('}')
+    .map((rule) => rule.split('{'))
+    .filter(([sel]) => sel.trim() === selector)
+    .map(([, decls]) => decls)
+    .join(';');
 
 test('html is pinned to the viewport and left opaque', () => {
   const html = rulesFor('html');
@@ -15,7 +19,7 @@ test('html is pinned to the viewport and left opaque', () => {
   assert.doesNotMatch(html, /clip-path|transparent/);
 });
 
-test('the hairline sits inside the window\'s rounded edge', () => {
+test("the hairline sits inside the window's rounded edge", () => {
   assert.match(rulesFor('#mb-frame'), /border-radius:\d+px/);
   assert.match(rulesFor('#mb-frame'), /border:1px solid/);
 });

@@ -12,7 +12,15 @@ function createShield({ onPress, overFullscreen = true }) {
 
   function ensure() {
     if (win) return win;
-    win = createFloatingWindow({ level: 'floating', focusable: false, overFullscreen: over, page: 'shield.html', preload: 'shield-preload.js', paintWhenInitiallyHidden: false, webPreferences: { webgl: false } });
+    win = createFloatingWindow({
+      level: 'floating',
+      focusable: false,
+      overFullscreen: over,
+      page: 'shield.html',
+      preload: 'shield-preload.js',
+      paintWhenInitiallyHidden: false,
+      webPreferences: { webgl: false },
+    });
     ipcFor(win).on(CHANNELS.SHIELD_CLICK, () => onPress());
     return win;
   }
@@ -23,7 +31,9 @@ function createShield({ onPress, overFullscreen = true }) {
       w.setBounds(displayBounds);
       if (!w.isVisible()) w.showInactive();
     },
-    hide: () => { if (win) win.hide(); },
+    hide: () => {
+      if (win) win.hide();
+    },
     isVisible: () => Boolean(win) && win.isVisible(),
     setOverFullscreen(on) {
       over = on;

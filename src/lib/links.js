@@ -22,13 +22,17 @@ const onDomain = (host, domain) => host === domain || host.endsWith('.' + domain
 // counts there; the rest of those sites is pages.
 function isRedirect(u) {
   const host = u.hostname.toLowerCase();
-  return REDIRECT_HOSTS.includes(host) || (isMetaHost(host) && REDIRECT_PATHS.has(u.pathname.replace(/\/$/, '')));
+  return (
+    REDIRECT_HOSTS.includes(host) ||
+    (isMetaHost(host) && REDIRECT_PATHS.has(u.pathname.replace(/\/$/, '')))
+  );
 }
 // /l.php is the shim; /flx/warn is the "you're leaving Facebook" page it sends some links to.
 const REDIRECT_PATHS = new Set(['/l.php', '/flx/warn']);
 
 // True for a cookie/permission origin on Meta's own domains (suffix match, never substring).
-const isMetaHost = (host) => typeof host === 'string' &&
+const isMetaHost = (host) =>
+  typeof host === 'string' &&
   ['messenger.com', 'facebook.com'].some((d) => onDomain(host.toLowerCase().replace(/^\./, ''), d));
 
 // messenger.com pages stay in the panel; everything else (incl. its l.* link-shim) is external.

@@ -11,7 +11,9 @@ test('a scrolled list is untrusted: null, not an empty list', async () => {
 });
 
 test('rows from the page are normalised', async () => {
-  const rows = [{ href: '/t/1/', name: 'A', avatarUrl: null, unread: false, preview: 'hi', time: '2m' }];
+  const rows = [
+    { href: '/t/1/', name: 'A', avatarUrl: null, unread: false, preview: 'hi', time: '2m' },
+  ];
   assert.deepEqual(await readRecentChats(wc('https://www.messenger.com/t/1/', rows)), rows);
 });
 
@@ -32,22 +34,41 @@ function scripted(snapshots, { insertOk = true } = {}) {
   let i = 0;
   const actions = {
     snapshot: async () => snapshots[Math.min(i++, snapshots.length - 1)],
-    insert: async (_wc, text) => { log.push('insert:' + text); return insertOk; },
-    send: async () => { log.push('send'); return true; },
+    insert: async (_wc, text) => {
+      log.push('insert:' + text);
+      return insertOk;
+    },
+    send: async () => {
+      log.push('send');
+      return true;
+    },
   };
   let t = 0;
-  const deps = { actions, now: () => t, wait: async () => { t += 250; } };
+  const deps = {
+    actions,
+    now: () => t,
+    wait: async () => {
+      t += 250;
+    },
+  };
   return { deps, log };
 }
-const snap = (o) => ({ onThread: true, composerReady: true, composerEmpty: true, draftMatches: false, sendAvailable: false, ...o });
+const snap = (o) => ({
+  onThread: true,
+  composerReady: true,
+  composerEmpty: true,
+  draftMatches: false,
+  sendAvailable: false,
+  ...o,
+});
 
 test('deliverReply inserts, sends, and succeeds when the composer empties', async () => {
   const { deps, log } = scripted([
-    snap({ onThread: false }),                                               // still switching thread
-    snap(),                                                                  // ready: insert
+    snap({ onThread: false }), // still switching thread
+    snap(), // ready: insert
     snap({ composerEmpty: false, draftMatches: true, sendAvailable: true }), // draft landed: send
-    snap({ composerEmpty: false, draftMatches: true }),                      // sending
-    snap(),                                                                  // sent
+    snap({ composerEmpty: false, draftMatches: true }), // sending
+    snap(), // sent
   ]);
   assert.equal(await deliverReply({}, '/t/1/', 'hi', deps), true);
   assert.deepEqual(log, ['insert:hi', 'send']);
@@ -62,7 +83,10 @@ test('deliverReply refuses to touch a composer that holds a draft', async () => 
 test('deliverReply fails when the draft never appears or insert is rejected', async () => {
   const rejected = scripted([snap()], { insertOk: false });
   assert.equal(await deliverReply({}, '/t/1/', 'hi', rejected.deps), false);
-  const vanished = scripted([snap(), snap({ composerEmpty: false, draftMatches: false, sendAvailable: true })]);
+  const vanished = scripted([
+    snap(),
+    snap({ composerEmpty: false, draftMatches: false, sendAvailable: true }),
+  ]);
   assert.equal(await deliverReply({}, '/t/1/', 'hi', vanished.deps), false);
   assert.deepEqual(vanished.log, ['insert:hi']);
 });
@@ -76,9 +100,13 @@ const { setTheme } = require('../src/main/scrape');
 
 // Messenger picks its theme once, at load, from its own preference; the app steers it by
 // swapping the classes Messenger's own toggle uses on <html>.
-test('setTheme swaps Messenger\'s own dark/light classes on <html>', async () => {
+test("setTheme swaps Messenger's own dark/light classes on <html>", async () => {
   const ran = [];
-  const wc = { executeJavaScript: async (js) => { ran.push(js); } };
+  const wc = {
+    executeJavaScript: async (js) => {
+      ran.push(js);
+    },
+  };
   await setTheme(wc, true);
   await setTheme(wc, false);
   assert.equal(ran.length, 2);
@@ -95,7 +123,12 @@ const { run } = require('../src/main/scrape');
 // runs in its own world when the page offers one.
 test('run: isolated world when available, and a timeout either way', async () => {
   const calls = [];
-  const wc = { executeJavaScriptInIsolatedWorld: (world, scripts, gesture) => { calls.push([world, scripts[0].code, gesture]); return new Promise(() => {}); } };
+  const wc = {
+    executeJavaScriptInIsolatedWorld: (world, scripts, gesture) => {
+      calls.push([world, scripts[0].code, gesture]);
+      return new Promise(() => {});
+    },
+  };
   await assert.rejects(run(wc, '1 + 1', { timeoutMs: 20 }), /timed out/);
   assert.deepEqual(calls, [[1001, '1 + 1', false]]);
   const plain = { executeJavaScript: async (code) => code.length };

@@ -7,11 +7,17 @@ const { formatLine, shouldRotate, KEEP } = require('../lib/logfmt');
 // avatar URLs — thread hrefs only via `hashHref`.
 function createLog({ dir, packaged }) {
   const file = path.join(dir, 'main.log');
-  try { fs.mkdirSync(dir, { recursive: true, mode: 0o700 }); } catch (e) {}
+  try {
+    fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+  } catch (e) {}
 
   function rotate() {
     let size = 0;
-    try { size = fs.statSync(file).size; } catch (e) { return; }
+    try {
+      size = fs.statSync(file).size;
+    } catch (e) {
+      return;
+    }
     if (!shouldRotate(size)) return;
     try {
       for (let i = KEEP; i >= 1; i--) {

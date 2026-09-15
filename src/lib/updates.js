@@ -15,6 +15,7 @@ function isNewer(current, latest) {
   return false;
 }
 
-const nextCheckDue = (lastCheckedAt, now) => lastCheckedAt === null || now - lastCheckedAt >= CHECK_EVERY_MS;
+const nextCheckDue = (lastCheckedAt, now) =>
+  lastCheckedAt === null || now - lastCheckedAt >= CHECK_EVERY_MS;
 
 module.exports = { isNewer, nextCheckDue, CHECK_EVERY_MS, parse };

@@ -16,14 +16,26 @@ function createUpdateCheck({ fetch, version, enabled, onUpdate, log = null, now 
     if (!enabled()) return null;
     lastCheckedAt = now();
     try {
-      const res = await fetch(RELEASES_API, { headers: { Accept: 'application/vnd.github+json', 'User-Agent': `bubble-for-messenger/${version}` }, signal: AbortSignal.timeout(TIMEOUT_MS) });
+      const res = await fetch(RELEASES_API, {
+        headers: {
+          Accept: 'application/vnd.github+json',
+          'User-Agent': `bubble-for-messenger/${version}`,
+        },
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      });
       if (!res.ok) return null;
       const body = await res.json();
       const tag = body && body.tag_name;
       if (!parse(tag) || !isNewer(version, tag)) return null;
-      const url = typeof body.html_url === 'string' && body.html_url.startsWith('https://github.com/') ? body.html_url : RELEASES_PAGE;
+      const url =
+        typeof body.html_url === 'string' && body.html_url.startsWith('https://github.com/')
+          ? body.html_url
+          : RELEASES_PAGE;
       latest = { version: parse(tag).join('.'), url };
-      if (told !== latest.version) { told = latest.version; onUpdate(latest); }
+      if (told !== latest.version) {
+        told = latest.version;
+        onUpdate(latest);
+      }
       return latest;
     } catch (e) {
       if (log) log.debug('update check failed', { err: e.message });

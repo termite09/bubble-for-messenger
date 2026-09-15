@@ -13,5 +13,11 @@ test("Facebook's static error document is small and carries its interstitial ske
 });
 
 test('error-page retries back off and then hold at five minutes', () => {
-  assert.deepEqual([0, 1, 2, 3, 9].map(errorRetryDelay), [15 * 1000, MIN, 5 * MIN, 5 * MIN, 5 * MIN]);
+  assert.deepEqual([0, 1, 2, 3, 9].map(errorRetryDelay), [
+    15 * 1000,
+    MIN,
+    5 * MIN,
+    5 * MIN,
+    5 * MIN,
+  ]);
 });

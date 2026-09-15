@@ -9,14 +9,22 @@ const CDN_HOSTS = ['fbcdn.net', 'facebook.com', 'messenger.com'];
 // Messenger's picture URLs carry a signature in the query that changes on every page load;
 // the path names the picture. Caching by path keeps a picture across reloads.
 function cacheKey(url) {
-  try { const u = new URL(url); return u.hostname + u.pathname; } catch (e) { return url; }
+  try {
+    const u = new URL(url);
+    return u.hostname + u.pathname;
+  } catch (e) {
+    return url;
+  }
 }
 
 // Only an https image on Meta's own hosts is worth fetching; the URL comes from the page's DOM.
 function isAvatarUrl(url) {
   try {
     const u = new URL(url);
-    return u.protocol === 'https:' && CDN_HOSTS.some((d) => u.hostname === d || u.hostname.endsWith('.' + d));
+    return (
+      u.protocol === 'https:' &&
+      CDN_HOSTS.some((d) => u.hostname === d || u.hostname.endsWith('.' + d))
+    );
   } catch (e) {
     return false;
   }
@@ -34,7 +42,8 @@ function fetchAvatar(ses, url, now = Date.now) {
   const hit = cache.get(key);
   if (hit && (hit.ok !== false || now() - hit.at < FAIL_TTL_MS)) return hit.promise;
   const entry = { at: now(), ok: null, promise: null };
-  entry.promise = ses.fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) })
+  entry.promise = ses
+    .fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) })
     .then(async (res) => {
       const type = (res.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
       if (!res.ok || !IMAGE_TYPES.has(type)) return null;
@@ -44,7 +53,10 @@ function fetchAvatar(ses, url, now = Date.now) {
       return `data:${type};base64,${buf.toString('base64')}`;
     })
     .catch(() => null)
-    .then((result) => { entry.ok = result !== null; return result; });
+    .then((result) => {
+      entry.ok = result !== null;
+      return result;
+    });
   cache.set(key, entry);
   if (cache.size > MAX_CACHE) cache.delete(cache.keys().next().value);
   return entry.promise;

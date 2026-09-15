@@ -15,7 +15,8 @@ test('blocks Facebook logging sinks', () => {
     'https://www.facebook.com/tr/?id=1',
     'https://www.facebook.com/ajax/error/report',
     'https://pixel.facebook.com/anything',
-  ]) assert.equal(isTelemetryUrl(url), true, url);
+  ])
+    assert.equal(isTelemetryUrl(url), true, url);
 });
 
 test('never blocks what messaging needs', () => {
@@ -30,7 +31,8 @@ test('never blocks what messaging needs', () => {
     'https://www.messenger.com/t/123/',
     'https://www.messenger.com/bzar', // a path merely starting with "bz"
     'https://www.facebook.com/tracking', // not /tr
-  ]) assert.equal(isTelemetryUrl(url), false, url);
+  ])
+    assert.equal(isTelemetryUrl(url), false, url);
 });
 
 test('only Meta hosts are classified; anything unparseable falls open', () => {

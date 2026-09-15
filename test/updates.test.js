@@ -24,16 +24,33 @@ test('createUpdateCheck reports a newer release once, tolerates failures, and re
   const release = { tag_name: 'v9.0.0', html_url: 'https://github.com/x/y/releases/tag/v9.0.0' };
   let enabled = true;
   const fetch = async () => ({ ok: true, json: async () => release });
-  const check = createUpdateCheck({ fetch, version: '2.3.0', enabled: () => enabled, onUpdate: (u) => seen.push(u) });
+  const check = createUpdateCheck({
+    fetch,
+    version: '2.3.0',
+    enabled: () => enabled,
+    onUpdate: (u) => seen.push(u),
+  });
   assert.deepEqual(await check.check(), { version: '9.0.0', url: release.html_url });
   assert.deepEqual(check.latest(), { version: '9.0.0', url: release.html_url });
   await check.check();
   assert.equal(seen.length, 1); // told once per version, not on every check
   enabled = false;
   assert.equal(await check.check(), null);
-  const failing = createUpdateCheck({ fetch: async () => { throw new Error('offline'); }, version: '2.3.0', enabled: () => true, onUpdate() {} });
+  const failing = createUpdateCheck({
+    fetch: async () => {
+      throw new Error('offline');
+    },
+    version: '2.3.0',
+    enabled: () => true,
+    onUpdate() {},
+  });
   assert.equal(await failing.check(), null);
-  const older = createUpdateCheck({ fetch: async () => ({ ok: true, json: async () => ({ tag_name: 'v2.0.0', html_url: 'u' }) }), version: '2.3.0', enabled: () => true, onUpdate: () => seen.push('no') });
+  const older = createUpdateCheck({
+    fetch: async () => ({ ok: true, json: async () => ({ tag_name: 'v2.0.0', html_url: 'u' }) }),
+    version: '2.3.0',
+    enabled: () => true,
+    onUpdate: () => seen.push('no'),
+  });
   assert.equal(await older.check(), null);
   assert.equal(seen.length, 1);
 });

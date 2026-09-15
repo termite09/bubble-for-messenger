@@ -6,8 +6,11 @@ const REPLY_POLL_MS = 250;
 
 // A reply is a thread path (validated like every other href we splice into the page) and a
 // trimmed, bounded piece of text.
-const validReply = (href, text) => isThreadHref(href) && typeof text === 'string' &&
-  text.trim().length > 0 && [...text.trim()].length <= MAX_REPLY_CHARS;
+const validReply = (href, text) =>
+  isThreadHref(href) &&
+  typeof text === 'string' &&
+  text.trim().length > 0 &&
+  [...text.trim()].length <= MAX_REPLY_CHARS;
 
 // One step of sending a reply through the Messenger page. The page side polls its DOM into a
 // snapshot { onThread, composerReady, composerEmpty, draftMatches, sendAvailable } and does

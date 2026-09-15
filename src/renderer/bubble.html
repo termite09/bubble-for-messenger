@@ -1,188 +1,539 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-  <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:">
-  <style>
-    /* The stack's deploy is one number: --p runs 0→1 and every banner derives its offset and
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:"
+    />
+    <style>
+      /* The stack's deploy is one number: --p runs 0→1 and every banner derives its offset and
        opacity from it, so the fan opens as a single linked motion rather than five cards. */
-    @property --p { syntax: '<number>'; inherits: true; initial-value: 0; }
+      @property --p {
+        syntax: '<number>';
+        inherits: true;
+        initial-value: 0;
+      }
 
-    html, body { margin: 0; background: transparent; overflow: hidden; user-select: none; -webkit-user-select: none; }
-    body {
-      --card: #1c1c1e; --raised: #2c2c2e; --ink: #f5f5f7; --dim: #8e8e93; --rule: rgba(255,255,255,.12); --blue: #0a84ff;
-      --lift: 0 8px 24px rgba(0,0,0,.45);
-      --ease: cubic-bezier(.22, 1, .36, 1); /* ease-out-quint: fast start, long settle, no overshoot */
-      font: 13px/16px -apple-system, system-ui, sans-serif; color: var(--ink); -webkit-font-smoothing: antialiased;
-      position: relative; width: 100vw; height: 100vh;
-    }
-    img { -webkit-user-drag: none; pointer-events: none; }
+      html,
+      body {
+        margin: 0;
+        background: transparent;
+        overflow: hidden;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      body {
+        --card: #1c1c1e;
+        --raised: #2c2c2e;
+        --ink: #f5f5f7;
+        --dim: #8e8e93;
+        --rule: rgba(255, 255, 255, 0.12);
+        --blue: #0a84ff;
+        --lift: 0 8px 24px rgba(0, 0, 0, 0.45);
+        --ease: cubic-bezier(
+          0.22,
+          1,
+          0.36,
+          1
+        ); /* ease-out-quint: fast start, long settle, no overshoot */
+        font:
+          13px/16px -apple-system,
+          system-ui,
+          sans-serif;
+        color: var(--ink);
+        -webkit-font-smoothing: antialiased;
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+      }
+      img {
+        -webkit-user-drag: none;
+        pointer-events: none;
+      }
 
-    /* #content is the disc column; the main process positions it inside the padded window
+      /* #content is the disc column; the main process positions it inside the padded window
        and tells us which screen edge the disc rests on so banners extend the other way. */
-    #content { position: absolute; display: flex; flex-direction: column; }
-    body.up #content { flex-direction: column; justify-content: flex-end; }
-    body.down #content { flex-direction: column-reverse; justify-content: flex-end; }
-    body.edge-right #content { align-items: flex-end; }
-    body.edge-left #content { align-items: flex-start; }
+      #content {
+        position: absolute;
+        display: flex;
+        flex-direction: column;
+      }
+      body.up #content {
+        flex-direction: column;
+        justify-content: flex-end;
+      }
+      body.down #content {
+        flex-direction: column-reverse;
+        justify-content: flex-end;
+      }
+      body.edge-right #content {
+        align-items: flex-end;
+      }
+      body.edge-left #content {
+        align-items: flex-start;
+      }
 
-    .card { background: var(--card); border: 1px solid var(--rule); box-shadow: var(--lift); box-sizing: border-box; }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--rule);
+        box-shadow: var(--lift);
+        box-sizing: border-box;
+      }
 
-    /* ---- The disc ------------------------------------------------------------------------ */
-    #disc {
-      position: relative; width: 44px; height: 44px; border-radius: 22px; flex: none;
-      display: flex; align-items: center; justify-content: center; cursor: default;
-    }
-    #disc img { width: 24px; height: 24px; display: block; }
-    #count {
-      position: absolute; right: -8px; top: -6px; min-width: 18px; height: 18px; padding: 0 5px; box-sizing: border-box;
-      border-radius: 9px; background: var(--blue); color: #fff; font: 600 11px/18px -apple-system, system-ui, sans-serif;
-      text-align: center; display: none; pointer-events: none;
-    }
-    #count.visible { display: block; }
-    /* Pulsing count: the pill breathes between full and a third while anything is unread. The
+      /* ---- The disc ------------------------------------------------------------------------ */
+      #disc {
+        position: relative;
+        width: 44px;
+        height: 44px;
+        border-radius: 22px;
+        flex: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: default;
+      }
+      #disc img {
+        width: 24px;
+        height: 24px;
+        display: block;
+      }
+      #count {
+        position: absolute;
+        right: -8px;
+        top: -6px;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 5px;
+        box-sizing: border-box;
+        border-radius: 9px;
+        background: var(--blue);
+        color: #fff;
+        font:
+          600 11px/18px -apple-system,
+          system-ui,
+          sans-serif;
+        text-align: center;
+        display: none;
+        pointer-events: none;
+      }
+      #count.visible {
+        display: block;
+      }
+      /* Pulsing count: the pill breathes between full and a third while anything is unread. The
        page toggles `dim` every 1.2 s and the fade is a transition, so the compositor works for
        two half-second moments a cycle rather than for every frame of it. */
-    #count { transition: opacity 500ms ease-in-out; }
-    #count.dim { opacity: .35; }
+      #count {
+        transition: opacity 500ms ease-in-out;
+      }
+      #count.dim {
+        opacity: 0.35;
+      }
 
-    /* "A message landed": a banner unrolls out of the disc for a few seconds, then rolls back.
+      /* "A message landed": a banner unrolls out of the disc for a few seconds, then rolls back.
        It is a full-size card whose clip-path starts as the disc's own circle, so the reveal is
        one element growing along the panel side with no layout work. */
-    #landed {
-      position: absolute; width: 252px; min-height: 44px; border-radius: 22px; box-sizing: border-box;
-      padding: 5px 14px 5px 5px; transition: clip-path 220ms var(--ease), opacity 120ms linear; opacity: 0; pointer-events: none;
-      /* avatar | name … time ↩ / the message across the rest / (the reply field) */
-      display: grid; grid-template-columns: 32px 1fr auto auto; grid-template-rows: auto auto; column-gap: 10px; align-items: center;
-    }
-    #landed .av { grid-row: 1 / 3; grid-column: 1; }
-    #landed .name { grid-row: 1; grid-column: 2; }
-    #landed .sub { grid-row: 2; grid-column: 2 / -1; }
-    #landed .time { grid-row: 1; grid-column: 3; }
-    #landed-reply { grid-row: 1; grid-column: 4; }
-    /* It grows away from the screen edge: hung from the disc row when the stack would grow up
+      #landed {
+        position: absolute;
+        width: 252px;
+        min-height: 44px;
+        border-radius: 22px;
+        box-sizing: border-box;
+        padding: 5px 14px 5px 5px;
+        transition:
+          clip-path 220ms var(--ease),
+          opacity 120ms linear;
+        opacity: 0;
+        pointer-events: none;
+        /* avatar | name … time ↩ / the message across the rest / (the reply field) */
+        display: grid;
+        grid-template-columns: 32px 1fr auto auto;
+        grid-template-rows: auto auto;
+        column-gap: 10px;
+        align-items: center;
+      }
+      #landed .av {
+        grid-row: 1 / 3;
+        grid-column: 1;
+      }
+      #landed .name {
+        grid-row: 1;
+        grid-column: 2;
+      }
+      #landed .sub {
+        grid-row: 2;
+        grid-column: 2 / -1;
+      }
+      #landed .time {
+        grid-row: 1;
+        grid-column: 3;
+      }
+      #landed-reply {
+        grid-row: 1;
+        grid-column: 4;
+      }
+      /* It grows away from the screen edge: hung from the disc row when the stack would grow up
        (its top edge stays on the disc's), standing on it otherwise. */
-    body.up #landed { bottom: -1px; }
-    body.down #landed { top: -1px; }
-    body.landed #landed { pointer-events: auto; }
-    #landed:hover { background: var(--raised); }
-    body.edge-right #landed { right: -1px; clip-path: inset(0 0 0 208px round 22px); }
-    body.edge-left #landed { left: -1px; clip-path: inset(0 208px 0 0 round 22px); }
-    body.landed #landed { clip-path: inset(0 round 22px); opacity: 1; }
-    body.landed #count { display: none; }
+      body.up #landed {
+        bottom: -1px;
+      }
+      body.down #landed {
+        top: -1px;
+      }
+      body.landed #landed {
+        pointer-events: auto;
+      }
+      #landed:hover {
+        background: var(--raised);
+      }
+      body.edge-right #landed {
+        right: -1px;
+        clip-path: inset(0 0 0 208px round 22px);
+      }
+      body.edge-left #landed {
+        left: -1px;
+        clip-path: inset(0 208px 0 0 round 22px);
+      }
+      body.landed #landed {
+        clip-path: inset(0 round 22px);
+        opacity: 1;
+      }
+      body.landed #count {
+        display: none;
+      }
 
-    /* ---- Heads ---------------------------------------------------------------------------- */
-    #fan { display: flex; flex-direction: column; gap: 8px; --p: 0; transition: --p 220ms var(--ease); }
-    body.up #fan { margin-bottom: 8px; }
-    body.down #fan { margin-top: 8px; }
-    body.open #fan { --p: 1; }
-    body.edge-right #fan { align-items: flex-end; }
-    body.edge-left #fan { align-items: flex-start; }
-    /* Newest at the top, the inbox head at the bottom, whichever side of the disc the stack is on. */
-    .head {
-      position: relative; width: 44px; height: 44px; border-radius: 22px; cursor: default; flex: none;
-      /* --d: this head's distance to the disc; at p=0 it sits folded under the disc, unseen */
-      transform: translateY(calc((1 - var(--p)) * var(--d)));
-      opacity: var(--p);
-    }
-    .head img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
-    .head .initial { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font: 600 15px -apple-system, system-ui, sans-serif; }
-    /* The inbox is the one paper disc in the column, so it never reads as another contact: a
+      /* ---- Heads ---------------------------------------------------------------------------- */
+      #fan {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        --p: 0;
+        transition: --p 220ms var(--ease);
+      }
+      body.up #fan {
+        margin-bottom: 8px;
+      }
+      body.down #fan {
+        margin-top: 8px;
+      }
+      body.open #fan {
+        --p: 1;
+      }
+      body.edge-right #fan {
+        align-items: flex-end;
+      }
+      body.edge-left #fan {
+        align-items: flex-start;
+      }
+      /* Newest at the top, the inbox head at the bottom, whichever side of the disc the stack is on. */
+      .head {
+        position: relative;
+        width: 44px;
+        height: 44px;
+        border-radius: 22px;
+        cursor: default;
+        flex: none;
+        /* --d: this head's distance to the disc; at p=0 it sits folded under the disc, unseen */
+        transform: translateY(calc((1 - var(--p)) * var(--d)));
+        opacity: var(--p);
+      }
+      .head img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+        display: block;
+      }
+      .head .initial {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font:
+          600 15px -apple-system,
+          system-ui,
+          sans-serif;
+      }
+      /* The inbox is the one paper disc in the column, so it never reads as another contact: a
        tray glyph in graphite, and a caption on a graphite chip beside it (the side away from the
        screen edge) that says what it is. Both share the head's fold and fade. */
-    .head.inbox { background: var(--ink); color: var(--card); }
-    .head.inbox svg { width: 22px; height: 22px; margin: 10px; display: block; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-    .head .caption {
-      position: absolute; top: 50%; transform: translateY(-50%); white-space: nowrap; pointer-events: none;
-      padding: 0 8px; border-radius: 10px; background: var(--card); border: 1px solid var(--rule); box-shadow: var(--lift);
-      font: 400 11px/18px -apple-system, system-ui, sans-serif; color: var(--ink);
-      opacity: 0; transition: opacity 120ms linear;
-    }
-    .head:hover .caption { opacity: 1; }
-    body.edge-right .head .caption { right: 52px; }
-    body.edge-left .head .caption { left: 52px; }
-    .head:hover { border-color: rgba(255,255,255,.28); }
-    /* A hairline in the gap above the first pinned head parts the pinned from the recent. */
-    .head.first-pinned::before { content: ''; position: absolute; left: 6px; right: 6px; top: -5px; height: 1px; background: var(--rule); }
-    /* The open conversation: a paper ring outside the hairline. */
-    .head.active { box-shadow: var(--lift), 0 0 0 2px var(--ink); }
-    .dot {
-      position: absolute; right: -1px; top: -1px; width: 12px; height: 12px; border-radius: 6px; background: var(--blue);
-      border: 2px solid var(--card); box-sizing: border-box; display: none;
-    }
-    .unread .dot { display: block; }
-    /* A pinned head wears a small paper pin at its foot, opposite the unread dot. */
-    .pin {
-      position: absolute; left: -2px; bottom: -2px; width: 16px; height: 16px; border-radius: 8px; background: var(--ink);
-      border: 2px solid var(--card); box-sizing: border-box; display: none; align-items: center; justify-content: center; color: var(--card);
-    }
-    .pin svg { width: 9px; height: 9px; display: block; fill: currentColor; }
-    .pinned .pin { display: flex; }
+      .head.inbox {
+        background: var(--ink);
+        color: var(--card);
+      }
+      .head.inbox svg {
+        width: 22px;
+        height: 22px;
+        margin: 10px;
+        display: block;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .head .caption {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        white-space: nowrap;
+        pointer-events: none;
+        padding: 0 8px;
+        border-radius: 10px;
+        background: var(--card);
+        border: 1px solid var(--rule);
+        box-shadow: var(--lift);
+        font:
+          400 11px/18px -apple-system,
+          system-ui,
+          sans-serif;
+        color: var(--ink);
+        opacity: 0;
+        transition: opacity 120ms linear;
+      }
+      .head:hover .caption {
+        opacity: 1;
+      }
+      body.edge-right .head .caption {
+        right: 52px;
+      }
+      body.edge-left .head .caption {
+        left: 52px;
+      }
+      .head:hover {
+        border-color: rgba(255, 255, 255, 0.28);
+      }
+      /* A hairline in the gap above the first pinned head parts the pinned from the recent. */
+      .head.first-pinned::before {
+        content: '';
+        position: absolute;
+        left: 6px;
+        right: 6px;
+        top: -5px;
+        height: 1px;
+        background: var(--rule);
+      }
+      /* The open conversation: a paper ring outside the hairline. */
+      .head.active {
+        box-shadow:
+          var(--lift),
+          0 0 0 2px var(--ink);
+      }
+      .dot {
+        position: absolute;
+        right: -1px;
+        top: -1px;
+        width: 12px;
+        height: 12px;
+        border-radius: 6px;
+        background: var(--blue);
+        border: 2px solid var(--card);
+        box-sizing: border-box;
+        display: none;
+      }
+      .unread .dot {
+        display: block;
+      }
+      /* A pinned head wears a small paper pin at its foot, opposite the unread dot. */
+      .pin {
+        position: absolute;
+        left: -2px;
+        bottom: -2px;
+        width: 16px;
+        height: 16px;
+        border-radius: 8px;
+        background: var(--ink);
+        border: 2px solid var(--card);
+        box-sizing: border-box;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        color: var(--card);
+      }
+      .pin svg {
+        width: 9px;
+        height: 9px;
+        display: block;
+        fill: currentColor;
+      }
+      .pinned .pin {
+        display: flex;
+      }
 
-    /* Landed-banner internals */
-    .av { width: 32px; height: 32px; border-radius: 16px; overflow: hidden; background: #3a3a3c;
-          display: flex; align-items: center; justify-content: center; font: 600 13px -apple-system, system-ui, sans-serif; color: #fff; }
-    .av img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .name { min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    /* The whole message, wrapped, up to six lines. */
-    .sub { font-size: 12px; line-height: 15px; color: var(--dim); overflow: hidden; overflow-wrap: anywhere;
-           display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 6; }
-    .time { font-size: 11px; color: var(--dim); }
+      /* Landed-banner internals */
+      .av {
+        width: 32px;
+        height: 32px;
+        border-radius: 16px;
+        overflow: hidden;
+        background: #3a3a3c;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font:
+          600 13px -apple-system,
+          system-ui,
+          sans-serif;
+        color: #fff;
+      }
+      .av img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+      .name {
+        min-width: 0;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      /* The whole message, wrapped, up to six lines. */
+      .sub {
+        font-size: 12px;
+        line-height: 15px;
+        color: var(--dim);
+        overflow: hidden;
+        overflow-wrap: anywhere;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 6;
+      }
+      .time {
+        font-size: 11px;
+        color: var(--dim);
+      }
 
-    /* Reply: ↩ at the banner's far end swaps the first line for a field. The field is the
+      /* Reply: ↩ at the banner's far end swaps the first line for a field. The field is the
        only thing in the app that ever holds keyboard focus. */
-    #landed-reply {
-      /* Taller than the name row it sits in; the negative margins keep the row at text height. */
-      width: 24px; height: 24px; margin: -4px -6px -4px 0; border: 0; border-radius: 12px; padding: 0;
-      background: transparent; color: var(--dim); font: 14px/24px -apple-system, system-ui, sans-serif; cursor: default;
-    }
-    #landed-reply:hover { background: var(--rule); color: var(--ink); }
-    /* While replying the banner grows a second row: the field runs the banner's width under the
+      #landed-reply {
+        /* Taller than the name row it sits in; the negative margins keep the row at text height. */
+        width: 24px;
+        height: 24px;
+        margin: -4px -6px -4px 0;
+        border: 0;
+        border-radius: 12px;
+        padding: 0;
+        background: transparent;
+        color: var(--dim);
+        font:
+          14px/24px -apple-system,
+          system-ui,
+          sans-serif;
+        cursor: default;
+      }
+      #landed-reply:hover {
+        background: var(--rule);
+        color: var(--ink);
+      }
+      /* While replying the banner grows a second row: the field runs the banner's width under the
        name, a raised pill of its own so it reads as a place to type. The page measures the banner
        and the main process makes the room, so nothing is clipped. */
-    #landed-input {
-      display: none; box-sizing: border-box; margin: 0; padding: 0 10px; border: 1px solid var(--rule); border-radius: 13px; outline: 0;
-      height: 26px; background: var(--raised); color: var(--ink); font: 13px/24px -apple-system, system-ui, sans-serif;
-      -webkit-user-select: text; user-select: text; caret-color: var(--ink);
-    }
-    #landed-input::placeholder { color: var(--dim); }
-    #landed-input::selection { background: rgba(255,255,255,.24); }
-    #landed-input:focus { border-color: rgba(255,255,255,.28); }
-    body.replying #landed-sub, body.replying #landed .time, body.replying #landed-reply { display: none; }
-    body.replying #landed { grid-template-rows: 44px 36px; padding-top: 0; padding-bottom: 0; }
-    body.replying #landed .av { grid-row: 1; }
-    body.replying #landed-input { display: block; grid-row: 2; grid-column: 1 / -1; margin: 0 0 14px 9px; }
-    body.replying #landed:hover { background: var(--card); }
-    body.sending #landed-reply { display: none; }
-    body.no-reply #landed-reply { display: none; }
+      #landed-input {
+        display: none;
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0 10px;
+        border: 1px solid var(--rule);
+        border-radius: 13px;
+        outline: 0;
+        height: 26px;
+        background: var(--raised);
+        color: var(--ink);
+        font:
+          13px/24px -apple-system,
+          system-ui,
+          sans-serif;
+        -webkit-user-select: text;
+        user-select: text;
+        caret-color: var(--ink);
+      }
+      #landed-input::placeholder {
+        color: var(--dim);
+      }
+      #landed-input::selection {
+        background: rgba(255, 255, 255, 0.24);
+      }
+      #landed-input:focus {
+        border-color: rgba(255, 255, 255, 0.28);
+      }
+      body.replying #landed-sub,
+      body.replying #landed .time,
+      body.replying #landed-reply {
+        display: none;
+      }
+      body.replying #landed {
+        grid-template-rows: 44px 36px;
+        padding-top: 0;
+        padding-bottom: 0;
+      }
+      body.replying #landed .av {
+        grid-row: 1;
+      }
+      body.replying #landed-input {
+        display: block;
+        grid-row: 2;
+        grid-column: 1 / -1;
+        margin: 0 0 14px 9px;
+      }
+      body.replying #landed:hover {
+        background: var(--card);
+      }
+      body.sending #landed-reply {
+        display: none;
+      }
+      body.no-reply #landed-reply {
+        display: none;
+      }
 
-    /* Reduce Motion: no travel, just the crossfade. */
-    @media (prefers-reduced-motion: reduce) {
-      #count { transition: none; }
-      #count.dim { opacity: 1; }
-      #fan { transition: --p 120ms linear; }
-      .head { transform: none; }
-      #landed { transition: opacity 120ms linear; }
-      body.edge-right #landed, body.edge-left #landed { clip-path: inset(0 round 22px); }
-    }
-  </style>
-</head>
-<body class="up edge-right">
-  <div id="content">
-    <div id="fan"></div>
-    <div id="disc" class="card">
-      <img src="../../assets/icon.png" alt="">
-      <div id="count"></div>
-      <div id="landed" class="card">
-        <div class="av" id="landed-av"></div>
-        <div class="name" id="landed-name"></div>
-        <div class="sub" id="landed-sub"></div>
-        <input id="landed-input" type="text" maxlength="2000" autocomplete="off" spellcheck="true">
-        <div class="time">now</div>
-        <button id="landed-reply" type="button" title="Reply" aria-label="Reply">&#x21A9;</button>
+      /* Reduce Motion: no travel, just the crossfade. */
+      @media (prefers-reduced-motion: reduce) {
+        #count {
+          transition: none;
+        }
+        #count.dim {
+          opacity: 1;
+        }
+        #fan {
+          transition: --p 120ms linear;
+        }
+        .head {
+          transform: none;
+        }
+        #landed {
+          transition: opacity 120ms linear;
+        }
+        body.edge-right #landed,
+        body.edge-left #landed {
+          clip-path: inset(0 round 22px);
+        }
+      }
+    </style>
+  </head>
+  <body class="up edge-right">
+    <div id="content">
+      <div id="fan"></div>
+      <div id="disc" class="card">
+        <img src="../../assets/icon.png" alt="" />
+        <div id="count"></div>
+        <div id="landed" class="card">
+          <div class="av" id="landed-av"></div>
+          <div class="name" id="landed-name"></div>
+          <div class="sub" id="landed-sub"></div>
+          <input
+            id="landed-input"
+            type="text"
+            maxlength="2000"
+            autocomplete="off"
+            spellcheck="true"
+          />
+          <div class="time">now</div>
+          <button id="landed-reply" type="button" title="Reply" aria-label="Reply">&#x21A9;</button>
+        </div>
       </div>
     </div>
-  </div>
-  <script src="bubble-renderer.js"></script>
-</body>
+    <script src="bubble-renderer.js"></script>
+  </body>
 </html>

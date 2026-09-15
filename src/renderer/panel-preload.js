@@ -14,7 +14,8 @@ function spanText(node) {
   if (node.nodeType === 3) return node.nodeValue || '';
   if (node.nodeType !== 1) return '';
   // A glyph is short and starts with a pictograph; anything wordier is a label, not an emoji.
-  const glyph = (v) => (v && v.length <= 24 && /^\p{Extended_Pictographic}/u.test(v.trim()) ? v.trim() : '');
+  const glyph = (v) =>
+    v && v.length <= 24 && /^\p{Extended_Pictographic}/u.test(v.trim()) ? v.trim() : '';
   if (node.tagName === 'IMG') {
     return /emoji/i.test(node.getAttribute('src') || '') ? glyph(node.getAttribute('alt')) : '';
   }
@@ -39,7 +40,9 @@ function readRows(limit, spanText, listAtTop) {
     if (!link) continue;
     if (!out.length && !listAtTop(row, document.body)) return null;
     const img = row.querySelector('img');
-    const spans = [...row.querySelectorAll('span[dir="auto"]')].map((s) => spanText(s).trim()).filter(Boolean);
+    const spans = [...row.querySelectorAll('span[dir="auto"]')]
+      .map((s) => spanText(s).trim())
+      .filter(Boolean);
     // Unread rows are bold; the name span decides, and only it is measured.
     const nameSpan = row.querySelector('span[dir="auto"] span, span[dir="auto"]');
     const unread = !!nameSpan && parseInt(getComputedStyle(nameSpan).fontWeight, 10) >= 600;
@@ -73,7 +76,11 @@ let observed = null;
 function report() {
   timer = null;
   let rows;
-  try { rows = readRows(LIMIT, spanText, listAtTop); } catch (e) { return; }
+  try {
+    rows = readRows(LIMIT, spanText, listAtTop);
+  } catch (e) {
+    return;
+  }
   if (rows === null) return;
   const key = JSON.stringify(rows);
   if (key === lastKey) return;
@@ -90,7 +97,13 @@ const observer = new MutationObserver(schedule);
 function observe(target) {
   if (observed === target) return;
   observer.disconnect();
-  observer.observe(target, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['class', 'style', 'aria-label', 'href', 'src'] });
+  observer.observe(target, {
+    childList: true,
+    subtree: true,
+    characterData: true,
+    attributes: true,
+    attributeFilter: ['class', 'style', 'aria-label', 'href', 'src'],
+  });
   observed = target;
 }
 function narrow() {
@@ -100,4 +113,7 @@ function narrow() {
 }
 
 observe(document);
-ipcRenderer.on('panel:read', () => { lastKey = ''; report(); });
+ipcRenderer.on('panel:read', () => {
+  lastKey = '';
+  report();
+});

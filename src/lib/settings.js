@@ -3,34 +3,48 @@
 const { isThreadHref, MAX_PINS } = require('./recent');
 const { isMetaHost } = require('./links');
 const THEMES = ['system', 'light', 'dark'];
-const BADGES = ['off', 'steady', 'pulse'];       // the unread count on the disc
+const BADGES = ['off', 'steady', 'pulse']; // the unread count on the disc
 const BUBBLE_SIZES = Object.freeze({ small: 44, medium: 56, large: 68 }); // the disc, in px
-const REOPEN_SECONDS = [0, 15, 30, 60, 300];  // how long a chat closed by clicking away stays one click away
+const REOPEN_SECONDS = [0, 15, 30, 60, 300]; // how long a chat closed by clicking away stays one click away
 
 const DEFAULTS = Object.freeze({
-  overFullscreen: true,   // the bubble floats over full-screen apps
+  overFullscreen: true, // the bubble floats over full-screen apps
   startAtLogin: false,
   bubbleSize: 'small',
-  banner: true,           // the disc unrolls when a message lands
-  bannerPreview: true,    // ...showing the message text, not just the name
-  quickReply: true,       // the ↩ on the banner
-  notifications: true,    // Messenger's own macOS notifications
-  badge: 'steady',        // unread count on the disc: off, steady, or pulsing
-  theme: 'system',        // panel appearance
+  banner: true, // the disc unrolls when a message lands
+  bannerPreview: true, // ...showing the message text, not just the name
+  quickReply: true, // the ↩ on the banner
+  notifications: true, // Messenger's own macOS notifications
+  badge: 'steady', // unread count on the disc: off, steady, or pulsing
+  theme: 'system', // panel appearance
   spellcheck: true,
   blockTelemetry: true,
-  reopenLast: 30,         // seconds; 0 is off
-  checkUpdates: true,     // ask GitHub once a day whether there is a newer release
+  reopenLast: 30, // seconds; 0 is off
+  checkUpdates: true, // ask GitHub once a day whether there is a newer release
 });
 
 // Keys whose value is one of a list rather than a boolean.
-const CHOICES = { theme: THEMES, badge: BADGES, bubbleSize: Object.keys(BUBBLE_SIZES), reopenLast: REOPEN_SECONDS };
+const CHOICES = {
+  theme: THEMES,
+  badge: BADGES,
+  bubbleSize: Object.keys(BUBBLE_SIZES),
+  reopenLast: REOPEN_SECONDS,
+};
 
-const GRANTED_PERMISSIONS = new Set(['media', 'clipboard-read', 'clipboard-sanitized-write', 'fullscreen']);
+const GRANTED_PERMISSIONS = new Set([
+  'media',
+  'clipboard-read',
+  'clipboard-sanitized-write',
+  'fullscreen',
+]);
 const MEDIA_TYPES = new Set(['audio', 'video']); // a call's camera and microphone; never the screen
 function isPermissionGranted(permission, settings, details = {}) {
-  if (permission === 'media' && Array.isArray(details.mediaTypes)) return details.mediaTypes.every((t) => MEDIA_TYPES.has(t));
-  return GRANTED_PERMISSIONS.has(permission) || (permission === 'notifications' && settings.notifications);
+  if (permission === 'media' && Array.isArray(details.mediaTypes))
+    return details.mediaTypes.every((t) => MEDIA_TYPES.has(t));
+  return (
+    GRANTED_PERMISSIONS.has(permission) ||
+    (permission === 'notifications' && settings.notifications)
+  );
 }
 
 // Only Messenger and the facebook.com pages the panel may visit are granted anything, and only
@@ -44,7 +58,8 @@ function isMetaOrigin(url) {
   }
 }
 
-const isSettingKey = (key) => typeof key === 'string' && Object.prototype.hasOwnProperty.call(DEFAULTS, key);
+const isSettingKey = (key) =>
+  typeof key === 'string' && Object.prototype.hasOwnProperty.call(DEFAULTS, key);
 
 function normalizeSettings(raw) {
   const src = raw && typeof raw === 'object' ? raw : {};
@@ -77,10 +92,24 @@ function normalizePins(raw) {
   for (const p of raw) {
     if (!p || typeof p !== 'object' || !isThreadHref(p.href) || seen.has(p.href)) continue;
     seen.add(p.href);
-    out.push({ href: p.href, name: typeof p.name === 'string' ? p.name : '', avatarUrl: typeof p.avatarUrl === 'string' ? p.avatarUrl : null });
+    out.push({
+      href: p.href,
+      name: typeof p.name === 'string' ? p.name : '',
+      avatarUrl: typeof p.avatarUrl === 'string' ? p.avatarUrl : null,
+    });
     if (out.length === MAX_PINS) break;
   }
   return out;
 }
 
-module.exports = { DEFAULTS, THEMES, BADGES, BUBBLE_SIZES, REOPEN_SECONDS, normalizeSettings, isSettingKey, isPermissionGranted, isMetaOrigin };
+module.exports = {
+  DEFAULTS,
+  THEMES,
+  BADGES,
+  BUBBLE_SIZES,
+  REOPEN_SECONDS,
+  normalizeSettings,
+  isSettingKey,
+  isPermissionGranted,
+  isMetaOrigin,
+};

@@ -17,8 +17,11 @@ function createSettingsStore({ file, normalize, log = null, positionDelayMs = 20
     if (existed) {
       corrupt = true;
       const aside = `${file}.corrupt-${new Date().toISOString().replace(/[:.]/g, '-')}`;
-      try { fs.copyFileSync(file, aside); } catch (e2) {}
-      if (log) log.warn('settings file unreadable, kept aside', { aside: path.basename(aside), err: e });
+      try {
+        fs.copyFileSync(file, aside);
+      } catch (e2) {}
+      if (log)
+        log.warn('settings file unreadable, kept aside', { aside: path.basename(aside), err: e });
     }
   }
   let settings = normalize(raw);
@@ -48,17 +51,26 @@ function createSettingsStore({ file, normalize, log = null, positionDelayMs = 20
   function setPosition(pos) {
     settings = { ...settings, bubble: pos };
     clearTimeout(positionTimer);
-    positionTimer = setTimeout(() => { settings = normalize(settings); save(); }, positionDelayMs);
+    positionTimer = setTimeout(() => {
+      settings = normalize(settings);
+      save();
+    }, positionDelayMs);
   }
 
   return {
     existed,
     corrupt,
     get: () => settings,
-    set: (key, value) => (Object.prototype.hasOwnProperty.call(settings, key) && key !== 'bubble' ? commit({ ...settings, [key]: value }) : settings),
+    set: (key, value) =>
+      Object.prototype.hasOwnProperty.call(settings, key) && key !== 'bubble'
+        ? commit({ ...settings, [key]: value })
+        : settings,
     patch: (changes) => commit({ ...settings, ...changes }),
     setPosition,
-    subscribe: (fn) => { listeners.add(fn); return () => listeners.delete(fn); },
+    subscribe: (fn) => {
+      listeners.add(fn);
+      return () => listeners.delete(fn);
+    },
   };
 }
 

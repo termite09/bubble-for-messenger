@@ -1,8 +1,24 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { initialState, reduceRecent, refreshPins, openChat, closeChat, discClick } = require('../src/lib/chats');
+const {
+  initialState,
+  reduceRecent,
+  refreshPins,
+  openChat,
+  closeChat,
+  discClick,
+} = require('../src/lib/chats');
 
-const row = (href, extra = {}) => ({ href, name: 'N' + href, unread: false, preview: 'hi', time: '2m', avatarUrl: null, avatar: null, ...extra });
+const row = (href, extra = {}) => ({
+  href,
+  name: 'N' + href,
+  unread: false,
+  preview: 'hi',
+  time: '2m',
+  avatarUrl: null,
+  avatar: null,
+  ...extra,
+});
 const hidden = { visible: false, now: 1000 };
 
 test('the first read seeds state and announces nothing', () => {
@@ -13,24 +29,39 @@ test('the first read seeds state and announces nothing', () => {
   assert.equal(r.state.recent.length, 1);
 });
 
-test('a chat turning unread with a new preview lands; the user\'s own message never does', () => {
+test("a chat turning unread with a new preview lands; the user's own message never does", () => {
   let s = reduceRecent(initialState(), [row('/t/1/'), row('/t/2/')], hidden).state;
   let r = reduceRecent(s, [row('/t/1/', { unread: true, preview: 'yo' }), row('/t/2/')], hidden);
   assert.equal(r.landed.href, '/t/1/');
   s = r.state;
   // Same unread row with the same preview: nothing new landed.
-  r = reduceRecent(s, [row('/t/1/', { unread: true, preview: 'yo', time: '3m' }), row('/t/2/')], hidden);
+  r = reduceRecent(
+    s,
+    [row('/t/1/', { unread: true, preview: 'yo', time: '3m' }), row('/t/2/')],
+    hidden,
+  );
   assert.equal(r.landed, null);
   assert.equal(r.changed, true); // the time changed
   assert.equal(r.displayChanged, false); // but nothing the stack shows
   // Own message bolded by Messenger: not a landing.
-  r = reduceRecent(r.state, [row('/t/1/', { unread: true, preview: 'You: ok' }), row('/t/2/')], hidden);
+  r = reduceRecent(
+    r.state,
+    [row('/t/1/', { unread: true, preview: 'You: ok' }), row('/t/2/')],
+    hidden,
+  );
   assert.equal(r.landed, null);
   // A new unread chat at the top lands.
-  r = reduceRecent(r.state, [row('/t/9/', { unread: true, preview: 'new' }), row('/t/1/'), row('/t/2/')], hidden);
+  r = reduceRecent(
+    r.state,
+    [row('/t/9/', { unread: true, preview: 'new' }), row('/t/1/'), row('/t/2/')],
+    hidden,
+  );
   assert.equal(r.landed.href, '/t/9/');
   // While the panel is showing, nothing lands.
-  r = reduceRecent(r.state, [row('/t/9/', { unread: true, preview: 'again' }), row('/t/1/')], { visible: true, now: 1 });
+  r = reduceRecent(r.state, [row('/t/9/', { unread: true, preview: 'again' }), row('/t/1/')], {
+    visible: true,
+    now: 1,
+  });
   assert.equal(r.landed, null);
 });
 
@@ -56,8 +87,11 @@ test('displayChanged tracks only what the stack draws', () => {
   assert.equal(reduceRecent(s, [row('/t/1/', { name: 'Renamed' })], hidden).displayChanged, true);
 });
 
-test('refreshPins takes the row\'s name and picture URL when they differ', () => {
-  const pins = [{ href: '/t/1/', name: 'old', avatarUrl: 'u1' }, { href: '/t/2/', name: 'B', avatarUrl: null }];
+test("refreshPins takes the row's name and picture URL when they differ", () => {
+  const pins = [
+    { href: '/t/1/', name: 'old', avatarUrl: 'u1' },
+    { href: '/t/2/', name: 'B', avatarUrl: null },
+  ];
   const same = refreshPins(pins, [row('/t/9/')]);
   assert.equal(same.changed, false);
   assert.equal(same.pins, pins);

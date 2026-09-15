@@ -19,7 +19,7 @@ test('a missing file means defaults and "did not exist"; a saved file comes back
   assert.deepEqual(store.get(), { ...DEFAULTS, bubble: null, pins: [] });
   store.set('theme', 'dark');
   assert.equal(JSON.parse(fs.readFileSync(file, 'utf8')).theme, 'dark');
-  assert.equal((fs.statSync(file).mode & 0o777), 0o600);
+  assert.equal(fs.statSync(file).mode & 0o777, 0o600);
   const again = createSettingsStore({ file, normalize: normalizeSettings });
   assert.equal(again.existed, true);
   assert.equal(again.get().theme, 'dark');
@@ -32,12 +32,15 @@ test('set/patch normalise, refuse unknown keys, save once, and tell subscribers'
   store.subscribe((s, prev) => seen.push([prev.theme, s.theme]));
   const before = store.get();
   assert.equal(store.set('zoom', 150), before); // not a key: nothing happens
-  store.set('theme', 'sepia');                    // not a value: default stays
+  store.set('theme', 'sepia'); // not a value: default stays
   assert.equal(store.get().theme, 'system');
   store.patch({ pins: [{ href: '/t/1/', name: 'A', avatarUrl: null }], badge: 'pulse' });
   assert.equal(store.get().badge, 'pulse');
   assert.equal(store.get().pins.length, 1);
-  assert.deepEqual(seen, [['system', 'system'], ['system', 'system']]);
+  assert.deepEqual(seen, [
+    ['system', 'system'],
+    ['system', 'system'],
+  ]);
   fs.rmSync(dir, { recursive: true, force: true });
 });
 

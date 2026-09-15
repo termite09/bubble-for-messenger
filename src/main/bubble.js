@@ -15,7 +15,10 @@ const COLLAPSE_MS = 240; // the fold transition is 220ms
 
 function defaultPosition(size) {
   const { workArea } = screen.getPrimaryDisplay();
-  return { x: workArea.x + workArea.width - size - EDGE_MARGIN, y: workArea.y + workArea.height - size - EDGE_MARGIN };
+  return {
+    x: workArea.x + workArea.width - size - EDGE_MARGIN,
+    y: workArea.y + workArea.height - size - EDGE_MARGIN,
+  };
 }
 
 // The disc's position (`anchor`) is the source of truth. The window around it is transparent
@@ -23,18 +26,46 @@ function defaultPosition(size) {
 // below the disc and the "message landed" banner. Clicks fall through the padding: the page
 // reports when the cursor is over a card. The geometry is lib/bubble-layout, the press/drag/
 // release rules lib/drag; this module owns the window, the timers and the IPC.
-function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHeadMenu, onOpenChat, onOpenInbox, onDismiss, onReply, dismiss, overFullscreen = true, size = BASE }) {
-  let SIZE = size;          // the disc, on screen
-  let scale = SIZE / BASE;  // page zoom: the page is drawn for a BASE-px disc
+function createBubble({
+  position,
+  onClick,
+  onClose,
+  onMoved,
+  onContextMenu,
+  onHeadMenu,
+  onOpenChat,
+  onOpenInbox,
+  onDismiss,
+  onReply,
+  dismiss,
+  overFullscreen = true,
+  size = BASE,
+}) {
+  let SIZE = size; // the disc, on screen
+  let scale = SIZE / BASE; // page zoom: the page is drawn for a BASE-px disc
   const start = position || defaultPosition(SIZE);
-  const anchor = clampToArea({ ...start, width: SIZE, height: SIZE }, screen.getDisplayNearestPoint(start).workArea);
+  const anchor = clampToArea(
+    { ...start, width: SIZE, height: SIZE },
+    screen.getDisplayNearestPoint(start).workArea,
+  );
 
   const win = createFloatingWindow({
-    level: 'screen-saver', x: anchor.x, y: anchor.y, width: SIZE, height: SIZE, focusable: false, overFullscreen,
-    page: 'bubble.html', preload: 'bubble-preload.js', webPreferences: { zoomFactor: scale, webgl: false },
+    level: 'screen-saver',
+    x: anchor.x,
+    y: anchor.y,
+    width: SIZE,
+    height: SIZE,
+    focusable: false,
+    overFullscreen,
+    page: 'bubble.html',
+    preload: 'bubble-preload.js',
+    webPreferences: { zoomFactor: scale, webgl: false },
   });
   win.setIgnoreMouseEvents(true, { forward: true });
-  win.once('ready-to-show', () => { win.showInactive(); applyBounds(); });
+  win.once('ready-to-show', () => {
+    win.showInactive();
+    applyBounds();
+  });
   // What the page needs to know; a fresh document (startup, a reload) asks for it.
   let lastSettings = null;
   let lastBadge = 0;
@@ -44,17 +75,24 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
     endDrag(); // a press the old document never released
   });
 
-  const shield = createShield({ overFullscreen, onPress: () => { collapse(); onClose('shield'); } });
+  const shield = createShield({
+    overFullscreen,
+    onPress: () => {
+      collapse();
+      onClose('shield');
+    },
+  });
 
   const bounds = () => ({ x: anchor.x, y: anchor.y, width: SIZE, height: SIZE });
   const area = () => screen.getDisplayMatching(bounds()).workArea;
   let expanded = false;
-  let animGen = 0;      // guards the deferred collapse shrink against a rapid re-expand
-  let fanCount = 0;     // rows currently in the fan (incl. the inbox entry)
+  let animGen = 0; // guards the deferred collapse shrink against a rapid re-expand
+  let fanCount = 0; // rows currently in the fan (incl. the inbox entry)
   let replying = false; // the landed banner has grown its reply row (keyboard focus is lent)
-  let bannerExtra = 0;  // page px the landed banner needs beyond the disc row
+  let bannerExtra = 0; // page px the landed banner needs beyond the disc row
 
-  const layout = () => bubbleLayout({ anchor, size: SIZE, scale, fanCount, bannerExtra, area: area() });
+  const layout = () =>
+    bubbleLayout({ anchor, size: SIZE, scale, fanCount, bannerExtra, area: area() });
 
   function applyBounds() {
     const l = layout();
@@ -73,7 +111,10 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
   // Ease the disc to a resting x (edge snap) over a few frames. A new drag or a position reset
   // cancels it so the two never fight over the anchor.
   let snapTimer = null;
-  const stopSnap = () => { clearInterval(snapTimer); snapTimer = null; };
+  const stopSnap = () => {
+    clearInterval(snapTimer);
+    snapTimer = null;
+  };
   function animateTo(targetX) {
     stopSnap();
     const startX = anchor.x;
@@ -93,7 +134,10 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
   // stack (and any chat beside it) goes away with the old size, as for a click on the disc.
   function resize(next) {
     stopSnap();
-    if (expanded) { collapse(true); onClose('resize'); }
+    if (expanded) {
+      collapse(true);
+      onClose('resize');
+    }
     const at = resizeAnchor(anchor, SIZE, next, area());
     SIZE = next;
     scale = SIZE / BASE;
@@ -145,7 +189,7 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
 
   // While the mouse button is down the cursor is sampled and the disc moved under it; what a
   // sample means is lib/drag.
-  let drag = null;   // lib/drag state while pressed
+  let drag = null; // lib/drag state while pressed
   let dragTimer = null;
   function endDrag() {
     clearInterval(dragTimer);
@@ -154,19 +198,30 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
   }
 
   const ipc = ipcFor(win);
-  ipc.handle(CHANNELS.BUBBLE_STATE, () => ({ settings: lastSettings, layout: layout().renderer, badge: lastBadge, active: lastActive }));
+  ipc.handle(CHANNELS.BUBBLE_STATE, () => ({
+    settings: lastSettings,
+    layout: layout().renderer,
+    badge: lastBadge,
+    active: lastActive,
+  }));
 
   ipc.on(CHANNELS.BUBBLE_DRAG_START, () => {
     if (drag) return;
     stopSnap();
     const wasExpanded = expanded;
-    if (expanded) { collapse(); onClose('disc'); }
+    if (expanded) {
+      collapse();
+      onClose('disc');
+    }
     drag = dragLib.press({ cursor: screen.getCursorScreenPoint(), anchor, expanded: wasExpanded });
     dragTimer = setInterval(() => {
       const cursor = screen.getCursorScreenPoint();
       // Keep the disc fully on whichever display the cursor is over.
       const step = dragLib.move(drag, {
-        cursor, anchor, size: SIZE, area: screen.getDisplayNearestPoint(cursor).workArea,
+        cursor,
+        anchor,
+        size: SIZE,
+        area: screen.getDisplayNearestPoint(cursor).workArea,
         overDismiss: (p) => Boolean(dismiss) && dismiss.isOver({ ...p, width: SIZE, height: SIZE }),
       });
       drag = step.drag;
@@ -178,19 +233,26 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
 
   ipc.on(CHANNELS.BUBBLE_DRAG_END, () => {
     if (!drag) return;
-    const outcome = dragLib.release(drag, { overDismiss: Boolean(dismiss) && dismiss.isOver(bounds()) });
+    const outcome = dragLib.release(drag, {
+      overDismiss: Boolean(dismiss) && dismiss.isOver(bounds()),
+    });
     endDrag();
     if (dismiss) dismiss.hide();
     if (outcome === 'dismiss') onDismiss();
-    else if (outcome === 'snap') animateTo(snapToEdge(bounds(), area()).x); // rest against the nearer edge
+    else if (outcome === 'snap')
+      animateTo(snapToEdge(bounds(), area()).x); // rest against the nearer edge
     else if (outcome === 'click') onClick();
   });
 
-  ipc.on(CHANNELS.BUBBLE_HEAD_MENU, (href) => { if (isThreadHref(href)) onHeadMenu(href); });
+  ipc.on(CHANNELS.BUBBLE_HEAD_MENU, (href) => {
+    if (isThreadHref(href)) onHeadMenu(href);
+  });
   ipc.on(CHANNELS.BUBBLE_CONTEXT_MENU, () => onContextMenu());
   // The stack stays open after picking a chat, so the next conversation is one click away;
   // the panel opens beyond the banners.
-  ipc.on(CHANNELS.BUBBLE_OPEN_CHAT, (href) => { if (isThreadHref(href)) onOpenChat(href); });
+  ipc.on(CHANNELS.BUBBLE_OPEN_CHAT, (href) => {
+    if (isThreadHref(href)) onOpenChat(href);
+  });
   ipc.on(CHANNELS.BUBBLE_OPEN_INBOX, () => {
     collapse();
     onOpenInbox();
@@ -212,7 +274,9 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
     bannerExtra = next;
     applyBounds();
   });
-  ipc.on(CHANNELS.BUBBLE_REPLY, (href, text) => { if (validReply(href, text)) onReply(href, text.trim()); });
+  ipc.on(CHANNELS.BUBBLE_REPLY, (href, text) => {
+    if (validReply(href, text)) onReply(href, text.trim());
+  });
 
   // A display went away or changed shape: keep the disc on a screen.
   const reclamp = () => {
@@ -236,7 +300,8 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
     getBounds: bounds,
     // The rect a panel should sit beside: the head column (disc plus stack) while it is open,
     // otherwise just the disc.
-    getStackBounds: () => stackBounds({ anchor, size: SIZE, scale, fanCount, bannerExtra, area: area() }),
+    getStackBounds: () =>
+      stackBounds({ anchor, size: SIZE, scale, fanCount, bannerExtra, area: area() }),
     setActive: (href) => {
       lastActive = href;
       win.webContents.send(CHANNELS.BUBBLE_ACTIVE, href);
@@ -257,7 +322,10 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
     },
     resetPosition: () => {
       stopSnap();
-      if (expanded) { collapse(true); onClose('reset'); }
+      if (expanded) {
+        collapse(true);
+        onClose('reset');
+      }
       const p = defaultPosition(SIZE);
       moveTo(p.x, p.y);
     },

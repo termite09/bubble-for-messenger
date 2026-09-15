@@ -27,11 +27,14 @@ test('removeStaleLockFiles deletes Chromium lock files under the app data direct
 
   const removed = removeStaleLockFiles(tmp);
 
-  assert.deepEqual(removed.sort(), [
-    path.join(tmp, 'File System', 'Origins', 'LOCK'),
-    path.join(tmp, 'Local Storage', 'leveldb', 'LOCK'),
-    path.join(tmp, 'Service Worker', 'ScriptStore', 'LOCK'),
-  ].sort());
+  assert.deepEqual(
+    removed.sort(),
+    [
+      path.join(tmp, 'File System', 'Origins', 'LOCK'),
+      path.join(tmp, 'Local Storage', 'leveldb', 'LOCK'),
+      path.join(tmp, 'Service Worker', 'ScriptStore', 'LOCK'),
+    ].sort(),
+  );
   assert.equal(fs.existsSync(path.join(tmp, 'settings.json')), true);
   assert.equal(fs.existsSync(path.join(tmp, 'File System', 'Origins', 'LOCK')), false);
   assert.equal(fs.existsSync(path.join(tmp, 'Local Storage', 'leveldb', 'LOCK')), false);

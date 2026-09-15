@@ -21,10 +21,10 @@ function panelPosition(bubble, area, panel) {
   return clampToArea({ x, y: bubble.y, width: panel.width, height: panel.height }, area);
 }
 
-const FAN_ROW = 44;   // a head (same size as the disc)
+const FAN_ROW = 44; // a head (same size as the disc)
 const FAN_GAP = 8;
 const FAN_ITEM = FAN_ROW + FAN_GAP; // pitch
-const PAD = 32;        // transparent margin around the content: the 8+24px shadow and the count pill
+const PAD = 32; // transparent margin around the content: the 8+24px shadow and the count pill
 
 // Content rect (disc plus the stack) when `itemCount` fan rows are shown. The disc keeps its
 // screen position; the column grows upward when it fits, otherwise downward — and when it fits
@@ -42,8 +42,17 @@ function fanLayout(bubble, itemCount, area, scale = 1) {
     shown = Math.max(0, Math.floor((up ? roomAbove : roomBelow) / pitch));
   }
   const extra = shown * pitch;
-  const bounds = { x: bubble.x, y: up ? bubble.y - extra : bubble.y, width: bubble.width, height: bubble.height + extra };
-  return { direction: up ? 'up' : 'down', shown, bounds: { ...bounds, ...clampToArea(bounds, area) } };
+  const bounds = {
+    x: bubble.x,
+    y: up ? bubble.y - extra : bubble.y,
+    width: bubble.width,
+    height: bubble.height + extra,
+  };
+  return {
+    direction: up ? 'up' : 'down',
+    shown,
+    bounds: { ...bounds, ...clampToArea(bounds, area) },
+  };
 }
 
 // The window that holds a content rect: PAD on every side, plus `room` — `{ above, below }`,
@@ -87,4 +96,15 @@ function centerWithin(rect, point, radius) {
   return Math.hypot(cx - point.x, cy - point.y) <= radius;
 }
 
-module.exports = { panelPosition, clampToArea, fanLayout, windowFrame, snapToEdge, centerWithin, isClick, FAN_ITEM, PAD, EDGE_MARGIN };
+module.exports = {
+  panelPosition,
+  clampToArea,
+  fanLayout,
+  windowFrame,
+  snapToEdge,
+  centerWithin,
+  isClick,
+  FAN_ITEM,
+  PAD,
+  EDGE_MARGIN,
+};

@@ -9,13 +9,35 @@ const RENDERER = path.join(__dirname, '..', 'renderer');
 // that reaches main only through its preload's contextBridge. `page`/`preload` name files in
 // src/renderer; a window that loads a remote site passes `url` and no page.
 function createFloatingWindow({
-  level = 'floating', width, height, x, y, page, preload, url, overFullscreen = true,
-  focusable = true, transparent = true, hasShadow = !transparent, webPreferences = {}, ...rest
+  level = 'floating',
+  width,
+  height,
+  x,
+  y,
+  page,
+  preload,
+  url,
+  overFullscreen = true,
+  focusable = true,
+  transparent = true,
+  hasShadow = !transparent,
+  webPreferences = {},
+  ...rest
 }) {
   const win = new BrowserWindow({
-    width, height, x, y,
-    frame: false, transparent, hasShadow, resizable: false, fullscreenable: false,
-    alwaysOnTop: true, skipTaskbar: true, focusable, show: false,
+    width,
+    height,
+    x,
+    y,
+    frame: false,
+    transparent,
+    hasShadow,
+    resizable: false,
+    fullscreenable: false,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    focusable,
+    show: false,
     ...rest,
     webPreferences: {
       contextIsolation: true,
@@ -37,10 +59,15 @@ function createFloatingWindow({
 function ipcFor(win) {
   const owns = (e) => !win.isDestroyed() && e.sender === win.webContents;
   const registered = [];
-  win.on('closed', () => { for (const [kind, channel, fn] of registered) (kind === 'handle' ? ipcMain.removeHandler(channel) : ipcMain.removeListener(channel, fn)); });
+  win.on('closed', () => {
+    for (const [kind, channel, fn] of registered)
+      kind === 'handle' ? ipcMain.removeHandler(channel) : ipcMain.removeListener(channel, fn);
+  });
   return {
     on(channel, fn) {
-      const wrapped = (e, ...args) => { if (owns(e)) fn(...args); };
+      const wrapped = (e, ...args) => {
+        if (owns(e)) fn(...args);
+      };
       ipcMain.on(channel, wrapped);
       registered.push(['on', channel, wrapped]);
     },

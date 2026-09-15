@@ -15,16 +15,34 @@ test('link shim and lookalike hosts are not internal', () => {
 });
 
 test('browserUrl unwraps the link shim', () => {
-  assert.equal(browserUrl('https://l.messenger.com/l.php?u=https%3A%2F%2Fexample.com%2Fa%3Fb%3D1'), 'https://example.com/a?b=1');
-  assert.equal(browserUrl('https://l.facebook.com/l.php?u=http%3A%2F%2Fexample.com'), 'http://example.com/');
+  assert.equal(
+    browserUrl('https://l.messenger.com/l.php?u=https%3A%2F%2Fexample.com%2Fa%3Fb%3D1'),
+    'https://example.com/a?b=1',
+  );
+  assert.equal(
+    browserUrl('https://l.facebook.com/l.php?u=http%3A%2F%2Fexample.com'),
+    'http://example.com/',
+  );
 });
 
 test('browserUrl unwraps the mobile shim and the bare facebook.com/l.php form', () => {
-  assert.equal(browserUrl('https://lm.facebook.com/l.php?u=https%3A%2F%2Fexample.com%2F'), 'https://example.com/');
-  assert.equal(browserUrl('https://www.facebook.com/l.php?u=https%3A%2F%2Fexample.com%2F&h=x'), 'https://example.com/');
-  assert.equal(browserUrl('https://facebook.com/l.php?u=https%3A%2F%2Fexample.com%2F'), 'https://example.com/');
+  assert.equal(
+    browserUrl('https://lm.facebook.com/l.php?u=https%3A%2F%2Fexample.com%2F'),
+    'https://example.com/',
+  );
+  assert.equal(
+    browserUrl('https://www.facebook.com/l.php?u=https%3A%2F%2Fexample.com%2F&h=x'),
+    'https://example.com/',
+  );
+  assert.equal(
+    browserUrl('https://facebook.com/l.php?u=https%3A%2F%2Fexample.com%2F'),
+    'https://example.com/',
+  );
   // Only that exact path is a shim; anything else on facebook.com is a page of its own.
-  assert.equal(browserUrl('https://www.facebook.com/lol.php?u=https%3A%2F%2Fexample.com%2F'), 'https://www.facebook.com/lol.php?u=https%3A%2F%2Fexample.com%2F');
+  assert.equal(
+    browserUrl('https://www.facebook.com/lol.php?u=https%3A%2F%2Fexample.com%2F'),
+    'https://www.facebook.com/lol.php?u=https%3A%2F%2Fexample.com%2F',
+  );
 });
 
 test('the mobile shim and facebook.com/l.php never stay in the panel', () => {
@@ -48,7 +66,10 @@ const { staysInPanel } = require('../src/lib/links');
 
 test('staysInPanel allows messenger.com and facebook.com auth pages', () => {
   assert.equal(staysInPanel('https://www.messenger.com/t/1/'), true);
-  assert.equal(staysInPanel('https://www.facebook.com/two_step_verification/authentication/?x=1'), true);
+  assert.equal(
+    staysInPanel('https://www.facebook.com/two_step_verification/authentication/?x=1'),
+    true,
+  );
   assert.equal(staysInPanel('https://www.facebook.com/checkpoint/'), true);
 });
 

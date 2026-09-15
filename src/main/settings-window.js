@@ -3,7 +3,7 @@ const { CHANNELS } = require('../lib/ipc');
 const { createFloatingWindow, ipcFor } = require('./floating-window');
 const { joinAllSpaces } = require('./workspaces');
 const WIDTH = 360;
-const HEIGHT = 480;      // the tallest pane; the page asks for the exact height of the one it shows
+const HEIGHT = 480; // the tallest pane; the page asks for the exact height of the one it shows
 const MIN_HEIGHT = 200;
 const MAX_HEIGHT = 900;
 
@@ -16,10 +16,18 @@ function createSettingsWindow({ getSettings, setSetting, subscribe, onOpenMessen
   function ensure() {
     if (win) return win;
     win = createFloatingWindow({
-      level: 'floating', width: WIDTH, height: HEIGHT, overFullscreen, hasShadow: true,
-      page: 'settings.html', preload: 'settings-preload.js', webPreferences: { webgl: false },
+      level: 'floating',
+      width: WIDTH,
+      height: HEIGHT,
+      overFullscreen,
+      hasShadow: true,
+      page: 'settings.html',
+      preload: 'settings-preload.js',
+      webPreferences: { webgl: false },
     });
-    win.on('closed', () => { win = null; });
+    win.on('closed', () => {
+      win = null;
+    });
     wire(win);
     return win;
   }
@@ -39,7 +47,9 @@ function createSettingsWindow({ getSettings, setSetting, subscribe, onOpenMessen
     });
     ipc.on(CHANNELS.SETTINGS_OPEN_MESSENGER_PREFERENCES, () => onOpenMessengerPreferences());
   }
-  subscribe((s) => { if (win) win.webContents.send(CHANNELS.SETTINGS_CHANGED, s); });
+  subscribe((s) => {
+    if (win) win.webContents.send(CHANNELS.SETTINGS_CHANGED, s);
+  });
 
   return {
     // Centre the card in the work area of the display holding `bounds` (the bubble).
@@ -47,7 +57,10 @@ function createSettingsWindow({ getSettings, setSetting, subscribe, onOpenMessen
       const w = ensure();
       const area = screen.getDisplayMatching(bounds).workArea;
       const { height } = w.getBounds(); // the pane's own height, once the page has asked for it
-      w.setPosition(Math.round(area.x + (area.width - WIDTH) / 2), Math.round(area.y + (area.height - height) / 2));
+      w.setPosition(
+        Math.round(area.x + (area.width - WIDTH) / 2),
+        Math.round(area.y + (area.height - height) / 2),
+      );
       w.show();
       w.focus();
     },

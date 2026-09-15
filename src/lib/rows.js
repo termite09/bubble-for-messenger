@@ -18,7 +18,9 @@ function readRows(limit, spanText, listAtTop) {
     if (!link) continue;
     if (!out.length && !listAtTop(row, document.body)) return null;
     const img = row.querySelector('img');
-    const spans = [...row.querySelectorAll('span[dir="auto"]')].map((s) => spanText(s).trim()).filter(Boolean);
+    const spans = [...row.querySelectorAll('span[dir="auto"]')]
+      .map((s) => spanText(s).trim())
+      .filter(Boolean);
     // Unread rows are bold; the name span decides, and only it is measured.
     const nameSpan = row.querySelector('span[dir="auto"] span, span[dir="auto"]');
     const unread = !!nameSpan && parseInt(getComputedStyle(nameSpan).fontWeight, 10) >= 600;
