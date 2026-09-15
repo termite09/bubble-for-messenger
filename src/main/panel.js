@@ -7,11 +7,12 @@ const scrape = require('./scrape');
 const { joinAllSpaces } = require('./workspaces');
 
 const REFRESH_TICK_MS = 60 * 1000;
+const noLog = { debug() {}, info() {}, warn() {}, error() {} };
 
 // `onShown` fires once the panel is actually visible to the user (not merely staged at opacity
 // 0), so the bubble can dock the open chat's avatar beside it at the right moment. `onBlurred`
 // fires when the panel put itself away because it lost focus (the user went elsewhere).
-function createPanel({ onUnread, onShown = () => {}, onBlurred = () => {}, overFullscreen = true }) {
+function createPanel({ onUnread, onShown = () => {}, onBlurred = () => {}, overFullscreen = true, log = noLog }) {
   // Transparent so the page can draw its own card silhouette (scrape.FRAME_CSS: 16px corners and
   // a hairline) instead of the square window edge; macOS casts a shadow that follows the shape.
   const win = new BrowserWindow({
@@ -40,6 +41,8 @@ function createPanel({ onUnread, onShown = () => {}, onBlurred = () => {}, overF
     if (details.reason === 'clean-exit') return;
     setTimeout(() => { if (!win.isDestroyed()) win.webContents.reload(); }, errorRetryDelay(crashes++));
   });
+  win.webContents.on('unresponsive', () => log.warn('panel unresponsive'));
+  win.webContents.on('responsive', () => log.info('panel responsive again'));
 
   // Re-apply the frame and compact styling after any navigation (a full reload drops injected CSS).
   let compact = false;

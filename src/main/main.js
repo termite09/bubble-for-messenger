@@ -12,6 +12,7 @@ const { shouldPersistCookie, persistentCookie } = require('../lib/cookies');
 const { isTelemetryUrl } = require('../lib/telemetry');
 const { normalizeSettings, isSettingKey, isPermissionGranted, isMetaOrigin, BUBBLE_SIZES } = require('../lib/settings');
 const { removeStaleLockFiles } = require('../lib/storage');
+const { createLog } = require('./log');
 
 const RECENT_POLL_MS = 5000;
 
@@ -30,6 +31,13 @@ const primary = app.requestSingleInstanceLock();
 if (!primary) app.quit();
 else removeStaleLockFiles(userData);
 const settingsPath = path.join(app.getPath('userData'), 'settings.json');
+
+// What went wrong, for a bug report: logs/main.log in the profile. Never page data.
+const log = createLog({ dir: path.join(userData, 'logs'), packaged: app.isPackaged });
+process.on('unhandledRejection', (reason) => log.error('unhandled rejection', { err: reason }));
+process.on('uncaughtException', (err) => log.error('uncaught exception', { err }));
+app.on('render-process-gone', (_event, wc, details) => log.error('renderer gone', { url: wc.getURL().split('?')[0], reason: details.reason, exitCode: details.exitCode }));
+app.on('child-process-gone', (_event, details) => log.error('child process gone', { type: details.type, reason: details.reason, exitCode: details.exitCode }));
 
 function loadSettings() {
   try {
@@ -330,6 +338,7 @@ app.whenReady().then(() => {
   blockTelemetry();
 
   panel = createPanel({
+    log,
     overFullscreen: settings.overFullscreen,
     onUnread: (n) => {
       if (!bubble) return;
