@@ -1,16 +1,17 @@
 const { screen } = require('electron');
 const { CHANNELS } = require('../lib/ipc');
-const { isClick, clampToArea, fanLayout, windowFrame, snapToEdge, EDGE_MARGIN } = require('../lib/layout');
+const { clampToArea, snapToEdge, EDGE_MARGIN } = require('../lib/layout');
+const { bubbleLayout, stackBounds, resizeAnchor, BASE } = require('../lib/bubble-layout');
+const dragLib = require('../lib/drag');
 const { isThreadHref } = require('../lib/recent');
 const { validReply } = require('../lib/reply');
 const { BUBBLE_SIZES } = require('../lib/settings');
 const { joinAllSpaces } = require('./workspaces');
 const { createFloatingWindow, ipcFor } = require('./floating-window');
+const { createShield } = require('./shield');
 
-// The page is drawn for a 44px disc; a larger bubble is the same page zoomed, so every
-// length below is in page pixels and is multiplied by `scale` where it meets the screen.
-const BASE = BUBBLE_SIZES.small;
-const BANNER = 250;    // the landed banner; the window extends this far from the disc toward the screen centre
+const DRAG_TICK_MS = 16;
+const COLLAPSE_MS = 240; // the fold transition is 220ms
 
 function defaultPosition(size) {
   const { workArea } = screen.getPrimaryDisplay();
@@ -18,12 +19,13 @@ function defaultPosition(size) {
 }
 
 // The disc's position (`anchor`) is the source of truth. The window around it is transparent
-// padding (room for shadows and the count pill) plus whatever is showing: the banner stack above
-// or below the disc, the "message landed" banner, and the docked avatar beside an open panel.
-// Clicks fall through the padding: the renderer reports when the cursor is over a card.
+// padding (room for shadows and the count pill) plus whatever is showing: the stack above or
+// below the disc and the "message landed" banner. Clicks fall through the padding: the page
+// reports when the cursor is over a card. The geometry is lib/bubble-layout, the press/drag/
+// release rules lib/drag; this module owns the window, the timers and the IPC.
 function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHeadMenu, onOpenChat, onOpenInbox, onDismiss, onReply, dismiss, overFullscreen = true, size = BASE }) {
   let SIZE = size;          // the disc, on screen
-  let scale = SIZE / BASE;  // page zoom
+  let scale = SIZE / BASE;  // page zoom: the page is drawn for a BASE-px disc
   const start = position || defaultPosition(SIZE);
   const anchor = clampToArea({ ...start, width: SIZE, height: SIZE }, screen.getDisplayNearestPoint(start).workArea);
 
@@ -39,61 +41,26 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
     win.webContents.setZoomFactor(scale);
     if (lastSettings) win.webContents.send(CHANNELS.BUBBLE_SETTINGS, lastSettings);
     applyBounds(); // the page's placement inside the window, lost with the old document
+    endDrag();     // a press the old document never released
   });
 
-  // While the stack is open, an invisible shield covers the display beneath it (and the panel):
-  // a press anywhere that is not a banner puts the stack away, the way a popover closes. It is
-  // non-focusable so the click never activates anything, and it sits below the bubble's level.
-  const shield = createFloatingWindow({ level: 'floating', focusable: false, overFullscreen, page: 'shield.html', preload: 'shield-preload.js' });
+  const shield = createShield({ overFullscreen, onPress: () => { collapse(); onClose('shield'); } });
 
   const bounds = () => ({ x: anchor.x, y: anchor.y, width: SIZE, height: SIZE });
+  const area = () => screen.getDisplayMatching(bounds()).workArea;
   let expanded = false;
-  let animGen = 0;    // guards the deferred collapse shrink against a rapid re-expand
-  let fanCount = 0;   // rows currently in the fan (incl. the inbox entry)
-  let shownRows = null; // fewer than fanCount when the screen has no room for them all
-  let direction = 'up';
-  let replying = false;   // the landed banner has grown its reply row (keyboard focus is lent)
-  let bannerExtra = 0;    // page px the landed banner needs beyond the disc row (its wrapped text, its reply row)
+  let animGen = 0;      // guards the deferred collapse shrink against a rapid re-expand
+  let fanCount = 0;     // rows currently in the fan (incl. the inbox entry)
+  let replying = false; // the landed banner has grown its reply row (keyboard focus is lent)
+  let bannerExtra = 0;  // page px the landed banner needs beyond the disc row
 
-  // Which screen edge the disc rests on decides which way banners extend.
-  const edge = () => {
-    const area = screen.getDisplayMatching(bounds()).workArea;
-    return anchor.x + SIZE / 2 > area.x + area.width / 2 ? 'right' : 'left';
-  };
-
-  function layout() {
-    const area = screen.getDisplayMatching(bounds()).workArea;
-    const extra = bannerExtra * scale;
-    // The banner grows away from the screen edge, like the stack; with no stack up, that is
-    // decided by whether its extra rows fit above the disc.
-    const column = fanCount ? fanLayout(bounds(), fanCount, area, scale) : { direction: anchor.y - extra >= area.y ? 'up' : 'down', bounds: bounds() };
-    direction = column.direction;
-    if (fanCount && column.shown < fanCount) shownRows = column.shown; // the page is told to trim
-    const side = edge();
-    const banner = BANNER * scale;
-    // The content rect spans the banner width from the disc toward the screen centre.
-    const content = {
-      x: side === 'right' ? column.bounds.x + SIZE - banner : column.bounds.x,
-      y: column.bounds.y, width: banner, height: column.bounds.height,
-    };
-    const frame = windowFrame(content, null, direction === 'up' ? { above: extra } : { below: extra }, scale);
-    // The page works in its own (zoomed) pixels: offsets cross over divided by the scale.
-    return {
-      content,
-      window: { x: frame.x, y: frame.y, width: frame.width, height: frame.height },
-      renderer: {
-        contentX: (side === 'right' ? frame.contentX + banner - SIZE : frame.contentX) / scale,
-        contentY: (frame.contentY + (column.bounds.height - SIZE) * (direction === 'up' ? 1 : 0)) / scale,
-        edge: side,
-        direction,
-      },
-    };
-  }
+  const layout = () => bubbleLayout({ anchor, size: SIZE, scale, fanCount, bannerExtra, area: area() });
 
   function applyBounds() {
     const l = layout();
     win.setBounds(l.window);
     win.webContents.send(CHANNELS.BUBBLE_LAYOUT, l.renderer);
+    return l;
   }
 
   function moveTo(x, y) {
@@ -122,28 +89,17 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
     }, 12);
   }
 
-  // A new disc size: the page zooms, and the disc keeps its centre — except that one resting
-  // on the top or bottom of the screen stays resting on it, so sizes round-trip without drift —
-  // then rests against the side edge again (it may now be too close to it, or past it).
+  // A new disc size: the page zooms; where the disc goes is lib/bubble-layout resizeAnchor. The
+  // stack (and any chat beside it) goes away with the old size, as for a click on the disc.
   function resize(next) {
     stopSnap();
-    // The stack (and any chat beside it) goes away with the old size; onClose lets the panel
-    // follow, as it does for a click on the disc.
     if (expanded) { collapse(true); onClose('resize'); }
-    const area = screen.getDisplayMatching(bounds()).workArea;
-    const onTop = anchor.y <= area.y;
-    const onBottom = anchor.y + SIZE >= area.y + area.height;
-    const cx = anchor.x + SIZE / 2;
-    const cy = anchor.y + SIZE / 2;
+    const at = resizeAnchor(anchor, SIZE, next, area());
     SIZE = next;
     scale = SIZE / BASE;
     win.webContents.setZoomFactor(scale);
-    const y = onTop ? area.y : onBottom ? area.y + area.height - SIZE : cy - SIZE / 2;
-    const at = clampToArea({ x: cx - SIZE / 2, y, width: SIZE, height: SIZE }, area);
-    moveTo(snapToEdge({ ...at, width: SIZE, height: SIZE }, area).x, at.y);
+    moveTo(at.x, at.y);
   }
-
-  const COLLAPSE_MS = 240; // the fold transition is 220ms
 
   // Fold the stack away. `immediate` skips the fold for a change the window is about to be
   // re-laid-out for anyway (a resize, a position reset), so the geometry that follows sees no
@@ -170,71 +126,63 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
   }
 
   // Show `items` as a stack of banners by growing the (non-activating) window. Clicking the
-  // disc again collapses it — handled by `collapsedOnPress` in the drag logic.
+  // disc again collapses it — a press that folded the stack is done, see lib/drag.
   function expand(items, animate = true) {
     animGen += 1;
     fanCount = items.length + 1;
     expanded = true;
-    shownRows = null;
-    applyBounds();
+    let l = applyBounds();
     // No room for every row: keep the inbox head and the rows nearest it.
-    if (shownRows !== null && shownRows < fanCount) {
-      items = items.slice(Math.max(0, items.length - Math.max(0, shownRows - 1)));
+    if (l.shown < fanCount) {
+      items = items.slice(Math.max(0, items.length - Math.max(0, l.shown - 1)));
       fanCount = items.length + 1;
-      applyBounds();
+      l = applyBounds();
     }
-    shield.setBounds(screen.getDisplayMatching(bounds()).bounds);
-    if (!shield.isVisible()) shield.showInactive();
+    shield.show(screen.getDisplayMatching(bounds()).bounds);
     // 'in' plays the deploy; 'update' just swaps the contents (used by the periodic refresh).
     win.webContents.send(CHANNELS.BUBBLE_FAN, { animate: animate ? 'in' : 'update', items });
   }
 
-  // While the mouse button is down we poll the cursor and move the window under it.
-  let drag = null; // { timer, offsetX, offsetY, cursor, collapsedOnPress, moved }
+  // While the mouse button is down the cursor is sampled and the disc moved under it; what a
+  // sample means is lib/drag.
+  let drag = null;   // lib/drag state while pressed
+  let dragTimer = null;
+  function endDrag() {
+    clearInterval(dragTimer);
+    dragTimer = null;
+    drag = null;
+  }
+
   const ipc = ipcFor(win);
 
   ipc.on(CHANNELS.BUBBLE_DRAG_START, () => {
     if (drag) return;
     stopSnap();
-    const collapsedOnPress = expanded;
+    const wasExpanded = expanded;
     if (expanded) { collapse(); onClose('disc'); }
-    const cursor = screen.getCursorScreenPoint();
-    drag = { offsetX: cursor.x - anchor.x, offsetY: cursor.y - anchor.y, cursor, collapsedOnPress, moved: false, timer: null };
-    drag.timer = setInterval(() => {
-      const c = screen.getCursorScreenPoint();
-      // A press only becomes a drag once the cursor leaves the click-wobble radius.
-      if (!drag.moved) {
-        if (isClick(c.x - drag.cursor.x, c.y - drag.cursor.y)) return;
-        drag.moved = true;
-        if (dismiss) dismiss.show(bounds()); // first real movement: reveal the ✕ target
-      }
+    drag = dragLib.press({ cursor: screen.getCursorScreenPoint(), anchor, expanded: wasExpanded });
+    dragTimer = setInterval(() => {
+      const cursor = screen.getCursorScreenPoint();
       // Keep the disc fully on whichever display the cursor is over.
-      const area = screen.getDisplayNearestPoint(c).workArea;
-      const { x: nx, y: ny } = clampToArea({ x: c.x - drag.offsetX, y: c.y - drag.offsetY, width: SIZE, height: SIZE }, area);
-      if (nx !== anchor.x || ny !== anchor.y) {
-        moveTo(nx, ny);
-        if (dismiss) dismiss.setHot(dismiss.isOver(bounds()));
-      }
-    }, 16);
+      const step = dragLib.move(drag, {
+        cursor, anchor, size: SIZE, area: screen.getDisplayNearestPoint(cursor).workArea,
+        overDismiss: (p) => Boolean(dismiss) && dismiss.isOver({ ...p, width: SIZE, height: SIZE }),
+      });
+      drag = step.drag;
+      if (step.becameDrag && dismiss) dismiss.show(bounds()); // first real movement: reveal the ✕ target
+      if (step.position) moveTo(step.position.x, step.position.y);
+      if (step.hotChanged && dismiss) dismiss.setHot(drag.hot);
+    }, DRAG_TICK_MS);
   });
 
   ipc.on(CHANNELS.BUBBLE_DRAG_END, () => {
     if (!drag) return;
-    clearInterval(drag.timer);
-    const { collapsedOnPress, moved } = drag;
-    drag = null;
-
-    if (moved) {
-      const dropped = dismiss && dismiss.isOver(bounds());
-      if (dismiss) dismiss.hide();
-      if (dropped) { onDismiss(); return; }
-      // Rest against the nearer screen edge.
-      const area = screen.getDisplayMatching(bounds()).workArea;
-      animateTo(snapToEdge(bounds(), area).x);
-      return;
-    }
-    // A click that closed an open fan is done; otherwise it's a request to open one.
-    if (!collapsedOnPress) onClick();
+    const outcome = dragLib.release(drag, { overDismiss: Boolean(dismiss) && dismiss.isOver(bounds()) });
+    endDrag();
+    if (dismiss) dismiss.hide();
+    if (outcome === 'dismiss') onDismiss();
+    else if (outcome === 'snap') animateTo(snapToEdge(bounds(), area()).x); // rest against the nearer edge
+    else if (outcome === 'click') onClick();
   });
 
   ipc.on(CHANNELS.BUBBLE_HEAD_MENU, (href) => { if (isThreadHref(href)) onHeadMenu(href); });
@@ -245,11 +193,6 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
   ipc.on(CHANNELS.BUBBLE_OPEN_INBOX, () => {
     collapse();
     onOpenInbox();
-  });
-  // A press outside the stack (on the shield) puts everything away.
-  ipcFor(shield).on(CHANNELS.SHIELD_CLICK, () => {
-    collapse();
-    onClose('shield');
   });
   // The window is mostly transparent padding; only pass clicks through when over a card.
   ipc.on(CHANNELS.BUBBLE_HIT, (over) => win.setIgnoreMouseEvents(!over, { forward: true }));
@@ -270,6 +213,15 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
   });
   ipc.on(CHANNELS.BUBBLE_REPLY, (href, text) => { if (validReply(href, text)) onReply(href, text.trim()); });
 
+  // A display went away or changed shape: keep the disc on a screen.
+  const reclamp = () => {
+    const at = clampToArea(bounds(), screen.getDisplayNearestPoint(anchor).workArea);
+    if (at.x !== anchor.x || at.y !== anchor.y) moveTo(at.x, at.y);
+    else applyBounds();
+  };
+  screen.on('display-removed', reclamp);
+  screen.on('display-metrics-changed', reclamp);
+
   return {
     win,
     expand,
@@ -279,11 +231,7 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
     getBounds: bounds,
     // The rect a panel should sit beside: the head column (disc plus stack) while it is open,
     // otherwise just the disc.
-    getStackBounds: () => {
-      if (!fanCount) return bounds();
-      const c = layout().content;
-      return { x: edge() === 'right' ? c.x + c.width - SIZE : c.x, y: c.y, width: SIZE, height: c.height };
-    },
+    getStackBounds: () => stackBounds({ anchor, size: SIZE, scale, fanCount, bannerExtra, area: area() }),
     setActive: (href) => win.webContents.send(CHANNELS.BUBBLE_ACTIVE, href),
     // A message just arrived for `item`: unroll its banner out of the disc for a moment.
     landed: (item) => win.webContents.send(CHANNELS.BUBBLE_LANDED, item),
@@ -291,7 +239,7 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
     // Whether the disc (and the shield beneath an open stack) float over full-screen apps.
     setOverFullscreen: (on) => {
       joinAllSpaces(win, on);
-      joinAllSpaces(shield, on);
+      shield.setOverFullscreen(on);
     },
     setSettings: (s) => {
       lastSettings = s;

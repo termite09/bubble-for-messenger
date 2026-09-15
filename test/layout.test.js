@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { panelPosition, clampToArea, isClick } = require('../src/lib/layout');
+const { PAD, centerWithin, clampToArea, fanLayout, isClick, panelPosition, snapToEdge, windowFrame } = require('../src/lib/layout');
 
 const area = { x: 0, y: 0, width: 1440, height: 900 };
 const panel = { width: 420, height: 640 };
@@ -36,7 +36,6 @@ test('isClick uses a 4px threshold', () => {
   assert.equal(isClick(5, 0), false);
 });
 
-const { fanLayout } = require('../src/lib/layout');
 
 // Each fan row is a 44px head with an 8px gap (52px pitch), stacked away from the disc.
 test('fan grows upward when there is room above the bubble', () => {
@@ -56,7 +55,6 @@ test('fan with no items is just the bubble', () => {
   assert.deepEqual(r.bounds, { x: 100, y: 500, width: 44, height: 44 });
 });
 
-const { snapToEdge } = require('../src/lib/layout');
 
 test('snapToEdge rests the bubble 16px in from the nearer side, keeping y', () => {
   assert.deepEqual(snapToEdge({ x: 100, y: 300, width: 64, height: 64 }, area), { x: 16, y: 300 });
@@ -69,29 +67,13 @@ test('snapToEdge clamps y into the work area and respects a non-zero origin', ()
   assert.deepEqual(snapToEdge({ x: 2800, y: 2000, width: 64, height: 64 }, off), { x: 2800, y: 836 });
 });
 
-const { windowFrame, PAD } = require('../src/lib/layout');
 
 // The window is the content rect grown by PAD on every side (room for shadows and the count),
-// and additionally stretched to reach a docked avatar at the panel's top edge.
+// plus any room the landed banner asks for.
 test('windowFrame pads the content rect and reports the content offset inside it', () => {
-  const f = windowFrame({ x: 100, y: 500, width: 44, height: 44 }, null);
+  const f = windowFrame({ x: 100, y: 500, width: 44, height: 44 });
   assert.deepEqual(f, { x: 100 - PAD, y: 500 - PAD, width: 44 + 2 * PAD, height: 44 + 2 * PAD, contentX: PAD, contentY: PAD });
 });
-
-test('windowFrame stretches up to a dock above the content, keeping the content where it was', () => {
-  const f = windowFrame({ x: 100, y: 500, width: 44, height: 44 }, 300);
-  assert.equal(f.y, 300 - PAD);
-  assert.equal(f.height, 544 + PAD - (300 - PAD));
-  assert.equal(f.contentY, 500 - 300 + PAD);
-});
-
-test('windowFrame ignores a dock that is already inside the content span', () => {
-  const f = windowFrame({ x: 100, y: 300, width: 44, height: 244 }, 400);
-  assert.equal(f.y, 300 - PAD);
-  assert.equal(f.contentY, PAD);
-});
-
-const { centerWithin } = require('../src/lib/layout');
 
 test('centerWithin measures from the rect centre', () => {
   const bubble = { x: 100, y: 100, width: 64, height: 64 }; // centre (132,132)
@@ -103,12 +85,12 @@ test('centerWithin measures from the rect centre', () => {
 // While a reply is being typed the landed banner grows a second row below the disc; the
 // window grows with it so the field and its shadow are never clipped.
 test('windowFrame grows below the content by the extra it is given, keeping the content where it was', () => {
-  const plain = windowFrame({ x: 100, y: 500, width: 44, height: 44 }, null);
-  const grown = windowFrame({ x: 100, y: 500, width: 44, height: 44 }, null, 40);
+  const plain = windowFrame({ x: 100, y: 500, width: 44, height: 44 });
+  const grown = windowFrame({ x: 100, y: 500, width: 44, height: 44 }, 40);
   assert.equal(grown.y, plain.y);
   assert.equal(grown.contentY, plain.contentY);
   assert.equal(grown.height, plain.height + 40);
-  assert.deepEqual(windowFrame({ x: 100, y: 500, width: 44, height: 44 }, null, 0), plain);
+  assert.deepEqual(windowFrame({ x: 100, y: 500, width: 44, height: 44 }, 0), plain);
 });
 
 // A larger disc means larger heads, gaps and shadows: the fan's pitch and the window's padding
@@ -119,7 +101,7 @@ test('fanLayout and windowFrame take a scale for a larger bubble', () => {
   const r = fanLayout(big, 2, area, 1.5);
   assert.equal(r.bounds.height, 66 + 2 * 52 * 1.5);
   assert.equal(r.bounds.y, 500 - 2 * 52 * 1.5);
-  const f = windowFrame(big, null, 0, 1.5);
+  const f = windowFrame(big, 0, 1.5);
   assert.equal(f.x, 100 - PAD * 1.5);
   assert.equal(f.width, 66 + 2 * PAD * 1.5);
   assert.equal(f.contentX, PAD * 1.5);
@@ -131,16 +113,16 @@ test('fanLayout and windowFrame take a scale for a larger bubble', () => {
 // near the bottom, below it otherwise. Content stays where it was on screen either way.
 test('windowFrame takes room above and/or below, keeping the content in place', () => {
   const c = { x: 100, y: 500, width: 44, height: 44 };
-  const above = windowFrame(c, null, { above: 60 });
+  const above = windowFrame(c, { above: 60 });
   assert.equal(above.y, 500 - 60 - PAD);
   assert.equal(above.height, 44 + 60 + 2 * PAD);
   assert.equal(above.contentY, 60 + PAD);
-  const below = windowFrame(c, null, { below: 60 });
+  const below = windowFrame(c, { below: 60 });
   assert.equal(below.y, 500 - PAD);
   assert.equal(below.height, 44 + 60 + 2 * PAD);
   assert.equal(below.contentY, PAD);
   // A bare number still means "below", as before.
-  assert.deepEqual(windowFrame(c, null, 36), windowFrame(c, null, { below: 36 }));
+  assert.deepEqual(windowFrame(c, 36), windowFrame(c, { below: 36 }));
 });
 
 // A column taller than the work area fits neither way. Rather than push the disc off-screen,

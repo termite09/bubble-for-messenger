@@ -54,7 +54,6 @@
       display: grid; grid-template-columns: 32px 1fr auto auto; grid-template-rows: auto auto; column-gap: 10px; align-items: center;
     }
     #landed .av { grid-row: 1 / 3; grid-column: 1; }
-    #landed .text { display: contents; }
     #landed .name { grid-row: 1; grid-column: 2; }
     #landed .sub { grid-row: 2; grid-column: 2 / -1; }
     #landed .time { grid-row: 1; grid-column: 3; }
@@ -77,7 +76,7 @@
     body.open #fan { --p: 1; }
     body.edge-right #fan { align-items: flex-end; }
     body.edge-left #fan { align-items: flex-start; }
-    /* Newest at the top, Open Messenger at the bottom, whichever side of the disc the stack is on. */
+    /* Newest at the top, the inbox head at the bottom, whichever side of the disc the stack is on. */
     .head {
       position: relative; width: 44px; height: 44px; border-radius: 22px; cursor: default; flex: none;
       /* --d: this head's distance to the disc; at p=0 it sits folded under the disc, unseen */
@@ -119,14 +118,14 @@
     .pinned .pin { display: flex; }
 
     /* Landed-banner internals */
-    .av { width: 32px; height: 32px; border-radius: 16px; flex: none; overflow: hidden; background: #3a3a3c;
+    .av { width: 32px; height: 32px; border-radius: 16px; overflow: hidden; background: #3a3a3c;
           display: flex; align-items: center; justify-content: center; font: 600 13px -apple-system, system-ui, sans-serif; color: #fff; }
     .av img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .name { min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     /* The whole message, wrapped, up to six lines. */
     .sub { font-size: 12px; line-height: 15px; color: var(--dim); overflow: hidden; overflow-wrap: anywhere;
            display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 6; }
-    .time { font-size: 11px; color: var(--dim); flex: none; }
+    .time { font-size: 11px; color: var(--dim); }
 
     /* Reply: ↩ at the banner's far end swaps the first line for a field. The field is the
        only thing in the app that ever holds keyboard focus. */
@@ -137,8 +136,8 @@
     }
     #landed-reply:hover { background: var(--rule); color: var(--ink); }
     /* While replying the banner grows a second row: the field runs the banner's width under the
-       name, a raised pill of its own so it reads as a place to type. The main process grows the
-       window by the same row (REPLY_ROW in bubble.js) so nothing is clipped. */
+       name, a raised pill of its own so it reads as a place to type. The page measures the banner
+       and the main process makes the room, so nothing is clipped. */
     #landed-input {
       display: none; box-sizing: border-box; margin: 0; padding: 0 10px; border: 1px solid var(--rule); border-radius: 13px; outline: 0;
       height: 26px; background: var(--raised); color: var(--ink); font: 13px/24px -apple-system, system-ui, sans-serif;
@@ -173,10 +172,8 @@
       <div id="count"></div>
       <div id="landed" class="card">
         <div class="av" id="landed-av"></div>
-        <div class="text">
-          <div class="name" id="landed-name"></div>
-          <div class="sub" id="landed-sub"></div>
-        </div>
+        <div class="name" id="landed-name"></div>
+        <div class="sub" id="landed-sub"></div>
         <input id="landed-input" type="text" maxlength="2000" autocomplete="off" spellcheck="true">
         <div class="time">now</div>
         <button id="landed-reply" type="button" title="Reply" aria-label="Reply">&#x21A9;</button>

@@ -8,7 +8,9 @@ const landedAv = document.getElementById('landed-av');
 const landedName = document.getElementById('landed-name');
 const landedSub = document.getElementById('landed-sub');
 
-const FAN_PITCH = 52; // head 44 + gap 8; must match lib/layout FAN_ITEM
+// The page's own lengths (the disc, the banner, a fan row's pitch) arrive with each layout,
+// so they are defined once, in lib/bubble-layout.
+let pitch = 52;
 
 // Drag/click are resolved in the main process (it polls the cursor while the button is down);
 // CSS drag regions can't be used because they swallow click events on macOS.
@@ -97,11 +99,11 @@ window.bubbleApi.onLayout((l) => {
   body.classList.toggle('edge-right', l.edge === 'right');
   body.classList.toggle('up', l.direction === 'up');
   body.classList.toggle('down', l.direction === 'down');
-  const w = 250;
-  content.style.left = (l.edge === 'right' ? l.contentX + 44 - w : l.contentX) + 'px';
-  content.style.width = w + 'px';
+  pitch = l.pitch;
+  content.style.left = (l.edge === 'right' ? l.contentX + l.base - l.banner : l.contentX) + 'px';
+  content.style.width = l.banner + 'px';
   // The column is anchored at the disc: bottom-aligned when growing up, top-aligned when down.
-  if (l.direction === 'up') { content.style.top = ''; content.style.bottom = (innerHeight - l.contentY - 44) + 'px'; }
+  if (l.direction === 'up') { content.style.top = ''; content.style.bottom = (innerHeight - l.contentY - l.base) + 'px'; }
   else { content.style.bottom = ''; content.style.top = l.contentY + 'px'; }
   setDistances();
 });
@@ -112,7 +114,7 @@ function setDistances() {
   const rows = [...fan.children];
   rows.forEach((el, i) => {
     const fromDisc = direction === 'up' ? rows.length - i : i + 1;
-    el.style.setProperty('--d', `${fromDisc * FAN_PITCH}px`);
+    el.style.setProperty('--d', `${fromDisc * pitch}px`);
   });
 }
 

@@ -38,13 +38,9 @@ function createPanel({ onUnread, onShown = () => {}, onBlurred = () => {}, overF
   win.webContents.on('unresponsive', () => log.warn('panel unresponsive'));
   win.webContents.on('responsive', () => log.info('panel responsive again'));
 
-  // Re-apply the frame and compact styling after any navigation (a full reload drops injected CSS).
+  // The frame and compact styling are re-applied after any navigation (a full reload drops
+  // injected CSS) — see did-finish-load below.
   let compact = false;
-  win.webContents.on('did-finish-load', () => {
-    scrape.setFrame(win.webContents, true);
-    scrape.setCompact(win.webContents, compact);
-    applyTheme();
-  });
 
   // The page's theme follows the app's Appearance setting: main.js sets nativeTheme.themeSource
   // from it, so shouldUseDarkColors is the answer for System (macOS decides) and Light / Dark
@@ -66,6 +62,9 @@ function createPanel({ onUnread, onShown = () => {}, onBlurred = () => {}, overF
     win.webContents.reload();
   }, REFRESH_TICK_MS);
   win.webContents.on('did-finish-load', async () => {
+    scrape.setFrame(win.webContents, true);
+    scrape.setCompact(win.webContents, compact);
+    applyTheme();
     loadedAt = Date.now();
     clearTimeout(errorTimer);
     const doc = await win.webContents.executeJavaScript(`({

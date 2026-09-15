@@ -46,21 +46,15 @@ function fanLayout(bubble, itemCount, area, scale = 1) {
   return { direction: up ? 'up' : 'down', shown, bounds: { ...bounds, ...clampToArea(bounds, area) } };
 }
 
-// The window that holds a content rect: PAD on every side, and stretched vertically so it also
-// covers `dockY` (the panel's top edge, where the open chat's avatar docks) when that lies
-// outside the content, plus `room` — `{ above, below }`, or a number meaning below — for what
-// grows out of the disc row (the landed banner, and its reply row). Returns the window rect
-// plus where the content sits inside it. The padding holds a shadow drawn in page pixels, so
-// it grows with the bubble `scale`.
-function windowFrame(content, dockY, room = 0, scale = 1) {
+// The window that holds a content rect: PAD on every side, plus `room` — `{ above, below }`,
+// or a number meaning below — for what grows out of the disc row (the landed banner, and its
+// reply row). Returns the window rect plus where the content sits inside it. The padding holds
+// a shadow drawn in page pixels, so it grows with the bubble `scale`.
+function windowFrame(content, room = 0, scale = 1) {
   const { above = 0, below = 0 } = typeof room === 'number' ? { below: room } : room;
   const pad = PAD * scale;
-  let top = content.y - above;
-  let bottom = content.y + content.height + below;
-  if (typeof dockY === 'number') {
-    top = Math.min(top, dockY);
-    bottom = Math.max(bottom, dockY + content.width);
-  }
+  const top = content.y - above;
+  const bottom = content.y + content.height + below;
   return {
     x: content.x - pad,
     y: top - pad,
@@ -93,4 +87,4 @@ function centerWithin(rect, point, radius) {
   return Math.hypot(cx - point.x, cy - point.y) <= radius;
 }
 
-module.exports = { panelPosition, clampToArea, fanLayout, windowFrame, snapToEdge, centerWithin, isClick, GAP, CLICK_THRESHOLD, FAN_ROW, FAN_GAP, FAN_ITEM, PAD, EDGE_MARGIN };
+module.exports = { panelPosition, clampToArea, fanLayout, windowFrame, snapToEdge, centerWithin, isClick, FAN_ITEM, PAD, EDGE_MARGIN };
