@@ -53,15 +53,14 @@ if you want your login gone too, `~/Library/Application Support/Bubble for Messe
   to the nearest side and its position is remembered. A blue count shows total unread.
 - **A message lands** — the disc unrolls into a banner (avatar, name, the whole message, up to
   six lines) for four seconds, then folds back.
-- **Reply right there** — the ↩ at the end of the banner opens a reply field. Type, press Enter,
-  and it's sent without opening the panel; Esc cancels. The bubble only takes the keyboard while
-  that field is open.
+- **Reply right there** — click the message text (or the ↩) and a reply field opens. Type,
+  press Enter, and it's sent without opening the panel — a tick confirms it; Esc cancels. The
+  bubble only takes the keyboard while that field is open.
 - **Click the bubble** to deploy a stack of your five most recent chats as round heads, newest
-  at the top (hover for the name; a blue dot means unread), plus a paper *Inbox* head for the
-  full inbox (hover it for its label). Pick one and that conversation opens in a compact sheet beside the stack; the open
-  chat wears a white ring, and the others stay one click away. Click anywhere else, or the
-  bubble, to put it all away. Messenger stays loaded in the background, so messages keep
-  arriving.
+  at the top (a blue dot means unread), plus a paper *Inbox* head for the full inbox. Pick one
+  and that conversation opens in a compact sheet beside the stack; the open chat wears a white
+  ring, and the others stay one click away. Click anywhere else, or the bubble, to put it all
+  away. Messenger stays loaded in the background, so messages keep arriving.
 - **Hover a head** for its name; the pin badge that appears pins or unpins it (right-click →
   *Pin* works too). Up to five pinned chats sit next to the Inbox head, under a hairline,
   whether or not they're recent. The Inbox head's chip carries *···* for the app's menu.
@@ -71,8 +70,10 @@ if you want your login gone too, `~/Library/Application Support/Bubble for Messe
   setting) reopens that chat, stack and all, instead of just the stack.
 - **Drag to dismiss** — drag the bubble onto the ✕ target that appears at the bottom of the
   screen and hold it there a moment (a ring fills) to quit the app.
-- **Right-click the bubble** for *Open Messenger*, *Reload Messenger*, *Settings…*, *Reset Bubble
-  Position* and *Quit*.
+- **Right-click the bubble** (or click *···* on the Inbox chip) for *Open Messenger*, *Reload
+  Messenger*, *Update to…* when a newer version exists, *Settings…*, *Reset Bubble Position*,
+  *Report a Problem…* and *Quit*.
+- **First launch** — the login page opens by itself and the disc introduces itself.
 - Persistent login, native notifications, dark mode, and links opening in your default browser
   all carry over from the original app.
 
