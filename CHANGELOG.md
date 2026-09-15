@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v2.5.0 (2026-09-15) — Bubble for Messenger
 
 ### Changed
 - Hover any head for its name; the pin badge appears on hover and pins or unpins on click.
