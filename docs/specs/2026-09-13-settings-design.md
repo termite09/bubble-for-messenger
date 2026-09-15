@@ -2,7 +2,7 @@
 
 A settings page so the app's few behaviours are the user's call: whether the bubble floats
 over full-screen apps, whether it starts at login, how big it is, what the banner shows, what
-the panel looks like. Eleven settings on three tabs, one small card window in the bubble's own
+the panel looks like. Thirteen settings on three tabs, one small card window in the bubble's own
 design language, applied immediately and saved to the existing `settings.json`.
 
 ## Settings
@@ -11,6 +11,7 @@ design language, applied immediately and saved to the existing `settings.json`.
 | --- | --- | --- | --- |
 | `overFullscreen` | `true` | Bubble | **Show over full-screen apps.** Off keeps it off full-screen video and apps — and, since macOS draws any all-Spaces window in full-screen Spaces too, on the one desktop it's on. |
 | `startAtLogin` | `false` | Bubble | **Start at login.** |
+| `checkUpdates` | `true` | Bubble | **Check for updates.** Once a day GitHub's latest release is compared with this build; a newer one shows in the bubble's menu as "Update to X…" (opens the release page; nothing is downloaded). |
 | `bubbleSize` | `'small'` | Bubble | **Size**: Small / Medium / Large — 44 / 56 / 68 px for the disc, the chat heads and the banner. |
 | `banner` | `true` | Messages | **Banner when a message lands.** The disc unrolls for a few seconds. |
 | `bannerPreview` | `true` | Messages | **Show the message in the banner.** Off shows only who wrote — for screen sharing or public places. |
@@ -19,15 +20,16 @@ design language, applied immediately and saved to the existing `settings.json`.
 | `badge` | `'steady'` | Bubble | **Unread count**: Off / Steady / Pulsing. Pulsing breathes the pill between full and a third while anything is unread. A boolean in an older `settings.json` migrates (`true` → steady, `false` → off). |
 | `theme` | `'system'` | Panel | **Appearance**: System / Light / Dark, of the Messenger panel. System follows macOS. |
 | `reopenLast` | `30` | Panel | **Reopen the last chat**: Off / 15 s / 30 s / 1 min / 5 min (seconds `0, 15, 30, 60, 300`). See `2026-09-14-stack-and-banner-design.md`. |
+| `spellcheck` | `true` | Panel | **Spell check.** |
+| `blockTelemetry` | `true` | Privacy | **Block Facebook telemetry.** Cancels Facebook's logging beacons (Banzai, Quick Metrics, Pixel, error reports). Nothing Messenger needs to work is touched. The request listener is registered only while this is on. |
 
 Not a setting, but a row: **New-message sound** (Messages) explains that the sound is Messenger's
 own switch (Preferences → Notification sounds) and its *Open* button opens the panel on that
 dialog. Messenger keeps that preference per browser profile, so the app's copy starts off.
-| `spellcheck` | `true` | Panel | **Spell check.** |
-| `blockTelemetry` | `true` | Privacy | **Block Facebook telemetry.** Cancels Facebook's logging beacons (Banzai, Quick Metrics, Pixel, error reports). Nothing Messenger needs to work is touched. |
 
-The existing `bubble` key (disc position) stays in the same file, untouched by the page; so do
-the `pins` (see the stack-and-banner spec).
+The file also holds `bubble` (the disc position: two finite integers, or null — anything else
+reads as "no saved position") and `pins` (see the stack-and-banner spec). Neither is a page
+setting.
 
 ## Model
 
@@ -39,12 +41,14 @@ the `pins` (see the stack-and-banner spec).
 - `normalizeSettings(raw)` — from anything (`settings.json` is user-editable, and values also
   arrive over IPC) to a full settings object: every boolean key coerced with `Boolean`, `theme`
   kept only if in `THEMES`, unknown keys dropped, `bubble` passed through as-is (or `null`).
-- `isSettingKey(key)` — the eleven keys above; the IPC boundary refuses anything else.
+- `isSettingKey(key)` — the thirteen keys above; the IPC boundary refuses anything else.
 
 ## Applying
 
-`main.js` keeps `settings = normalizeSettings(loadSettings())` and an `applySettings(prev)`
-that runs at startup (with `prev = null`) and after every change. Each setting has one
+`main/settings-store.js` owns the one copy: loaded and normalised once, saved atomically (a
+temp file and a rename; the file 0600, the profile directory 0700), a file that will not parse
+kept aside as `settings.json.corrupt-<time>` rather than replaced. `main.js` mirrors it and runs
+`applySettings(prev)` from the store's subscription, and at startup with `prev = null`. Each setting has one
 apply-point; a change re-runs only the ones whose value differs from `prev`.
 
 | Key | Apply |

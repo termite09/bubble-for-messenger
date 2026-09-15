@@ -19,7 +19,7 @@
 ---
 
 ### Task 1: Inbox head (spec §4)
-- [x] `bubble.html`: tray glyph in `inboxEl()` (inline SVG), `#inbox-label` caption beside it, mirrored for `edge-left`, fades with the stack.
+- [x] `bubble.html`: tray glyph in `inboxEl()` (inline SVG), an "Inbox" caption (`.head .caption`) beside it, mirrored for `edge-left`, fades with the stack.
 - [x] Live: caption visible while the stack is open, on the correct side at either edge.
 
 ### Task 2: Reopen the last chat (spec §2)

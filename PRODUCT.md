@@ -62,22 +62,27 @@ ornament.
 - Disc: 44 px grey disc with the Messenger mark; drag anywhere, snaps to nearest vertical edge
   on release, position persisted; blue unread count (`9+` cap); right-click menu (Open
   Messenger, Reload Messenger, Settings…, Reset Bubble Position, Quit). When a message lands, the disc
-  unrolls into a banner (avatar, name, first line) for four seconds.
-- Stack: up to 5 recent chats as 250×52 banners (avatar, name, last line, time, blue dot when
-  unread), newest first, with an "Open Messenger" banner last; grows up when it fits, else
-  down; stays open while a conversation is open so the next chat is one click away; a press
-  anywhere outside it closes stack and panel.
-- Panel: opens 8 px beyond the stack, framed as a 16 px-radius card with a hairline; the open
-  chat's banner reads as active.
+  unrolls into a banner (avatar, name, the whole message up to six lines) for four seconds.
+- Stack: up to 5 recent chats as 44 px round heads (photo, name on hover, blue dot when
+  unread), newest first, then up to 5 pinned chats under a hairline, with a paper Inbox head
+  last; grows up when it fits, else down, leaving rows out rather than leaving the screen;
+  stays open while a conversation is open so the next chat is one click away; a press
+  anywhere outside it closes stack and panel. A chat closed within the last 30 s (a setting)
+  reopens on the next click of the disc.
+- Panel: opens 8 px beyond the stack, an opaque window with the system's rounded corners and
+  a hairline inside the edge, in the theme's wash; the open chat's head wears a ring.
 - Panel compact mode is injected CSS on messenger.com; the panel cannot go narrower than
   ~400 px or Messenger drops to a single-column layout and shows the list instead of the thread.
 - Opening a thread requires a *trusted* click on the list row (synthetic clicks only highlight);
   the app stages this at opacity 0 and reveals once the thread is on screen.
 - The bubble page's CSP is `default-src 'self'; img-src 'self' data:` — avatars must arrive as
   data URLs; no external resources.
-- Settings (a 360×720 card, Cmd+,): over-full-screen, start at login, banner and its text,
-  reply from the banner, Messenger's macOS notifications, unread count, panel appearance,
-  spell check, telemetry blocking. Applied at once; saved to `settings.json`.
+- Settings (a 360-wide card on three tabs, as tall as the tab it shows, Cmd+,):
+  over-full-screen, start at login, update check, bubble size, unread count; banner and its
+  text, reply from the banner, Messenger's macOS notifications, where the message sound is
+  set; panel appearance, spell check, reopen-last-chat window, telemetry blocking. Applied at
+  once; saved atomically to `settings.json` (0600), which also holds the disc position and
+  the pinned chats.
 - Explicitly out of scope so far: pop-out to a full-size window, menu-bar tray icon, sender
   avatar on the main bubble.
 - Undecided: whether the app should ever show a first-run/onboarding hint (there is none; the
@@ -120,5 +125,9 @@ ornament.
 
 ## Accessibility & Inclusion
 
-No product-specific requirement has been established beyond the above. Reduce Motion is
-not currently honoured by the stack/landed animations; recorded as a known gap, not a decision.
+Reduce Motion is honoured: the stack and the landed banner crossfade without travel, the
+pulsing count stays steady. Heads and the Inbox head are buttons with names for VoiceOver;
+the settings card is keyboard-operable with a real tablist. The bubble window is deliberately
+non-focusable (it must never take the keyboard from the user's work), so the stack cannot be
+navigated by keyboard — a decision, not a gap. Messenger's UI must be in English: the page
+scripts find controls by their English labels.

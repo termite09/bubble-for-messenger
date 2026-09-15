@@ -83,6 +83,9 @@ Right-click the bubble → **Settings…** (or Cmd+,). Every switch applies at o
   only allows that for a window that stays on one desktop, so while off the bubble doesn't follow
   you to other desktops (Spaces) either.
 - **Start at login.**
+- **Check for updates** — once a day the app asks GitHub for the latest release; a newer one
+  appears in the bubble's menu as *Update to X…*, which opens the release page. Nothing is
+  downloaded on its own.
 - **Size** — Small / Medium / Large, for the disc, the chat heads and the banner.
 - **Unread count** — Off, Steady, or Pulsing (the count breathes slowly while anything is unread).
 
@@ -105,7 +108,10 @@ Right-click the bubble → **Settings…** (or Cmd+,). Every switch applies at o
 - **Block Facebook telemetry** — cancels Facebook's logging beacons at the network layer; nothing
   Messenger needs to work is touched. On by default.
 
-## Keyboard shortcuts (while the panel is open)
+## Keyboard shortcuts
+
+These are app-menu shortcuts: they work whenever a Bubble window (the panel or Settings) is
+focused. The Conversations menu shows the five chats by name.
 
 | Shortcut | Action |
 |----------|--------|
@@ -198,6 +204,15 @@ the first launch, or clear the quarantine flag as described under Install. If yo
 trust a downloaded binary, build it yourself from source.
 
 **Does it start at login?** Right-click the bubble → Settings… → **Start at login**.
+
+**Messenger is in another language and some things don't work.** The app finds Messenger's
+controls by their English labels (Back, New message, Preferences…). Set Messenger's language
+to English; everything else is language-independent.
+
+**Something went wrong — how do I report it?** Right-click the bubble → **Report a Problem…**
+opens the issue page and shows the log file (`~/Library/Application Support/Bubble for
+Messenger/logs/main.log`) so you can attach it. The log never contains names, messages or
+cookies.
 
 ## License
 

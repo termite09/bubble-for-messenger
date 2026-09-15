@@ -91,8 +91,8 @@ components:
     size: "32px"
   unread-dot:
     backgroundColor: "{colors.system-blue}"
-    rounded: "3px"
-    size: "6px"
+    rounded: "6px"
+    size: "12px"
   panel-frame:
     rounded: "{rounded.sheet}"
     width: "420px"
@@ -125,7 +125,7 @@ The build refused two things on purpose and they are confirmed rejections: the i
 - Blue only means unread: the count pill and the 6px dot, nowhere else
 - System type at 13 / 12 / 11 px; weight 600 is the entire emphasis vocabulary
 - One motion curve (ease-out-quint, 220 ms), one progress value for the stack, no overshoot, no stagger
-- The panel is framed, never restyled: messenger.com keeps its own wash, radii and bubbles behind a 16px hairline frame
+- The panel is framed, never restyled: messenger.com keeps its own wash and bubbles inside an opaque window with the system's rounded corners and a hairline just inside the edge
 
 ## Colors
 
@@ -161,7 +161,6 @@ A near-monochrome graphite palette with one semantic accent; the only saturated 
 
 ### Hierarchy
 - **Title** (600, 13px, 16px): a conversation name in a banner and the landed banner; single line, ellipsised.
-- **Title, quiet** (500, 13px, 16px): the "Open Messenger" banner label; a shade lighter than a name so it reads as an action, not a person.
 - **Body** (400, 12px, 15px, Ash): the last-message preview; one line, ellipsised, omitted entirely when the scrape has no preview.
 - **Label** (400, 11px, Ash): the relative time ("2h", "now") at the banner's right edge.
 - **Count** (600, 11px, 18px, White on System Blue): the unread number, capped at "9+".
@@ -170,11 +169,11 @@ A near-monochrome graphite palette with one semantic accent; the only saturated 
 ### Named Rules
 **The Thirteen Ceiling Rule.** No text the app itself sets is larger than 13px. Hierarchy comes from 600 versus 400 and Paper versus Ash.
 
-**The One Line Rule.** Every text run in a card is `white-space: nowrap` with an ellipsis. Cards never grow to fit text.
+**The One Line Rule, with one exception.** Every text run in a card is `white-space: nowrap` with an ellipsis, and cards do not grow to fit text — except the landed banner's message, which wraps to at most six lines (then an ellipsis) so a message can be read without opening the chat; the banner grows away from the screen edge.
 
 ## Layout
 
-The bubble layer is a single column anchored at the disc. The disc is 44px and rests flush against the left or right screen edge (it snaps there after a drag); the heads sit directly over the disc in a single 44px column; only the landed banner (252px) extends into the screen from the disc's edge. The stack grows upward when five rows fit above the disc and downward otherwise, with an 8px gap between disc and stack and an 8px gap between heads (row pitch 52px: 44 head + 8 gap). Rows read newest-first from the top; the paper "Open Messenger" head is always last. A panel opens 8px beyond the column.
+The bubble layer is a single column anchored at the disc. The disc is 44px and rests flush against the left or right screen edge (it snaps there after a drag); the heads sit directly over the disc in a single 44px column; only the landed banner (252px) extends into the screen from the disc's edge. The stack grows upward when five rows fit above the disc and downward otherwise, with an 8px gap between disc and stack and an 8px gap between heads (row pitch 52px: 44 head + 8 gap). Rows read newest-first from the top, pinned chats after the recent ones under a hairline, and the paper Inbox head is always last. When the column would not fit the screen, the rows farthest from the Inbox head are left out rather than the disc leaving the screen. A panel opens 8px beyond the column. The disc comes in three sizes (44, 56, 68px); the larger ones are the same page zoomed, so every length here scales with it.
 
 The transparent window carries 32px of padding on every side of the content so the 8/24 shadow and the count pill (which overhangs the disc by 8px right and 6px up) are never clipped. The main process reports the disc's position and edge to the page; the page only lays out relative to that.
 
@@ -199,12 +198,12 @@ Depth is a hybrid of one shadow and one hairline. Every card carries the same li
 
 ## Shapes
 
-Everything is a rounded rectangle from the same family, and the radius follows the height. The 44px disc, the 44px heads and the 44px landed banner use 22px (a full circle or pill); the 18px count pill uses 9px; the 32px avatar is a 16px circle; the 12px dot is a 6px circle; the 56px dismiss target is a 28px circle; the 420-wide sheet is clipped to 16px. Borders are always 1px, always the hairline, always inside the box (`box-sizing: border-box`), so a card's outer dimension is the stated one.
+Everything is a rounded rectangle from the same family, and the radius follows the height. The 44px disc, the 44px heads and the 44px landed banner use 22px (a full circle or pill); the 18px count pill uses 9px; the 32px avatar is a 16px circle; the 12px dot is a 6px circle; the 56px dismiss target is a 28px circle; the 420-wide sheet has the system's own rounded-window radius (about 10px) — it is an opaque window, not a clipped page. Borders are always 1px, always the hairline, always inside the box (`box-sizing: border-box`), so a card's outer dimension is the stated one.
 
 The landed banner is shape as motion: a 252×44 pill whose `clip-path` starts as `inset(0 0 0 208px round 22px)` (exactly the disc's own circle at the screen edge) and opens to `inset(0 round 22px)`. One element, no layout, the disc simply lengthens.
 
 ### Named Rules
-**The Radius Follows Height Rule.** Pills (disc, landed banner, count, avatar, dot, target) are radius = height / 2. Cards that hold two lines (banner, sheet) use 14px or 16px. Nothing is square-cornered.
+**The Radius Follows Height Rule.** Pills (disc, landed banner, count, avatar, dot, target) are radius = height / 2. Cards that hold two lines (banner, settings card) use 14px or 16px; the sheet takes the system's window radius. Nothing is square-cornered.
 
 ## Components
 
@@ -225,23 +224,26 @@ name lives in the tooltip; the row carries no text.
 - **Active:** a 2px Paper ring outside the hairline (`box-shadow: lift, 0 0 0 2px paper`).
 - **Deploy:** `transform: translateY(calc((1 - var(--p)) * var(--d)))` and `opacity: var(--p)`, where `--d` is this row's distance to the disc in whole pitches (52px per row) and `--p` is the stack's single progress value.
 
-### Open Messenger head
+### Inbox head
 The last row: the one paper disc in the column, so it never reads as another contact.
 - **Shape:** 44px circle, Paper (`{colors.paper}`) fill, hairline, Lift.
-- **Content:** the 24px mark, centred.
-- **States:** hover brightens the hairline; participates in the same `--p` deploy as the rows above it.
+- **Content:** a 22px inbox tray glyph in Graphite, centred.
+- **States:** hover brightens the hairline and shows an "Inbox" caption on a Graphite chip beside it, on the side away from the screen edge; participates in the same `--p` deploy as the rows above it.
+
+### Pinned head
+A head the user pinned (right-click → Pin): the same disc, with a 16px Paper pin badge at its foot (bottom-left, opposite the unread dot). The first pinned head carries a hairline in the gap above it, parting the pinned from the recent.
 
 ### Landed banner
 "A message landed": the disc lengthens into a banner for four seconds, then folds back.
-- **Shape:** 252×44, 22px radius (a pill), same material; positioned over the disc at −1px so its hairline coincides with the disc's; padding 0 14px 0 5px so the avatar sits where the mark was.
-- **Content:** 32px avatar, name (Title 600) over preview (Body Ash, "New message" when none), the literal "now" (Label Ash).
+- **Shape:** 252 wide, 44px tall for a one-line message and taller for a longer one (the message wraps to at most six lines), 22px radius, same material; hung from or standing on the disc's row (−1px, so its hairline coincides with the disc's) on the side away from the screen edge; padding 5px 14px 5px 5px so the avatar sits where the mark was.
+- **Content:** a grid — 32px avatar spanning two rows; name (Title 600), the literal "now" (Label Ash) and the ↩ on the first row; the message (Body Ash, "New message" when none) across the second.
 - **Motion:** `clip-path` from the disc's circle to the full pill over 220ms on the ease-out-quint curve; opacity 0→1 over 120ms linear. Hides the count pill while visible. Auto-folds after 4000ms; hovering holds it, and it folds 1500ms after the cursor leaves.
 - **Click:** opens that conversation (the press never starts a disc drag). Hover steps the fill to Raised Graphite.
 
 ### Stack
-Five heads plus Open Messenger, opened as one motion.
+Up to five recent heads, up to five pinned ones, and the Inbox head, opened as one motion.
 - **Container:** a flex column, 8px gap, `--p: 0` at rest and `--p: 1` when `body.open`; `--p` is a registered `@property` (`<number>`, inherits) so the browser interpolates it over 220ms on the ease-out-quint curve.
-- **Order:** newest at the top, Open Messenger at the bottom, on either side of the disc.
+- **Order:** newest at the top, pinned chats after the recent ones, the Inbox head at the bottom, on either side of the disc.
 - **Fold offsets:** with the stack above the disc, the bottom row is 1 pitch away and the top row 6; below the disc the order inverts. At `--p: 0` every row sits under the disc at opacity 0.
 - **Close:** removing `open` runs the same curve in reverse; the window shrinks after the fold has played.
 

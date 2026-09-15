@@ -1,5 +1,70 @@
 # Changelog
 
+## Unreleased
+
+### Security
+- Server-side redirects can no longer carry the Messenger panel (and the session) off Meta's
+  hosts: redirects are guarded like navigations, and `/l.php` on messenger.com is recognised as
+  the link shim. A landing elsewhere returns to the inbox.
+- Only the login cookies (c_user, xs, datr, sb, fr) are kept past the session — for 90 days,
+  whenever the site sets them, host-only ones staying host-only — instead of every Facebook
+  session cookie for a sliding year.
+- Every renderer is sandboxed; no page can open a window or leave its document. Scripts run in
+  the Messenger page use their own isolated world and time out, so a page that never answers
+  cannot wedge the app.
+- One instance at a time; a second launch hands over. Only LevelDB lock files are cleaned up at
+  start, in the known store directories.
+- `settings.json` is saved atomically, kept aside if unreadable, and is 0600; the profile is
+  0700. The position in it is validated (a hand-edited file could crash startup).
+- Permissions: https Meta origins only; camera/microphone but never the screen. Avatars: raster
+  types only, size checked before download. Strings from the page are length-capped.
+- Reload and DevTools are development-only menu items.
+- Releases: the Homebrew token is exposed to its one step only; the cask checksum is of the
+  built artifact; actions are pinned; a SHA256SUMS asset is published.
+
+### Fixed
+- The same message could land twice, and an old unread chat was re-announced every quarter
+  hour: chat-list reads were concurrent and a page mid-reload was read as "no chats".
+- A closed chat stayed the active one (ring on its head; reopen re-armed by closing the stack).
+- A chat opened from a collapsed bubble placed the panel beside the disc, not the stack.
+- A stack too tall for the screen pushed the disc off it; it now shows fewer rows.
+- Resizing the bubble left a chat open beside a vanished stack.
+- An invisible staged panel swallowed clicks for up to 12 s.
+- A reply whose result never came blocked the banner for good.
+- The app hung on quit (the panel refused to close). A display going away now re-clamps the disc.
+
+### Changed
+- Messenger's chat list is watched from inside the page and pushed to the app when it changes;
+  the app no longer polls it every 5 s (or every second while something was unread). A 60 s
+  safety poll remains.
+- The hidden page is reloaded for a reason — after sleep, a dropped connection that stayed
+  down, a failed load, ten quiet minutes online — instead of blindly every 15 minutes, never
+  while it is showing, with a backoff. Each reload is logged with its reason.
+- The Messenger panel is an opaque window with the system's rounded corners (a transparent one
+  with a shadow was recomposited every frame). The corner radius is now the system's.
+- Chromium's background throttling is on for the hidden Messenger page (trial: messages still
+  arrived within seconds at 1, 10 and 30 minutes hidden).
+- The click-outside shield and the ✕ target are made on first use; the small pages have no
+  WebGL; Messenger's scripts are cached compiled; the fan updates its heads in place; the count
+  pulses at a fraction of the compositor cost; the telemetry listener exists only while on.
+- Quick replies are committed as one text insertion (emoji included) instead of a key event per
+  character.
+
+### Added
+- **Check for updates** (Bubble tab, on by default): once a day, from GitHub; a newer release
+  appears in the bubble's menu as *Update to X…*.
+- **Report a Problem…** in the bubble's menu opens the issue page and shows the log
+  (`logs/main.log` in the profile; never names, messages or cookies).
+- On a first run the inbox (the login page) opens by itself.
+- The Conversations menu names the chats behind Cmd+1–5.
+- VoiceOver names for the heads; a real tablist in Settings.
+
+### Internal
+- The chat state, the bubble's geometry, the drag machine, cookie and update rules are pure
+  modules with tests (143 tests, up from 95); a stub `electron` drives the window modules.
+- One window factory and one IPC helper for the four windows; one list of IPC channel names.
+- CI runs the tests and the linter on every push; ESLint, Prettier and dependabot are set up.
+
 ## v2.3.0 (2026-09-14) — Bubble for Messenger
 
 ### Added
