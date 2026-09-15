@@ -114,6 +114,8 @@ test("setTheme swaps Messenger's own dark/light classes on <html>", async () => 
   assert.match(ran[0], /add\('__fb-dark-mode'\)/);
   assert.match(ran[0], /remove\('__fb-light-mode'\)/);
   assert.match(ran[1], /add\('__fb-light-mode'\)/);
+  assert.match(ran[0], /--mb-hairline.*255,255,255/);
+  assert.match(ran[1], /--mb-hairline.*0,0,0/);
   assert.match(ran[1], /remove\('__fb-dark-mode'\)/);
 });
 

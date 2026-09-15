@@ -371,7 +371,7 @@ const FRAME_CSS = [
   '#mb-frame{position:fixed;inset:0;z-index:2147483647;pointer-events:none;box-sizing:border-box;border-radius:' +
     RADIUS +
     'px;' +
-    'border:1px solid rgba(255,255,255,.12)}',
+    'border:1px solid var(--mb-hairline,rgba(255,255,255,.12))}',
   // Overlay scrollbars would otherwise ride the sheet's edge over the hairline.
   '::-webkit-scrollbar,::-webkit-scrollbar-thumb{display:none!important;width:0!important;background:transparent!important}',
 ].join('');
@@ -399,6 +399,8 @@ function setTheme(wc, dark) {
     wc,
     `(() => {
     const c = document.documentElement.classList;
+    // The frame's hairline: white on the dark wash, black on the light one.
+    document.documentElement.style.setProperty('--mb-hairline', ${dark ? "'rgba(255,255,255,.12)'" : "'rgba(0,0,0,.12)'"});
     c.remove('${remove}');
     c.add('${add}');
   })()`,
