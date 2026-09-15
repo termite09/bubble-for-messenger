@@ -11,7 +11,7 @@ function makeStub() {
   ipcMain.removeHandler = (channel) => ipcMain.handlers.delete(channel);
 
   class WebContents extends EventEmitter {
-    constructor() { super(); this.sent = []; this.zoom = 1; this.url = ''; this.destroyed = false; this.session = { fetch: async () => ({ ok: false, headers: { get: () => null } }) }; }
+    constructor() { super(); this.sent = []; this.zoom = 1; this.url = ''; this.destroyed = false; this.session = { fetch: async () => ({ ok: false, headers: { get: () => null } }), webRequest: { onCompleted() {}, onErrorOccurred() {}, onBeforeRequest() {} }, setSpellCheckerEnabled() {} }; }
     send(channel, ...args) { this.sent.push([channel, ...args]); }
     setZoomFactor(z) { this.zoom = z; }
     getZoomFactor() { return this.zoom; }
@@ -73,8 +73,9 @@ function makeStub() {
   const session = { defaultSession: { cookies: new EventEmitter(), webRequest: { onBeforeRequest() {} }, setPermissionRequestHandler() {}, setPermissionCheckHandler() {} } };
   const Menu = { buildFromTemplate: (t) => ({ items: t, popup() {} }), setApplicationMenu() {}, getApplicationMenu: () => null };
   const shell = { openExternal: async () => {}, showItemInFolder() {} };
+  const net = { isOnline: () => true, fetch: async () => ({ ok: false }) };
 
-  return { app, BrowserWindow, ipcMain, screen, nativeTheme, powerMonitor, session, Menu, shell, windows };
+  return { app, BrowserWindow, ipcMain, screen, nativeTheme, powerMonitor, session, Menu, shell, net, windows };
 }
 
 let installed = null;

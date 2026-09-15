@@ -1,15 +1,16 @@
-const { app, shell, screen, powerMonitor, nativeTheme } = require('electron');
+const { app, shell, screen, powerMonitor, nativeTheme, net } = require('electron');
 const { panelPosition } = require('../lib/layout');
 const { unreadFromTitle } = require('../lib/unread');
 const { isInternal, staysInPanel, browserUrl } = require('../lib/links');
-const { shouldRefresh, looksLikeErrorPage, errorRetryDelay } = require('../lib/refresh');
+const { looksLikeErrorPage, errorRetryDelay } = require('../lib/refresh');
+const liveness = require('../lib/liveness');
 const scrape = require('./scrape');
 const { joinAllSpaces } = require('./workspaces');
 const { createFloatingWindow, ipcFor } = require('./floating-window');
 const { CHANNELS } = require('../lib/ipc');
 const { normalizeRows } = require('../lib/recent');
 
-const REFRESH_TICK_MS = 60 * 1000;
+const LIVENESS_TICK_MS = 30 * 1000;
 const noLog = { debug() {}, info() {}, warn() {}, error() {} };
 
 // `onShown` fires once the panel is actually visible to the user (not merely staged at opacity
@@ -56,23 +57,33 @@ function createPanel({ onUnread, onRows = () => {}, onShown = () => {}, onBlurre
   const applyTheme = () => scrape.setTheme(win.webContents, nativeTheme.shouldUseDarkColors);
   nativeTheme.on('updated', applyTheme);
 
-  // Keep the hidden page live: reload it after the Mac wakes and every quarter hour in the
-  // background (never while it is showing), and retry Facebook's static error page with backoff.
-  let loadedAt = Date.now();
-  let resumed = false;
+  // Keep the hidden page live. lib/liveness decides when a reload is due — after the Mac
+  // wakes, after its connection dropped and stayed down, after a failed load, or when nothing
+  // has completed for a long while — from what the network and the power state report here;
+  // never while the panel is showing, never in a loop. Facebook's static error page is retried
+  // with backoff separately.
+  let live = liveness.initial(Date.now());
+  const note = (event) => { live = liveness.reduce(live, event, Date.now()); };
+  const ses = win.webContents.session;
+  const metaFilter = { urls: ['wss://edge-chat.messenger.com/*', 'wss://edge-chat.facebook.com/*', 'https://www.messenger.com/*', 'https://*.facebook.com/*'] };
+  ses.webRequest.onCompleted(metaFilter, (d) => note(d.resourceType === 'webSocket' ? 'socket-open' : 'request-ok'));
+  ses.webRequest.onErrorOccurred(metaFilter, (d) => { if (d.resourceType === 'webSocket') note('socket-error'); });
+  powerMonitor.on('resume', () => note('resume'));
+  win.webContents.on('did-fail-load', (_e, code, _desc, _url, isMainFrame) => { if (isMainFrame && code !== -3) note('fail-load'); });
+  setInterval(() => {
+    const verdict = liveness.decide(live, { visible: win.isVisible(), online: net.isOnline(), now: Date.now() });
+    if (!verdict.reload || win.isVisible()) return;
+    log.info('panel reload', { reason: verdict.reason });
+    note('reload');
+    win.webContents.reload();
+  }, LIVENESS_TICK_MS).unref();
   let errorRetries = 0;
   let errorTimer = null;
-  powerMonitor.on('resume', () => { resumed = true; });
-  setInterval(() => {
-    if (!shouldRefresh({ visible: win.isVisible(), loadedAt, now: Date.now(), resumed })) return;
-    resumed = false;
-    win.webContents.reload();
-  }, REFRESH_TICK_MS).unref();
   win.webContents.on('did-finish-load', async () => {
     scrape.setFrame(win.webContents, true);
     scrape.setCompact(win.webContents, compact);
     applyTheme();
-    loadedAt = Date.now();
+    note('loaded');
     clearTimeout(errorTimer);
     const doc = await scrape.run(win.webContents, `({
       elementCount: document.getElementsByTagName('*').length,
@@ -202,6 +213,7 @@ function createPanel({ onUnread, onRows = () => {}, onShown = () => {}, onBlurre
     win,
     isVisible: () => win.isVisible(),
     isLoading: () => win.webContents.isLoading(),
+    liveness: () => live,
     showAt(bubbleBounds) {
       place(bubbleBounds);
       reveal();
