@@ -32,8 +32,17 @@ function setBadge(n) {
   const text = n > 9 ? '9+' : String(n);
   if (count.textContent !== text) count.textContent = text; // a repaint only when it changed
   count.classList.toggle('visible', n > 0);
+  pulse();
 }
 window.bubbleApi.onBadge(setBadge);
+
+// The pulsing count (a setting): the pill dims and brightens every 1.2 s while it shows.
+let pulseTimer = null;
+function pulse() {
+  const on = body.classList.contains('pulse') && count.classList.contains('visible');
+  if (on && pulseTimer === null) pulseTimer = setInterval(() => count.classList.toggle('dim'), 1200);
+  if (!on && pulseTimer !== null) { clearInterval(pulseTimer); pulseTimer = null; count.classList.remove('dim'); }
+}
 
 function fillAvatar(target, item) {
   target.replaceChildren();
@@ -262,6 +271,7 @@ window.bubbleApi.onReplyResult(replyResult);
 function setSettings(s) {
   body.classList.toggle('no-reply', !s.quickReply);
   body.classList.toggle('pulse', s.badge === 'pulse');
+  pulse();
 }
 window.bubbleApi.onSettings(setSettings);
 
