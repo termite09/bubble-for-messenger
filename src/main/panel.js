@@ -199,6 +199,7 @@ function createPanel({ onUnread, onShown = () => {}, onBlurred = () => {}, overF
   const api = {
     win,
     isVisible: () => win.isVisible(),
+    isLoading: () => win.webContents.isLoading(),
     showAt(bubbleBounds) {
       place(bubbleBounds);
       reveal();

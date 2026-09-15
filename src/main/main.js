@@ -6,7 +6,8 @@ const { createPanel } = require('./panel');
 const { createDismissTarget } = require('./dismiss');
 const { createSettingsWindow } = require('./settings-window');
 const { fetchAvatar } = require('./avatars');
-const { LIMIT: RECENT_LIMIT, MAX_PINS, reopenOpen, mergeHeads } = require('../lib/recent');
+const { LIMIT: RECENT_LIMIT, MAX_PINS, mergeHeads } = require('../lib/recent');
+const chatsLib = require('../lib/chats');
 const { isMetaHost } = require('../lib/links');
 const { shouldPersistCookie, persistentCookie } = require('../lib/cookies');
 const { isTelemetryUrl } = require('../lib/telemetry');
@@ -77,76 +78,59 @@ function applySettings(prev) {
   if (changed('spellcheck') && panel) panel.session().setSpellCheckerEnabled(settings.spellcheck);
   // banner, bannerPreview, notifications and blockTelemetry are read where they matter.
 }
-let recent = []; // [{ href, name, avatar (data URL), unread }]
-let activeHref = null; // thread the panel is showing; null = inbox
+// The chat state (lib/chats): the list as last read, the open chat, the one put away.
+let chats = chatsLib.initialState();
 
-// A chat put away — on the disc, on the shield, or by the panel losing focus — stays one disc
-// click from reopening for settings.reopenLast seconds. (Reopening brings the stack up beside
-// it, so nothing is lost by not distinguishing how it was closed.)
-let lastChat = null; // { href, closedAt }
-// Putting a chat away: remember it for reopening, and it is no longer the open one — the
-// stack's ring comes off it, and a later close of the stack alone remembers nothing.
+// The open conversation's banner reads as active in the stack.
+const syncActive = () => bubble && bubble.setActive(chats.activeHref);
+
+// Putting a chat away — on the disc, on the shield, or by the panel losing focus — remembers
+// it for reopening (settings.reopenLast seconds) and takes the ring off it.
 function rememberChat() {
-  if (!activeHref) return;
-  lastChat = { href: activeHref, closedAt: Date.now() };
-  activeHref = null;
+  chats = chatsLib.closeChat(chats, Date.now());
   syncActive();
 }
 
-// The open conversation's banner reads as active in the stack.
-const syncActive = () => bubble && bubble.setActive(activeHref);
-
 // Re-read the chat list from the Messenger page, refresh the fan if it is open, and unroll a
-// "message landed" banner when a chat turns unread (or a new unread chat reaches the top).
-let recentKey = '';
-let seeded = false; // the first read establishes state; it never announces anything
+// "message landed" banner when a chat turns unread. Reads do not overlap: one at a time, with
+// a request arriving mid-read served by one more read after it.
+let refreshing = false;
+let refreshAgain = false;
 async function refreshRecent() {
   if (!bubble || !panel) return;
-  const rows = await panel.readRecentChats();
-  if (!rows) return; // the list is scrolled: keep what we last knew rather than read the wrong rows
-  const ses = panel.session();
-  const next = await Promise.all(rows.map(async (r) => ({
-    href: r.href, name: r.name, unread: r.unread, preview: r.preview, time: r.time, avatarUrl: r.avatarUrl, avatar: await fetchAvatar(ses, r.avatarUrl),
-  })));
-  const key = JSON.stringify(next.map((r) => [r.href, r.name, r.unread, r.preview, r.time, Boolean(r.avatar)]));
-  if (key === recentKey) return;
-  const before = new Map(recent.map((r) => [r.href, r]));
-  // Only someone else's message counts: an unread row whose preview is the user's own ("You: …")
-  // is a thread Messenger bolded for another reason.
-  const landed = seeded && !panel.isVisible() && next.find((r, i) => {
-    const old = before.get(r.href);
-    if (!r.unread || /^You:/.test(r.preview)) return false;
-    return old ? !old.unread || old.preview !== r.preview : i === 0;
-  });
-  recentKey = key;
-  recent = next;
-  seeded = true;
-  refreshPins();
-  if (bubble.isExpanded()) showStack(false);
-  else if (landed && settings.banner) bubble.landed(settings.bannerPreview ? landed : { ...landed, preview: '' });
+  if (refreshing) { refreshAgain = true; return; }
+  refreshing = true;
+  try {
+    if (panel.isLoading()) return; // a page mid-reload has no rows worth reading
+    const rows = await panel.readRecentChats();
+    if (!rows) return; // the list is scrolled: keep what we last knew rather than read the wrong rows
+    const ses = panel.session();
+    const next = await Promise.all(rows.map(async (r) => ({ ...r, avatar: await fetchAvatar(ses, r.avatarUrl) })));
+    const result = chatsLib.reduceRecent(chats, next, { visible: panel.isVisible(), now: Date.now() });
+    chats = result.state;
+    if (!result.changed) return;
+    refreshPins();
+    if (bubble.isExpanded()) { if (result.displayChanged) showStack(false); }
+    else if (result.landed && settings.banner) bubble.landed(settings.bannerPreview ? result.landed : { ...result.landed, preview: '' });
+  } finally {
+    refreshing = false;
+    if (refreshAgain) { refreshAgain = false; refreshRecent(); }
+  }
 }
 
 // The stack: recent chats and pinned ones (lib/recent mergeHeads), each with its picture. A
 // pinned chat missing from the list gets its picture from the URL saved when it was pinned.
 async function stackItems() {
   const ses = panel.session();
-  return Promise.all(mergeHeads(settings.pins, recent).map(async (it) => ('avatar' in it ? it : { ...it, avatar: await fetchAvatar(ses, it.avatarUrl) })));
+  return Promise.all(mergeHeads(settings.pins, chats.recent).map(async (it) => ('avatar' in it ? it : { ...it, avatar: await fetchAvatar(ses, it.avatarUrl) })));
 }
 async function showStack(animate = true) {
   bubble.expand(await stackItems(), animate);
 }
 
-// A pinned chat that is in the list again keeps its saved name and picture URL fresh, so it
-// still shows after the old picture URL has expired.
+// A pinned chat that is in the list again keeps its saved name and picture URL fresh.
 function refreshPins() {
-  const byHref = new Map(recent.map((r) => [r.href, r]));
-  let changed = false;
-  const pins = settings.pins.map((p) => {
-    const row = byHref.get(p.href);
-    if (!row || (row.name === p.name && row.avatarUrl === p.avatarUrl)) return p;
-    changed = true;
-    return { href: p.href, name: row.name, avatarUrl: row.avatarUrl };
-  });
+  const { pins, changed } = chatsLib.refreshPins(settings.pins, chats.recent);
   if (changed) store.patch({ pins });
 }
 
@@ -158,7 +142,7 @@ function setPins(pins) {
 // Right-click on a head: pin it, or unpin it.
 function headMenu(href) {
   const pinned = settings.pins.some((p) => p.href === href);
-  const row = recent.find((r) => r.href === href);
+  const row = chats.recent.find((r) => r.href === href);
   const full = settings.pins.length >= MAX_PINS;
   Menu.buildFromTemplate([
     pinned
@@ -201,7 +185,8 @@ const runInPanel = (js) => panel && panel.win.webContents.executeJavaScript(js).
 // The compose button lives in the inbox view, so bring that up first.
 async function newMessage() {
   if (!bubble) return;
-  activeHref = null;
+  chats = chatsLib.openChat(chats, null);
+  syncActive();
   await panel.openInbox(bubble.getBounds());
   runInPanel(`(() => {
     const btn = document.querySelector('[aria-label="New message"]') ||
@@ -214,8 +199,7 @@ async function newMessage() {
 // Open a conversation beside the stack, bringing the stack up if it isn't already. The stack
 // must be up before the panel is placed: it is placed beside the column, not the disc.
 async function openChat(href) {
-  lastChat = null;
-  activeHref = href;
+  chats = chatsLib.openChat(chats, href);
   if (!bubble.isExpanded()) await showStack();
   bubble.setActive(href);
   panel.openThread(href, bubble.getStackBounds());
@@ -224,7 +208,7 @@ async function openChat(href) {
 // Cmd+N opens the n-th most recent chat the same way a banner click does (a synthetic click
 // on the list row only highlights it at the panel's width).
 function openRecent(n) {
-  if (bubble && recent[n]) openChat(recent[n].href);
+  if (bubble && chats.recent[n]) openChat(chats.recent[n].href);
 }
 
 function openSettings() {
@@ -233,7 +217,7 @@ function openSettings() {
 
 function bubbleContextMenu() {
   Menu.buildFromTemplate([
-    { label: 'Open Messenger', click: () => { activeHref = null; panel.openInbox(bubble.getBounds()); } },
+    { label: 'Open Messenger', click: () => { chats = chatsLib.openChat(chats, null); syncActive(); panel.openInbox(bubble.getBounds()); } },
     { label: 'Reload Messenger', click: () => panel.reload() },
     { type: 'separator' },
     { label: 'Settings…', click: openSettings },
@@ -349,7 +333,8 @@ app.whenReady().then(() => {
     // A disc click brings the stack up — or, soon after a chat was put away by clicking
     // elsewhere, that chat straight back.
     onClick: () => {
-      if (reopenOpen(lastChat, Date.now(), settings.reopenLast)) openChat(lastChat.href);
+      const click = chatsLib.discClick(chats, Date.now(), settings.reopenLast);
+      if (click.action === 'reopen') openChat(click.href);
       else showStack();
     },
     // Pressing the disc while the stack is open, or anywhere outside it (the shield), puts it
@@ -363,7 +348,7 @@ app.whenReady().then(() => {
     // A conversation opens beyond the stack, which stays (or comes) up so the other chats are
     // one click away without fanning out again.
     onOpenChat: (href) => openChat(href),
-    onOpenInbox: () => { activeHref = null; syncActive(); panel.openInbox(bubble.getBounds()); },
+    onOpenInbox: () => { chats = chatsLib.openChat(chats, null); syncActive(); panel.openInbox(bubble.getBounds()); },
     // A reply typed into the banner goes out through the hidden page. If that fails, the
     // conversation opens with whatever got as far as the composer, so nothing typed is lost.
     onReply: async (href, text) => {
@@ -383,7 +368,7 @@ app.whenReady().then(() => {
     setSetting: updateSetting,
     subscribe: (fn) => store.subscribe((s) => fn(s)),
     // Messenger's own switches (notification sounds among them) live in its Preferences.
-    onOpenMessengerPreferences: () => { activeHref = null; panel.openPreferences(bubble.getBounds()); },
+    onOpenMessengerPreferences: () => { chats = chatsLib.openChat(chats, null); syncActive(); panel.openPreferences(bubble.getBounds()); },
   });
 
   applySettings(null);
