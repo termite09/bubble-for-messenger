@@ -1,4 +1,4 @@
-const { app, Menu, session, nativeTheme } = require('electron');
+const { app, Menu, session, nativeTheme, net, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { createBubble } = require('./bubble');
@@ -14,8 +14,9 @@ const { shouldPersistCookie, persistentCookie } = require('../lib/cookies');
 const { isTelemetryUrl } = require('../lib/telemetry');
 const { normalizeSettings, isSettingKey, isPermissionGranted, isMetaOrigin, BUBBLE_SIZES } = require('../lib/settings');
 const { removeStaleLockFiles } = require('../lib/storage');
-const { createLog } = require('./log');
+const { createLog, hashHref } = require('./log');
 const { createSettingsStore } = require('./settings-store');
+const { createUpdateCheck } = require('./updates');
 
 const RECENT_POLL_MS = 60 * 1000; // a safety net: the panel's preload pushes rows as they change
 
@@ -54,6 +55,7 @@ let panel;
 let dismiss;
 let settingsWindow;
 let lastUnread = 0;
+let updates = { latest: () => null, check: async () => null, due: () => false };
 
 // One setting changed on the page: the store normalises, saves and notifies; applySettings
 // runs from the subscription above. Only page-visible keys may come this way.
@@ -122,6 +124,8 @@ async function refreshRecent(pushed = null) {
     chats = result.state;
     if (!result.changed) return;
     refreshPins();
+    const names = chats.recent.map((r) => r.name).join('\n');
+    if (names !== menuNames) { menuNames = names; createMenu(); }
     if (bubble.isExpanded()) { if (result.displayChanged) showStack(false); }
     else if (result.landed && settings.banner) bubble.landed(settings.bannerPreview ? result.landed : { ...result.landed, preview: '' });
   } finally {
@@ -169,7 +173,7 @@ function headMenu(href) {
 function persistFacebookCookies() {
   session.defaultSession.cookies.on('changed', (_event, cookie, cause, removed) => {
     if (!shouldPersistCookie(cookie, cause, removed)) return;
-    session.defaultSession.cookies.set(persistentCookie(cookie, Date.now())).catch(() => {});
+    session.defaultSession.cookies.set(persistentCookie(cookie, Date.now())).catch((err) => log.warn('login cookie not persisted', { name: cookie.name, err }));
   });
 }
 
@@ -192,7 +196,7 @@ function blockTelemetry(on) {
   session.defaultSession.webRequest.onBeforeRequest(filter, on ? (details, callback) => callback({ cancel: isTelemetryUrl(details.url) }) : null);
 }
 
-const runInPanel = (js) => panel && scrape.run(panel.win.webContents, js, { userGesture: true }).catch(() => {});
+const runInPanel = (js) => panel && scrape.run(panel.win.webContents, js, { userGesture: true }).catch((err) => log.debug('panel script failed', { err }));
 
 // The compose button lives in the inbox view, so bring that up first.
 async function newMessage() {
@@ -227,22 +231,31 @@ function openSettings() {
   if (settingsWindow && bubble) settingsWindow.open(bubble.getBounds());
 }
 
+const ISSUES_URL = 'https://github.com/termite09/bubble-for-messenger/issues/new';
+
 function bubbleContextMenu() {
+  const update = updates.latest();
   Menu.buildFromTemplate([
     { label: 'Open Messenger', click: () => { chats = chatsLib.openChat(chats, null); syncActive(); panel.openInbox(bubble.getBounds()); } },
     { label: 'Reload Messenger', click: () => panel.reload() },
     { type: 'separator' },
+    ...(update ? [{ label: `Update to ${update.version}…`, click: () => shell.openExternal(update.url) }] : []),
     { label: 'Settings…', click: openSettings },
     { label: 'Reset Bubble Position', click: () => bubble.resetPosition() },
+    // The issue page, and the log beside it in Finder so it can be attached.
+    { label: 'Report a Problem…', click: () => { shell.openExternal(ISSUES_URL); shell.showItemInFolder(log.path); } },
     { type: 'separator' },
     { label: 'Quit', click: () => app.quit() },
   ]).popup({ window: bubble.win });
 }
 
+// The app menu; rebuilt when the recent chats' names change, so Cmd+1–5 show who they open.
+let menuNames = '';
 function createMenu() {
   const conversations = Array.from({ length: RECENT_LIMIT }, (_, i) => ({
-    label: `Recent Chat ${i + 1}`,
+    label: chats.recent[i] ? chats.recent[i].name : `Recent Chat ${i + 1}`,
     accelerator: `CmdOrCtrl+${i + 1}`,
+    enabled: Boolean(chats.recent[i]),
     click: () => openRecent(i),
   }));
 
@@ -308,7 +321,7 @@ function createMenu() {
 
 // A second launch handed over to this one: show the stack — unless this one is on its way out.
 let quitting = false;
-app.on('second-instance', () => { if (bubble && !quitting) showStack().catch(() => {}); });
+app.on('second-instance', () => { if (bubble && !quitting) showStack().catch((err) => log.warn('stack after second launch', { err })); });
 
 // Every renderer is sandboxed (the window factory sets it per window; this makes it the rule),
 // and no page may open a window or leave its own document: the local pages never navigate,
@@ -377,6 +390,7 @@ app.whenReady().then(() => {
     // conversation opens with whatever got as far as the composer, so nothing typed is lost.
     onReply: async (href, text) => {
       const ok = await panel.sendReply(href, text);
+      if (!ok) log.warn('quick reply not delivered; opening the chat', { thread: hashHref(href) });
       bubble.replyResult(ok);
       if (!ok) openChat(href);
     },
@@ -396,6 +410,14 @@ app.whenReady().then(() => {
   });
 
   applySettings(null);
+
+  // A newer release? A minute after launch, then daily; the bubble's menu says so.
+  updates = createUpdateCheck({ fetch: (u, o) => net.fetch(u, o), version: app.getVersion(), enabled: () => settings.checkUpdates, log, onUpdate: (u) => log.info('update available', { version: u.version }) });
+  setTimeout(() => updates.check(), 60 * 1000).unref();
+  setInterval(() => { if (updates.due()) updates.check(); }, 60 * 60 * 1000).unref();
+
+  // First run: nothing to show until the user signs in, so bring the inbox (the login page) up.
+  if (!store.existed) panel.win.webContents.once('did-finish-load', () => setTimeout(() => panel.openInbox(bubble.getBounds()), 500));
 
   // Development only: what a driver attached over --inspect needs to see and poke.
   if (!app.isPackaged) global.__bubble = { state: () => chats, settings: () => settings, store, panel, bubble, log, refreshRecent, showStack, stats };

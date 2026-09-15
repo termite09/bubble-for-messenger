@@ -106,15 +106,16 @@
     </header>
     <nav>
       <div class="segments" role="tablist" aria-label="Settings sections">
-        <label><input type="radio" name="tab" value="bubble" checked><span>Bubble</span></label>
-        <label><input type="radio" name="tab" value="messages"><span>Messages</span></label>
-        <label><input type="radio" name="tab" value="panel"><span>Panel</span></label>
+        <label><input type="radio" name="tab" value="bubble" role="tab" aria-controls="tab-bubble" checked><span>Bubble</span></label>
+        <label><input type="radio" name="tab" value="messages" role="tab" aria-controls="tab-messages"><span>Messages</span></label>
+        <label><input type="radio" name="tab" value="panel" role="tab" aria-controls="tab-panel"><span>Panel</span></label>
       </div>
     </nav>
     <main>
-      <section data-tab="bubble">
+      <section data-tab="bubble" id="tab-bubble" role="tabpanel">
         <label class="row"><div class="text"><div class="name">Show over full-screen apps</div><div class="sub">Off keeps it off full-screen video and apps — and on the desktop it’s on.</div></div><span class="switch"><input type="checkbox" data-key="overFullscreen"><span></span></span></label>
         <label class="row"><div class="text"><div class="name">Start at login</div></div><span class="switch"><input type="checkbox" data-key="startAtLogin"><span></span></span></label>
+        <label class="row"><div class="text"><div class="name">Check for updates</div><div class="sub">Once a day, from GitHub. A newer version shows in the bubble’s menu.</div></div><span class="switch"><input type="checkbox" data-key="checkUpdates"><span></span></span></label>
         <div class="row"><div class="text"><div class="name">Size</div><div class="sub">Of the disc, the chat heads and the banner.</div></div>
           <div class="segments" role="radiogroup" aria-label="Bubble size">
             <label><input type="radio" name="bubbleSize" value="small"><span>Small</span></label>
@@ -128,14 +129,14 @@
             <label><input type="radio" name="badge" value="pulse"><span>Pulsing</span></label>
           </div></div>
       </section>
-      <section data-tab="messages" hidden>
+      <section data-tab="messages" id="tab-messages" role="tabpanel" hidden>
         <label class="row"><div class="text"><div class="name">Banner when a message lands</div><div class="sub">The disc unrolls for a few seconds.</div></div><span class="switch"><input type="checkbox" data-key="banner"><span></span></span></label>
         <label class="row"><div class="text"><div class="name">Show the message in the banner</div><div class="sub">Off shows only who wrote — for screen sharing or public places.</div></div><span class="switch"><input type="checkbox" data-key="bannerPreview"><span></span></span></label>
         <label class="row"><div class="text"><div class="name">Reply from the banner</div><div class="sub">The ↩ on the banner. Off if the bubble should never take the keyboard.</div></div><span class="switch"><input type="checkbox" data-key="quickReply"><span></span></span></label>
         <label class="row"><div class="text"><div class="name">macOS notifications from Messenger</div><div class="sub">Messenger's own Notification Center banners, in addition to the bubble.</div></div><span class="switch"><input type="checkbox" data-key="notifications"><span></span></span></label>
         <div class="row"><div class="text"><div class="name">New-message sound</div><div class="sub">Messenger's own switch: Preferences → Notification sounds.</div></div><button class="open" id="open-sounds" type="button">Open</button></div>
       </section>
-      <section data-tab="panel" hidden>
+      <section data-tab="panel" id="tab-panel" role="tabpanel" hidden>
         <h2>Panel</h2>
         <div class="row"><div class="text"><div class="name">Appearance</div><div class="sub">Of the Messenger panel. System follows macOS.</div></div>
           <div class="segments" role="radiogroup" aria-label="Appearance">

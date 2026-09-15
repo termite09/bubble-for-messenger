@@ -28,6 +28,7 @@ function showTab(name) {
     section.hidden = section.dataset.tab !== name;
     if (!section.hidden) shown = section;
   }
+  for (const tab of document.querySelectorAll('input[name="tab"]')) tab.setAttribute('aria-selected', String(tab.value === name));
   const chrome = document.querySelector('header').offsetHeight + document.querySelector('nav').offsetHeight;
   window.settingsApi.resize(chrome + shown.offsetHeight + 8 + 2); // main's padding-bottom, the card's hairlines
 }

@@ -63,6 +63,7 @@ const PIN_SVG = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M7.5 1l3.5
 function headEl(item) {
   const el = document.createElement('div');
   el.className = 'head card';
+  el.setAttribute('role', 'button');
   el.dataset.href = item.href;
   el.appendChild(document.createElement('div')); // the picture or initial
   const dot = document.createElement('div');
@@ -81,6 +82,7 @@ function updateHead(el, item) {
   el.classList.toggle('unread', Boolean(item.unread));
   el.classList.toggle('pinned', Boolean(item.pinned));
   if (el.title !== item.name) el.title = item.name;
+  el.setAttribute('aria-label', item.unread ? `${item.name}, unread` : item.name);
   const face = el.firstChild;
   if (item.avatar) {
     if (face.tagName !== 'IMG') { const img = document.createElement('img'); img.alt = ''; face.replaceWith(img); }
@@ -98,6 +100,8 @@ function inboxEl() {
   const el = document.createElement('div');
   el.className = 'head inbox card';
   el.title = 'Inbox';
+  el.setAttribute('role', 'button');
+  el.setAttribute('aria-label', 'Inbox');
   el.innerHTML = '<svg viewBox="0 0 22 22" aria-hidden="true"><path d="M3 12l2.2-6.5A1 1 0 0 1 6.2 5h9.6a1 1 0 0 1 1 .5L19 12v4.5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M3 12h4.5l1 2h5l1-2H19"/></svg>';
   const caption = document.createElement('div');
   caption.className = 'caption';

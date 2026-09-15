@@ -5,7 +5,7 @@ const { DEFAULTS, THEMES, BADGES, BUBBLE_SIZES, REOPEN_SECONDS, normalizeSetting
 test('defaults are what the spec says', () => {
   assert.deepEqual(DEFAULTS, {
     overFullscreen: true, startAtLogin: false, bubbleSize: 'small', banner: true, bannerPreview: true, quickReply: true,
-    notifications: true, badge: 'steady', theme: 'system', spellcheck: true, blockTelemetry: true, reopenLast: 30,
+    notifications: true, badge: 'steady', theme: 'system', spellcheck: true, blockTelemetry: true, reopenLast: 30, checkUpdates: true,
   });
   assert.deepEqual(REOPEN_SECONDS, [0, 15, 30, 60, 300]);
   assert.deepEqual(THEMES, ['system', 'light', 'dark']);
@@ -51,7 +51,7 @@ test('the bubble position rides along when it is a real position, else null', ()
   }
 });
 
-test('isSettingKey knows the twelve keys and nothing else', () => {
+test('isSettingKey knows the thirteen keys and nothing else', () => {
   for (const k of Object.keys(DEFAULTS)) assert.equal(isSettingKey(k), true, k);
   assert.equal(isSettingKey('bubble'), false);
   assert.equal(isSettingKey('__proto__'), false);

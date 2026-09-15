@@ -20,6 +20,7 @@ const DEFAULTS = Object.freeze({
   spellcheck: true,
   blockTelemetry: true,
   reopenLast: 30,         // seconds; 0 is off
+  checkUpdates: true,     // ask GitHub once a day whether there is a newer release
 });
 
 // Keys whose value is one of a list rather than a boolean.

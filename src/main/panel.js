@@ -111,7 +111,7 @@ function createPanel({ onUnread, onRows = () => {}, onShown = () => {}, onBlurre
   // Never spawn a second window: it would carry the Facebook session with none of this
   // window's navigation policy. Messenger pages open in the panel itself, the rest externally.
   win.webContents.setWindowOpenHandler(({ url }) => {
-    if (isInternal(url)) win.loadURL(url).catch(() => {});
+    if (isInternal(url)) win.loadURL(url).catch((err) => log.debug('panel load failed', { err }));
     else {
       const target = browserUrl(url);
       if (target) shell.openExternal(target);
@@ -170,7 +170,7 @@ function createPanel({ onUnread, onRows = () => {}, onShown = () => {}, onBlurre
   // Opens are serialised: a second fan click while one is still staging would otherwise
   // interleave its reload / row-click with the first. The chain never rejects.
   let queue = Promise.resolve();
-  const enqueue = (fn) => (queue = queue.then(fn).catch(() => {}));
+  const enqueue = (fn) => (queue = queue.then(fn).catch((err) => log.warn('panel action failed', { err })));
 
   async function stageThread(href, bubbleBounds) {
     compact = true;

@@ -1,3 +1,7 @@
+// Messenger's UI must be in English: the scripts below find controls by their English labels
+// and text — aria-label "Back", "New message", the account gear's "Settings, help and more",
+// the "Preferences" menu item, the "You: " prefix of one's own messages, and the short time
+// stamps ("2m", "Yesterday"). Another language leaves those paths as no-ops.
 const { normalizeRows } = require('../lib/recent');
 const { ROW_READER_SOURCE } = require('../lib/rows');
 const { decideReply, REPLY_BUDGET_MS, REPLY_POLL_MS } = require('../lib/reply');
