@@ -71,6 +71,7 @@ function createBubble({
   let lastSettings = null;
   let lastBadge = 0;
   let lastActive = null;
+  let lastStatus = { connection: 'online', signedOut: false };
   win.webContents.on('did-finish-load', () => {
     win.webContents.setZoomFactor(scale);
     endDrag(); // a press the old document never released
@@ -210,6 +211,7 @@ function createBubble({
 
   const ipc = ipcFor(win);
   ipc.handle(CHANNELS.BUBBLE_STATE, () => ({
+    status: lastStatus,
     settings: lastSettings,
     layout: layout().renderer,
     badge: lastBadge,
@@ -324,6 +326,11 @@ function createBubble({
       stackBounds({ anchor, size: SIZE, scale, fanCount, bannerExtra, area: area() }),
     // The chat the page was asked for is now showing: its head stops looking busy.
     opened: () => win.webContents.send(CHANNELS.BUBBLE_OPENED),
+    // Whether Messenger is reachable, and whether anyone is signed in.
+    setStatus: (status) => {
+      lastStatus = status;
+      win.webContents.send(CHANNELS.BUBBLE_STATUS, status);
+    },
     setActive: (href) => {
       lastActive = href;
       win.webContents.send(CHANNELS.BUBBLE_ACTIVE, href);

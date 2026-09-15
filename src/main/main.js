@@ -85,6 +85,7 @@ let panel;
 let dismiss;
 let settingsWindow;
 let lastUnread = 0;
+let panelStatus = { connection: 'online', signedOut: false };
 let updates = { latest: () => null, check: async () => null, due: () => false };
 
 // One setting changed on the page: the store normalises, saves and notifies; applySettings
@@ -458,6 +459,10 @@ app.whenReady().then(() => {
       }
     },
     onRows: (rows) => refreshRecent(rows),
+    onStatus: (status) => {
+      panelStatus = status;
+      if (bubble) bubble.setStatus(status);
+    },
     onShown: () => {
       syncActive();
       if (bubble) bubble.opened();
@@ -476,6 +481,12 @@ app.whenReady().then(() => {
     // A disc click brings the stack up — or, soon after a chat was put away by clicking
     // elsewhere, that chat straight back.
     onClick: () => {
+      // Signed out: the stack would be empty; the disc goes straight to the login page.
+      if (panelStatus.signedOut) {
+        chats = chatsLib.openChat(chats, null);
+        panel.openInbox(bubble.getBounds());
+        return;
+      }
       const click = chatsLib.discClick(chats, Date.now(), settings.reopenLast);
       if (click.action === 'reopen') openChat(click.href);
       else showStack();

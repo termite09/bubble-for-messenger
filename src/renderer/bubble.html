@@ -97,6 +97,47 @@
         width: 24px;
         height: 24px;
         display: block;
+        transition: opacity 200ms linear;
+      }
+      /* Messenger unreachable: the mark dims to ash, and a chip beside the disc says why on
+         hover. Signed out: the chip stays, reading "Sign in", and the disc opens the login page. */
+      body.offline #disc img,
+      body.reconnecting #disc img,
+      body.signed-out #disc img {
+        opacity: 0.35;
+      }
+      #status {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        white-space: nowrap;
+        pointer-events: none;
+        padding: 0 8px;
+        border-radius: 10px;
+        background: var(--card);
+        border: 1px solid var(--rule);
+        box-shadow: var(--lift);
+        font:
+          400 11px/18px -apple-system,
+          system-ui,
+          sans-serif;
+        color: var(--ink);
+        opacity: 0;
+        transition: opacity 120ms linear;
+      }
+      body.edge-right #status {
+        right: 52px;
+      }
+      body.edge-left #status {
+        left: 52px;
+      }
+      body.offline #disc:hover #status,
+      body.reconnecting #disc:hover #status,
+      body.signed-out #status {
+        opacity: 1;
+      }
+      body.landed #status {
+        opacity: 0;
       }
       #count {
         position: absolute;
@@ -615,6 +656,7 @@
       <div id="disc" class="card">
         <img src="../../assets/icon.png" alt="" />
         <div id="count"></div>
+        <div id="status"></div>
         <div id="landed" class="card">
           <div class="av" id="landed-av"></div>
           <div class="name" id="landed-name"></div>

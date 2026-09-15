@@ -4,6 +4,7 @@ const { unreadFromTitle } = require('../lib/unread');
 const { isInternal, staysInPanel, browserUrl } = require('../lib/links');
 const { looksLikeErrorPage, errorRetryDelay } = require('../lib/refresh');
 const liveness = require('../lib/liveness');
+const { connectionState, signedOut } = require('../lib/status');
 const scrape = require('./scrape');
 const { joinAllSpaces } = require('./workspaces');
 const { createFloatingWindow, ipcFor } = require('./floating-window');
@@ -24,6 +25,7 @@ const noLog = { debug() {}, info() {}, warn() {}, error() {} };
 function createPanel({
   onUnread,
   onRows = () => {},
+  onStatus = () => {},
   onShown = () => {},
   onBlurred = () => {},
   overFullscreen = true,
@@ -99,8 +101,21 @@ function createPanel({
   // never while the panel is showing, never in a loop. Facebook's static error page is retried
   // with backoff separately.
   let live = liveness.initial(Date.now());
+  // The disc shows whether Messenger is reachable and whether anyone is signed in.
+  let lastStatus = '';
+  const reportStatus = () => {
+    const status = {
+      connection: connectionState({ online: net.isOnline(), socketErrorAt: live.socketErrorAt }),
+      signedOut: signedOut(win.webContents.getURL()),
+    };
+    const key = JSON.stringify(status);
+    if (key === lastStatus) return;
+    lastStatus = key;
+    onStatus(status);
+  };
   const note = (event) => {
     live = liveness.reduce(live, event, Date.now());
+    reportStatus();
   };
   const ses = win.webContents.session;
   const metaFilter = {
@@ -123,6 +138,7 @@ function createPanel({
     if (isMainFrame && code !== -3) note('fail-load');
   });
   setInterval(() => {
+    reportStatus();
     const verdict = liveness.decide(live, {
       visible: win.isVisible(),
       online: net.isOnline(),
@@ -187,6 +203,7 @@ function createPanel({
   win.webContents.on('will-navigate', guardNavigation);
   win.webContents.on('will-redirect', guardNavigation);
   win.webContents.on('did-navigate', (_event, url) => {
+    reportStatus();
     if (!staysInPanel(url)) win.loadURL('https://www.messenger.com/').catch(() => {});
   });
 
@@ -285,6 +302,7 @@ function createPanel({
     isVisible: () => win.isVisible(),
     isLoading: () => win.webContents.isLoading(),
     liveness: () => live,
+    status: () => JSON.parse(lastStatus || '{}'),
     showAt(bubbleBounds) {
       place(bubbleBounds);
       reveal();

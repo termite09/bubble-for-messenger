@@ -408,6 +408,18 @@ function setSettings(s) {
 }
 window.bubbleApi.onSettings(setSettings);
 
+// Whether Messenger is reachable and whether anyone is signed in: the mark dims and a chip
+// beside the disc says which (on hover — or, signed out, until you sign in).
+const statusEl = document.getElementById('status');
+function setStatus(st) {
+  const words = { offline: 'Offline', reconnecting: 'Reconnecting…' };
+  body.classList.toggle('offline', st.connection === 'offline');
+  body.classList.toggle('reconnecting', st.connection === 'reconnecting');
+  body.classList.toggle('signed-out', Boolean(st.signedOut));
+  statusEl.textContent = st.signedOut ? 'Sign in' : words[st.connection] || '';
+}
+window.bubbleApi.onStatus(setStatus);
+
 // A fresh document (startup, or a reload) asks main for the state it missed rather than
 // relying on main to notice and resend it.
 window.bubbleApi.state().then((st) => {
@@ -416,4 +428,5 @@ window.bubbleApi.state().then((st) => {
   if (st.layout) setLayout(st.layout);
   setBadge(st.badge || 0);
   setActive(st.active || null);
+  if (st.status) setStatus(st.status);
 });

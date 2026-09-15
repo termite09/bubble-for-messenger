@@ -23,6 +23,7 @@ const CHANNELS = Object.freeze({
   BUBBLE_LANDED: 'bubble:landed',
   BUBBLE_REPLY_RESULT: 'bubble:reply-result',
   BUBBLE_SETTINGS: 'bubble:settings',
+  BUBBLE_STATUS: 'bubble:status',
   BUBBLE_STATE: 'bubble:state',
   // panel preload → main: the chat list's rows; main → preload: read them now
   PANEL_ROWS: 'panel:rows',

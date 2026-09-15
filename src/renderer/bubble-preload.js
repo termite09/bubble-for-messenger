@@ -21,4 +21,5 @@ contextBridge.exposeInMainWorld('bubbleApi', {
   onReplyResult: (cb) => ipcRenderer.on('bubble:reply-result', (_event, ok) => cb(ok)),
   onSettings: (cb) => ipcRenderer.on('bubble:settings', (_event, s) => cb(s)),
   state: () => ipcRenderer.invoke('bubble:state'),
+  onStatus: (cb) => ipcRenderer.on('bubble:status', (_event, st) => cb(st)),
 });
