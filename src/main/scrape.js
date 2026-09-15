@@ -1,41 +1,9 @@
-const { normalizeRows, spanText, listAtTop, LIMIT } = require('../lib/recent');
+const { normalizeRows } = require('../lib/recent');
+const { ROW_READER_SOURCE } = require('../lib/rows');
 const { decideReply, REPLY_BUDGET_MS, REPLY_POLL_MS } = require('../lib/reply');
 
-// Runs inside messenger.com. Reads the first rows of the chat list. Messenger renders each
-// conversation as [role="row"] containing a link to /t/<id>/ (or /e2ee/t/<id>/), the avatar
-// <img> and name/preview spans; unread rows are drawn in bold. Returns null (not a list) when
-// the list has been scrolled: it is virtualised, so its DOM rows are then not the most recent.
-const RECENT_CHATS_SCRIPT = `(() => {
-  const spanText = ${spanText.toString()};
-  const listAtTop = ${listAtTop.toString()};
-  const out = [];
-  for (const row of document.querySelectorAll('[role="row"]')) {
-    const link = row.querySelector('a[role="link"][href*="/t/"]');
-    if (!link) continue;
-    if (!out.length && !listAtTop(row, document.body)) return null;
-    const img = row.querySelector('img');
-    const spans = [...row.querySelectorAll('span[dir="auto"]')].map((s) => spanText(s).trim()).filter(Boolean);
-    const unread = [...row.querySelectorAll('span')].some((s) => parseInt(getComputedStyle(s).fontWeight, 10) >= 600);
-    const name = (img && img.alt) || spans[0] || '';
-    // After the name come the last-message preview and a short time stamp ("2m", "Yesterday").
-    const rest = spans.filter((t) => t !== name);
-    const timeIdx = rest.findIndex((t) => /^(\\d+\\s?[smhdw]|[A-Z][a-z]{2}|Yesterday|Now)$/.test(t));
-    const time = timeIdx >= 0 ? rest[timeIdx] : '';
-    // Skip the lone "·" Messenger puts between preview and time.
-    const preview = rest.find((t, i) => i !== timeIdx && t !== '·') || '';
-    out.push({
-      // Use the clean pathname (/t/123/) — the DOM href can carry a ?focus_target=1 query.
-      href: new URL(link.href).pathname,
-      name,
-      avatarUrl: img ? img.src : null,
-      unread,
-      preview,
-      time,
-    });
-    if (out.length === ${LIMIT}) break;
-  }
-  return out;
-})()`;
+// Runs inside messenger.com: the chat-list reader from lib/rows.
+const RECENT_CHATS_SCRIPT = ROW_READER_SOURCE;
 
 // Every script the app runs in the page goes through here: in its own isolated world (the
 // page's JS cannot swap out the DOM built-ins these scripts rely on), with a deadline (a page

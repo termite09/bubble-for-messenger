@@ -15,7 +15,7 @@ const nav = (win, event, url) => { let prevented = false; win.webContents.emit(e
 test('the panel is a sandboxed floating window that loads messenger.com', () => {
   const { win } = makePanel();
   assert.equal(win.opts.webPreferences.sandbox, true);
-  assert.equal(win.opts.webPreferences.preload, undefined);
+  assert.ok(win.opts.webPreferences.preload.endsWith('panel-preload.js')); // the list watcher; exposes nothing to the page
   assert.equal(win.opts.fullscreenable, false);
   assert.equal(win.loaded, 'https://www.messenger.com');
 });

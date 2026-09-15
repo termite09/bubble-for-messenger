@@ -17,7 +17,7 @@ const { removeStaleLockFiles } = require('../lib/storage');
 const { createLog } = require('./log');
 const { createSettingsStore } = require('./settings-store');
 
-const RECENT_POLL_MS = 5000;
+const RECENT_POLL_MS = 60 * 1000; // a safety net: the panel's preload pushes rows as they change
 
 // Own profile folder, separate from the upstream MessengerApp so both can run side by side.
 // The folder was called MessengerBubble before the rename; move it once so logins carry over.
@@ -93,18 +93,28 @@ function rememberChat() {
   syncActive();
 }
 
-// Re-read the chat list from the Messenger page, refresh the fan if it is open, and unroll a
-// "message landed" banner when a chat turns unread. Reads do not overlap: one at a time, with
-// a request arriving mid-read served by one more read after it.
+// Take in the chat list — pushed by the panel's preload as it changes, or read from the page
+// by the safety poll — refresh the fan if it is open, and unroll a "message landed" banner
+// when a chat turns unread. Reads do not overlap: one at a time, with a request arriving
+// mid-read served by one more read after it.
+const stats = { pushes: 0, polls: 0 };
 let refreshing = false;
 let refreshAgain = false;
-async function refreshRecent() {
+let pendingRows = null;
+async function refreshRecent(pushed = null) {
   if (!bubble || !panel) return;
+  if (pushed) pendingRows = pushed;
   if (refreshing) { refreshAgain = true; return; }
   refreshing = true;
   try {
-    if (panel.isLoading()) return; // a page mid-reload has no rows worth reading
-    const rows = await panel.readRecentChats();
+    let rows = pendingRows;
+    pendingRows = null;
+    if (rows) stats.pushes++;
+    else {
+      if (panel.isLoading()) return; // a page mid-reload has no rows worth reading
+      stats.polls++;
+      rows = await panel.readRecentChats();
+    }
     if (!rows) return; // the list is scrolled: keep what we last knew rather than read the wrong rows
     const ses = panel.session();
     const next = await Promise.all(rows.map(async (r) => ({ ...r, avatar: await fetchAvatar(ses, r.avatarUrl) })));
@@ -330,8 +340,8 @@ app.whenReady().then(() => {
         lastUnread = n;
         bubble.setBadge(settings.badge !== 'off' ? n : 0);
       }
-      refreshRecent();
     },
+    onRows: (rows) => refreshRecent(rows),
     onShown: syncActive,
     onBlurred: rememberChat,
   });
@@ -388,7 +398,7 @@ app.whenReady().then(() => {
   applySettings(null);
 
   // Development only: what a driver attached over --inspect needs to see and poke.
-  if (!app.isPackaged) global.__bubble = { state: () => chats, settings: () => settings, store, panel, bubble, log, refreshRecent, showStack };
+  if (!app.isPackaged) global.__bubble = { state: () => chats, settings: () => settings, store, panel, bubble, log, refreshRecent, showStack, stats };
 });
 
 // The bubble is the app: keep running even when the panel is hidden.

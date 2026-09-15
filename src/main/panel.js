@@ -5,7 +5,9 @@ const { isInternal, staysInPanel, browserUrl } = require('../lib/links');
 const { shouldRefresh, looksLikeErrorPage, errorRetryDelay } = require('../lib/refresh');
 const scrape = require('./scrape');
 const { joinAllSpaces } = require('./workspaces');
-const { createFloatingWindow } = require('./floating-window');
+const { createFloatingWindow, ipcFor } = require('./floating-window');
+const { CHANNELS } = require('../lib/ipc');
+const { normalizeRows } = require('../lib/recent');
 
 const REFRESH_TICK_MS = 60 * 1000;
 const noLog = { debug() {}, info() {}, warn() {}, error() {} };
@@ -13,18 +15,22 @@ const noLog = { debug() {}, info() {}, warn() {}, error() {} };
 // `onShown` fires once the panel is actually visible to the user (not merely staged at opacity
 // 0), so the bubble can dock the open chat's avatar beside it at the right moment. `onBlurred`
 // fires when the panel put itself away because it lost focus (the user went elsewhere).
-function createPanel({ onUnread, onShown = () => {}, onBlurred = () => {}, overFullscreen = true, log = noLog }) {
+function createPanel({ onUnread, onRows = () => {}, onShown = () => {}, onBlurred = () => {}, overFullscreen = true, log = noLog }) {
   // Transparent so the page can draw its own card silhouette (scrape.FRAME_CSS: 16px corners and
   // a hairline) instead of the square window edge; macOS casts a shadow that follows the shape.
   const win = createFloatingWindow({
     level: 'floating', width: 420, height: 640, overFullscreen, hasShadow: true,
     url: 'https://www.messenger.com',
+    // The preload watches the chat list and reports its rows (see renderer/panel-preload.js).
+    preload: 'panel-preload.js',
     // The page spends its life hidden; throttled timers would let its live connection lapse.
     // Its scripts are the same multi-megabyte bundle every load: cache them compiled.
     webPreferences: { backgroundThrottling: false, v8CacheOptions: 'bypassHeatCheck' },
   });
 
   win.on('blur', () => { win.hide(); onBlurred(); });
+  // The chat list's rows, pushed by the preload whenever they change.
+  ipcFor(win).on(CHANNELS.PANEL_ROWS, (rows) => onRows(normalizeRows(rows)));
   // The panel is the app's connection to Messenger: it is only ever hidden, never closed (Cmd+W
   // or a page's window.close would otherwise destroy it) — except by the app quitting, which
   // closes every window and must not be held up. A crashed page is loaded again.
@@ -210,6 +216,7 @@ function createPanel({ onUnread, onShown = () => {}, onBlurred = () => {}, overF
       win.webContents.reload();
     },
     readRecentChats: () => scrape.readRecentChats(win.webContents),
+    requestRows: () => win.webContents.send(CHANNELS.PANEL_READ),
     session: () => win.webContents.session,
     openThread: (href, bubbleBounds) => enqueue(() => stageThread(href, bubbleBounds)),
     openInbox: (bubbleBounds) => enqueue(() => stageInbox(bubbleBounds)),
