@@ -21,6 +21,7 @@ const CHANNELS = Object.freeze({
   BUBBLE_LANDED: 'bubble:landed',
   BUBBLE_REPLY_RESULT: 'bubble:reply-result',
   BUBBLE_SETTINGS: 'bubble:settings',
+  BUBBLE_STATE: 'bubble:state',
   // shield, dismiss target
   SHIELD_CLICK: 'shield:click',
   DISMISS_HOT: 'dismiss:hot',

@@ -46,7 +46,8 @@ function createSettingsWindow({ getSettings, setSetting, subscribe, onOpenMessen
     open(bounds) {
       const w = ensure();
       const area = screen.getDisplayMatching(bounds).workArea;
-      w.setPosition(Math.round(area.x + (area.width - WIDTH) / 2), Math.round(area.y + (area.height - HEIGHT) / 2));
+      const { height } = w.getBounds(); // the pane's own height, once the page has asked for it
+      w.setPosition(Math.round(area.x + (area.width - WIDTH) / 2), Math.round(area.y + (area.height - height) / 2));
       w.show();
       w.focus();
     },

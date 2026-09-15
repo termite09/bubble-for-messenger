@@ -35,13 +35,13 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
   });
   win.setIgnoreMouseEvents(true, { forward: true });
   win.once('ready-to-show', () => { win.showInactive(); applyBounds(); });
-  // Settings arrive before the page has loaded at startup; hand them over again once it has.
+  // What the page needs to know; a fresh document (startup, a reload) asks for it.
   let lastSettings = null;
+  let lastBadge = 0;
+  let lastActive = null;
   win.webContents.on('did-finish-load', () => {
     win.webContents.setZoomFactor(scale);
-    if (lastSettings) win.webContents.send(CHANNELS.BUBBLE_SETTINGS, lastSettings);
-    applyBounds(); // the page's placement inside the window, lost with the old document
-    endDrag();     // a press the old document never released
+    endDrag(); // a press the old document never released
   });
 
   const shield = createShield({ overFullscreen, onPress: () => { collapse(); onClose('shield'); } });
@@ -154,6 +154,7 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
   }
 
   const ipc = ipcFor(win);
+  ipc.handle(CHANNELS.BUBBLE_STATE, () => ({ settings: lastSettings, layout: layout().renderer, badge: lastBadge, active: lastActive }));
 
   ipc.on(CHANNELS.BUBBLE_DRAG_START, () => {
     if (drag) return;
@@ -227,12 +228,19 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
     expand,
     collapse,
     isExpanded: () => expanded,
-    setBadge: (n) => win.webContents.send(CHANNELS.BUBBLE_BADGE, n),
+    setBadge: (n) => {
+      if (n === lastBadge) return;
+      lastBadge = n;
+      win.webContents.send(CHANNELS.BUBBLE_BADGE, n);
+    },
     getBounds: bounds,
     // The rect a panel should sit beside: the head column (disc plus stack) while it is open,
     // otherwise just the disc.
     getStackBounds: () => stackBounds({ anchor, size: SIZE, scale, fanCount, bannerExtra, area: area() }),
-    setActive: (href) => win.webContents.send(CHANNELS.BUBBLE_ACTIVE, href),
+    setActive: (href) => {
+      lastActive = href;
+      win.webContents.send(CHANNELS.BUBBLE_ACTIVE, href);
+    },
     // A message just arrived for `item`: unroll its banner out of the disc for a moment.
     landed: (item) => win.webContents.send(CHANNELS.BUBBLE_LANDED, item),
     replyResult: (ok) => win.webContents.send(CHANNELS.BUBBLE_REPLY_RESULT, Boolean(ok)),

@@ -28,10 +28,12 @@ window.addEventListener('mousemove', (e) => {
 });
 window.addEventListener('mouseleave', () => { if (overContent) { overContent = false; window.bubbleApi.hit(false); } });
 
-window.bubbleApi.onBadge((n) => {
-  count.textContent = n > 9 ? '9+' : String(n);
+function setBadge(n) {
+  const text = n > 9 ? '9+' : String(n);
+  if (count.textContent !== text) count.textContent = text; // a repaint only when it changed
   count.classList.toggle('visible', n > 0);
-});
+}
+window.bubbleApi.onBadge(setBadge);
 
 function fillAvatar(target, item) {
   target.replaceChildren();
@@ -93,7 +95,7 @@ function inboxEl() {
 // { contentX, contentY, edge: 'left' | 'right', direction: 'up' | 'down' } — where the disc sits
 // inside the padded window and which way the stack and banners extend.
 let direction = 'up';
-window.bubbleApi.onLayout((l) => {
+function setLayout(l) {
   direction = l.direction;
   body.classList.toggle('edge-left', l.edge === 'left');
   body.classList.toggle('edge-right', l.edge === 'right');
@@ -106,7 +108,8 @@ window.bubbleApi.onLayout((l) => {
   if (l.direction === 'up') { content.style.top = ''; content.style.bottom = (innerHeight - l.contentY - l.base) + 'px'; }
   else { content.style.bottom = ''; content.style.top = l.contentY + 'px'; }
   setDistances();
-});
+}
+window.bubbleApi.onLayout(setLayout);
 
 // Each row's distance to the disc drives its fold offset: with the stack above the disc the
 // bottom row is nearest; below the disc the top row is.
@@ -148,7 +151,8 @@ window.bubbleApi.onFan((data) => {
   }
 });
 
-window.bubbleApi.onActive((href) => { activeHref = href; markActive(); });
+function setActive(href) { activeHref = href; markActive(); }
+window.bubbleApi.onActive(setActive);
 
 // ---- "A message landed" ----------------------------------------------------------------------
 const landedInput = document.getElementById('landed-input');
@@ -245,7 +249,18 @@ function replyResult(ok) {
 window.bubbleApi.onReplyResult(replyResult);
 
 // Settings that change what the banner offers and how the count shows.
-window.bubbleApi.onSettings((s) => {
+function setSettings(s) {
   body.classList.toggle('no-reply', !s.quickReply);
   body.classList.toggle('pulse', s.badge === 'pulse');
+}
+window.bubbleApi.onSettings(setSettings);
+
+// A fresh document (startup, or a reload) asks main for the state it missed rather than
+// relying on main to notice and resend it.
+window.bubbleApi.state().then((st) => {
+  if (!st) return;
+  if (st.settings) setSettings(st.settings);
+  if (st.layout) setLayout(st.layout);
+  setBadge(st.badge || 0);
+  setActive(st.active || null);
 });

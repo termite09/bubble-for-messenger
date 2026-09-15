@@ -18,4 +18,5 @@ contextBridge.exposeInMainWorld('bubbleApi', {
   sendReply: (href, text) => ipcRenderer.send('bubble:reply', href, text),
   onReplyResult: (cb) => ipcRenderer.on('bubble:reply-result', (_event, ok) => cb(ok)),
   onSettings: (cb) => ipcRenderer.on('bubble:settings', (_event, s) => cb(s)),
+  state: () => ipcRenderer.invoke('bubble:state'),
 });

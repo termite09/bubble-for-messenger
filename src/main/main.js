@@ -372,6 +372,9 @@ app.whenReady().then(() => {
   });
 
   applySettings(null);
+
+  // Development only: what a driver attached over --inspect needs to see and poke.
+  if (!app.isPackaged) global.__bubble = { state: () => chats, settings: () => settings, store, panel, bubble, log, refreshRecent, showStack };
 });
 
 // The bubble is the app: keep running even when the panel is hidden.
