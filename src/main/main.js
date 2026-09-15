@@ -547,6 +547,7 @@ app.whenReady().then(() => {
       refreshRecent,
       showStack,
       stats,
+      updates: () => updates,
     };
 });
 
