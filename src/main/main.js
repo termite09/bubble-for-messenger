@@ -9,7 +9,6 @@ const { fetchAvatar } = require('./avatars');
 const scrape = require('./scrape');
 const { LIMIT: RECENT_LIMIT, MAX_PINS, mergeHeads } = require('../lib/recent');
 const chatsLib = require('../lib/chats');
-const { isMetaHost } = require('../lib/links');
 const { shouldPersistCookie, persistentCookie } = require('../lib/cookies');
 const { isTelemetryUrl } = require('../lib/telemetry');
 const { normalizeSettings, isSettingKey, isPermissionGranted, isMetaOrigin, BUBBLE_SIZES } = require('../lib/settings');

@@ -1,3 +1,4 @@
+/* global document, getComputedStyle */
 // The chat-list reader that runs inside messenger.com, as plain functions. They are serialised
 // into the page by scrape.js (`ROW_READER_SOURCE`) and copied verbatim into the panel's
 // preload, which runs sandboxed and cannot require this file; test/panel-preload.test.js

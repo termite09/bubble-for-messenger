@@ -14,13 +14,18 @@
   "scripts": {
     "start": "electron .",
     "test": "node --test",
-    "build": "electron-builder --mac"
+    "build": "electron-builder --mac",
+    "lint": "eslint . && prettier --check .",
+    "format": "prettier --write ."
   },
   "author": "Alexandros Christou (fork of stefanminch/messenger-mac)",
   "license": "MIT",
   "devDependencies": {
     "electron": "^44.3.0",
-    "electron-builder": "^26.15.3"
+    "electron-builder": "^26.15.3",
+    "eslint": "^9.39.5",
+    "globals": "^17.12.0",
+    "prettier": "^3.9.6"
   },
   "build": {
     "appId": "com.termite09.bubble-for-messenger",
