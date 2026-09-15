@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('bubbleApi', {
   dragEnd: () => ipcRenderer.send('bubble:drag-end'),
   contextMenu: () => ipcRenderer.send('bubble:context-menu'),
   headMenu: (href) => ipcRenderer.send('bubble:head-menu', href),
+  pinToggle: (href) => ipcRenderer.send('bubble:pin-toggle', href),
   openChat: (href) => ipcRenderer.send('bubble:open-chat', href),
   openInbox: () => ipcRenderer.send('bubble:open-inbox'),
   hit: (over) => ipcRenderer.send('bubble:hit', over),

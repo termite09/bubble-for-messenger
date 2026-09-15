@@ -93,7 +93,22 @@ function headEl(item) {
   const pin = document.createElement('div');
   pin.className = 'pin';
   pin.innerHTML = PIN_SVG;
+  pin.title = 'Pin';
   el.appendChild(pin);
+  const caption = document.createElement('div');
+  caption.className = 'caption';
+  el.appendChild(caption);
+  // The badge pins or unpins; while the cursor is on it the chip says which.
+  pin.addEventListener('click', (e) => {
+    e.stopPropagation();
+    window.bubbleApi.pinToggle(item.href);
+  });
+  pin.addEventListener('mouseenter', () => {
+    caption.textContent = el.classList.contains('pinned') ? 'Unpin' : 'Pin';
+  });
+  pin.addEventListener('mouseleave', () => {
+    caption.textContent = el.title;
+  });
   // The ring goes on and the head dims at once; the panel takes a moment to show.
   el.addEventListener('click', () => {
     setActive(item.href);
@@ -111,7 +126,11 @@ function headEl(item) {
 function updateHead(el, item) {
   el.classList.toggle('unread', Boolean(item.unread));
   el.classList.toggle('pinned', Boolean(item.pinned));
-  if (el.title !== item.name) el.title = item.name;
+  if (el.title !== item.name) {
+    el.title = item.name;
+    el.querySelector('.caption').textContent = item.name;
+  }
+  el.querySelector('.pin').title = item.pinned ? 'Unpin' : 'Pin';
   el.setAttribute('aria-label', item.unread ? `${item.name}, unread` : item.name);
   const face = el.firstChild;
   if (item.avatar) {
@@ -143,7 +162,22 @@ function inboxEl() {
     '<svg viewBox="0 0 22 22" aria-hidden="true"><path d="M3 12l2.2-6.5A1 1 0 0 1 6.2 5h9.6a1 1 0 0 1 1 .5L19 12v4.5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M3 12h4.5l1 2h5l1-2H19"/></svg>';
   const caption = document.createElement('div');
   caption.className = 'caption';
-  caption.textContent = 'Inbox';
+  const label = document.createElement('span');
+  label.textContent = 'Inbox';
+  const hiddenCount = document.createElement('span');
+  hiddenCount.className = 'hidden-count';
+  // The app's menu — the same one as a right-click on the disc — one click from the stack.
+  const more = document.createElement('span');
+  more.className = 'more';
+  more.textContent = '···';
+  more.title = 'Menu';
+  more.setAttribute('role', 'button');
+  more.setAttribute('aria-label', 'Menu');
+  more.addEventListener('click', (e) => {
+    e.stopPropagation();
+    window.bubbleApi.contextMenu();
+  });
+  caption.append(label, hiddenCount, more);
   el.appendChild(caption);
   el.addEventListener('click', () => window.bubbleApi.openInbox());
   return el;
@@ -216,6 +250,8 @@ window.bubbleApi.onFan((data) => {
   for (const el of els) el.classList.remove('first-pinned');
   const firstPinned = els.find((el) => el.classList.contains('pinned'));
   if (firstPinned && firstPinned !== els[0]) firstPinned.classList.add('first-pinned');
+  // Rows the screen had no room for: the inbox chip says how many.
+  inbox.querySelector('.hidden-count').textContent = data.hidden ? ` · +${data.hidden} more` : '';
   els.push(inbox);
   fan.replaceChildren(...els); // moves the kept nodes; nothing is re-created
   setDistances();

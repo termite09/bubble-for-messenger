@@ -33,6 +33,7 @@ function createBubble({
   onMoved,
   onContextMenu,
   onHeadMenu,
+  onPinToggle,
   onOpenChat,
   onOpenInbox,
   onDismiss,
@@ -176,15 +177,23 @@ function createBubble({
     fanCount = items.length + 1;
     expanded = true;
     let l = applyBounds();
-    // No room for every row: keep the inbox head and the rows nearest it.
+    // No room for every row: keep the inbox head and the rows nearest it, and say how many
+    // are left out.
+    let hidden = 0;
     if (l.shown < fanCount) {
-      items = items.slice(Math.max(0, items.length - Math.max(0, l.shown - 1)));
+      const kept = items.slice(Math.max(0, items.length - Math.max(0, l.shown - 1)));
+      hidden = items.length - kept.length;
+      items = kept;
       fanCount = items.length + 1;
       l = applyBounds();
     }
     shield.show(screen.getDisplayMatching(bounds()).bounds);
     // 'in' plays the deploy; 'update' just swaps the contents (used by the periodic refresh).
-    win.webContents.send(CHANNELS.BUBBLE_FAN, { animate: animate ? 'in' : 'update', items });
+    win.webContents.send(CHANNELS.BUBBLE_FAN, {
+      animate: animate ? 'in' : 'update',
+      items,
+      hidden,
+    });
   }
 
   // While the mouse button is down the cursor is sampled and the disc moved under it; what a
@@ -246,6 +255,9 @@ function createBubble({
 
   ipc.on(CHANNELS.BUBBLE_HEAD_MENU, (href) => {
     if (isThreadHref(href)) onHeadMenu(href);
+  });
+  ipc.on(CHANNELS.BUBBLE_PIN_TOGGLE, (href) => {
+    if (isThreadHref(href)) onPinToggle(href);
   });
   ipc.on(CHANNELS.BUBBLE_CONTEXT_MENU, () => onContextMenu());
   // The stack stays open after picking a chat, so the next conversation is one click away;

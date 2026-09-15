@@ -213,18 +213,27 @@ function setPins(pins) {
 }
 
 // Right-click on a head: pin it, or unpin it.
+// Pin a chat, or unpin it. Up to MAX_PINS; a chat not in the list cannot be pinned (nothing is
+// known about it) — but any pinned one can be unpinned.
+function togglePin(href) {
+  if (settings.pins.some((p) => p.href === href))
+    return setPins(settings.pins.filter((p) => p.href !== href));
+  const row = chats.recent.find((r) => r.href === href);
+  if (!row || settings.pins.length >= MAX_PINS) return;
+  setPins([...settings.pins, { href, name: row.name, avatarUrl: row.avatarUrl }]);
+}
+
+// Right-click on a head: pin it, or unpin it.
 function headMenu(href) {
   const pinned = settings.pins.some((p) => p.href === href);
-  const row = chats.recent.find((r) => r.href === href);
   const full = settings.pins.length >= MAX_PINS;
   Menu.buildFromTemplate([
     pinned
-      ? { label: 'Unpin', click: () => setPins(settings.pins.filter((p) => p.href !== href)) }
+      ? { label: 'Unpin', click: () => togglePin(href) }
       : {
           label: full ? `Pin (${MAX_PINS} pinned already)` : 'Pin',
-          enabled: !full && Boolean(row),
-          click: () =>
-            setPins([...settings.pins, { href, name: row.name, avatarUrl: row.avatarUrl }]),
+          enabled: !full,
+          click: () => togglePin(href),
         },
   ]).popup({ window: bubble.win });
 }
@@ -479,6 +488,7 @@ app.whenReady().then(() => {
     },
     onContextMenu: bubbleContextMenu,
     onHeadMenu: headMenu,
+    onPinToggle: togglePin,
     // A conversation opens beyond the stack, which stays (or comes) up so the other chats are
     // one click away without fanning out again.
     onOpenChat: (href) => openChat(href),

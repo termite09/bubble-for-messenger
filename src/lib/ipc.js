@@ -9,6 +9,7 @@ const CHANNELS = Object.freeze({
   BUBBLE_HIT: 'bubble:hit',
   BUBBLE_CONTEXT_MENU: 'bubble:context-menu',
   BUBBLE_HEAD_MENU: 'bubble:head-menu',
+  BUBBLE_PIN_TOGGLE: 'bubble:pin-toggle',
   BUBBLE_OPEN_CHAT: 'bubble:open-chat',
   BUBBLE_OPEN_INBOX: 'bubble:open-inbox',
   BUBBLE_REPLY: 'bubble:reply',

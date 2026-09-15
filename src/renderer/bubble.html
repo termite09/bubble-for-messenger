@@ -273,6 +273,8 @@
         stroke-linecap: round;
         stroke-linejoin: round;
       }
+      /* The caption chip beside a head: its name (the inbox: "Inbox", the app menu's "···",
+         how many rows were left out). Shown on hover; clicking it is clicking the head. */
       .head .caption {
         position: absolute;
         top: 50%;
@@ -294,12 +296,41 @@
       }
       .head:hover .caption {
         opacity: 1;
+        pointer-events: auto;
+      }
+      .caption .more {
+        margin-left: 6px;
+        padding: 0 4px;
+        border-radius: 6px;
+        color: var(--dim);
+        letter-spacing: 1px;
+      }
+      .caption .more:hover {
+        background: var(--raised);
+        color: var(--ink);
+      }
+      .caption .hidden-count {
+        color: var(--dim);
       }
       body.edge-right .head .caption {
         right: 52px;
       }
       body.edge-left .head .caption {
         left: 52px;
+      }
+      /* An invisible bridge over the gap to the head, so the cursor can cross to the chip. */
+      .head .caption::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 10px;
+      }
+      body.edge-right .head .caption::before {
+        right: -10px;
+      }
+      body.edge-left .head .caption::before {
+        left: -10px;
       }
       .head:hover {
         border-color: rgba(255, 255, 255, 0.28);
@@ -345,6 +376,8 @@
         display: block;
       }
       /* A pinned head wears a small paper pin at its foot, opposite the unread dot. */
+      /* The pin badge at a head's foot: paper when pinned; on hover it appears on every head
+         as the place to pin or unpin (ash outline when not pinned). */
       .pin {
         position: absolute;
         left: -2px;
@@ -358,6 +391,19 @@
         display: none;
         align-items: center;
         justify-content: center;
+        color: var(--card);
+        cursor: default;
+      }
+      .head:hover .pin {
+        display: flex;
+      }
+      .head:not(.pinned) .pin {
+        background: var(--raised);
+        color: var(--dim);
+        border-color: var(--rule);
+      }
+      .head:not(.pinned) .pin:hover {
+        background: var(--ink);
         color: var(--card);
       }
       .pin svg {
