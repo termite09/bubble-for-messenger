@@ -1,13 +1,11 @@
-const { BrowserWindow, ipcMain, screen } = require('electron');
+const { screen } = require('electron');
 const { CHANNELS } = require('../lib/ipc');
-const path = require('path');
 const { isClick, clampToArea, fanLayout, windowFrame, snapToEdge, EDGE_MARGIN } = require('../lib/layout');
 const { isThreadHref } = require('../lib/recent');
 const { validReply } = require('../lib/reply');
 const { BUBBLE_SIZES } = require('../lib/settings');
 const { joinAllSpaces } = require('./workspaces');
-
-const RENDERER = path.join(__dirname, '..', 'renderer');
+const { createFloatingWindow, ipcFor } = require('./floating-window');
 
 // The page is drawn for a 44px disc; a larger bubble is the same page zoomed, so every
 // length below is in page pixels and is multiplied by `scale` where it meets the screen.
@@ -29,21 +27,11 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
   const start = position || defaultPosition(SIZE);
   const anchor = clampToArea({ ...start, width: SIZE, height: SIZE }, screen.getDisplayNearestPoint(start).workArea);
 
-  const win = new BrowserWindow({
-    x: anchor.x, y: anchor.y, width: SIZE, height: SIZE,
-    frame: false, transparent: true, hasShadow: false, resizable: false, fullscreenable: false,
-    alwaysOnTop: true, skipTaskbar: true, focusable: false, show: false,
-    webPreferences: {
-      preload: path.join(RENDERER, 'bubble-preload.js'),
-      contextIsolation: true,
-      nodeIntegration: false,
-      zoomFactor: scale,
-    },
+  const win = createFloatingWindow({
+    level: 'screen-saver', x: anchor.x, y: anchor.y, width: SIZE, height: SIZE, focusable: false, overFullscreen,
+    page: 'bubble.html', preload: 'bubble-preload.js', webPreferences: { zoomFactor: scale },
   });
-  win.setAlwaysOnTop(true, 'screen-saver');
-  joinAllSpaces(win, overFullscreen);
   win.setIgnoreMouseEvents(true, { forward: true });
-  win.loadFile(path.join(RENDERER, 'bubble.html'));
   win.once('ready-to-show', () => { win.showInactive(); applyBounds(); });
   // Settings arrive before the page has loaded at startup; hand them over again once it has.
   let lastSettings = null;
@@ -56,14 +44,7 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
   // While the stack is open, an invisible shield covers the display beneath it (and the panel):
   // a press anywhere that is not a banner puts the stack away, the way a popover closes. It is
   // non-focusable so the click never activates anything, and it sits below the bubble's level.
-  const shield = new BrowserWindow({
-    frame: false, transparent: true, hasShadow: false, resizable: false, fullscreenable: false, focusable: false, show: false,
-    alwaysOnTop: true, skipTaskbar: true,
-    webPreferences: { preload: path.join(RENDERER, 'shield-preload.js'), contextIsolation: true, nodeIntegration: false },
-  });
-  shield.setAlwaysOnTop(true, 'floating');
-  joinAllSpaces(shield, overFullscreen);
-  shield.loadFile(path.join(RENDERER, 'shield.html'));
+  const shield = createFloatingWindow({ level: 'floating', focusable: false, overFullscreen, page: 'shield.html', preload: 'shield-preload.js' });
 
   const bounds = () => ({ x: anchor.x, y: anchor.y, width: SIZE, height: SIZE });
   let expanded = false;
@@ -210,10 +191,10 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
 
   // While the mouse button is down we poll the cursor and move the window under it.
   let drag = null; // { timer, offsetX, offsetY, cursor, collapsedOnPress, moved }
-  const owns = (e) => e.sender === win.webContents;
+  const ipc = ipcFor(win);
 
-  ipcMain.on(CHANNELS.BUBBLE_DRAG_START, (e) => {
-    if (!owns(e) || drag) return;
+  ipc.on(CHANNELS.BUBBLE_DRAG_START, () => {
+    if (drag) return;
     stopSnap();
     const collapsedOnPress = expanded;
     if (expanded) { collapse(); onClose('disc'); }
@@ -237,8 +218,8 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
     }, 16);
   });
 
-  ipcMain.on(CHANNELS.BUBBLE_DRAG_END, (e) => {
-    if (!owns(e) || !drag) return;
+  ipc.on(CHANNELS.BUBBLE_DRAG_END, () => {
+    if (!drag) return;
     clearInterval(drag.timer);
     const { collapsedOnPress, moved } = drag;
     drag = null;
@@ -256,55 +237,38 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
     if (!collapsedOnPress) onClick();
   });
 
-  ipcMain.on(CHANNELS.BUBBLE_HEAD_MENU, (e, href) => {
-    if (owns(e) && isThreadHref(href)) onHeadMenu(href);
-  });
-  ipcMain.on(CHANNELS.BUBBLE_CONTEXT_MENU, (e) => {
-    if (owns(e)) onContextMenu();
-  });
+  ipc.on(CHANNELS.BUBBLE_HEAD_MENU, (href) => { if (isThreadHref(href)) onHeadMenu(href); });
+  ipc.on(CHANNELS.BUBBLE_CONTEXT_MENU, () => onContextMenu());
   // The stack stays open after picking a chat, so the next conversation is one click away;
   // the panel opens beyond the banners.
-  ipcMain.on(CHANNELS.BUBBLE_OPEN_CHAT, (e, href) => {
-    if (!owns(e) || !isThreadHref(href)) return;
-    onOpenChat(href);
-  });
-  ipcMain.on(CHANNELS.BUBBLE_OPEN_INBOX, (e) => {
-    if (!owns(e)) return;
+  ipc.on(CHANNELS.BUBBLE_OPEN_CHAT, (href) => { if (isThreadHref(href)) onOpenChat(href); });
+  ipc.on(CHANNELS.BUBBLE_OPEN_INBOX, () => {
     collapse();
     onOpenInbox();
   });
   // A press outside the stack (on the shield) puts everything away.
-  ipcMain.on(CHANNELS.SHIELD_CLICK, (e) => {
-    if (e.sender !== shield.webContents) return;
+  ipcFor(shield).on(CHANNELS.SHIELD_CLICK, () => {
     collapse();
     onClose('shield');
   });
   // The window is mostly transparent padding; only pass clicks through when over a card.
-  ipcMain.on(CHANNELS.BUBBLE_HIT, (e, over) => {
-    if (!owns(e)) return;
-    win.setIgnoreMouseEvents(!over, { forward: true });
-  });
+  ipc.on(CHANNELS.BUBBLE_HIT, (over) => win.setIgnoreMouseEvents(!over, { forward: true }));
   // The window is non-focusable so it never takes the keyboard from the user's work. The reply
   // field is the one exception: focus is lent when it opens and taken back when it closes.
-  ipcMain.on(CHANNELS.BUBBLE_REPLY_FOCUS, (e, on) => {
-    if (!owns(e)) return;
+  ipc.on(CHANNELS.BUBBLE_REPLY_FOCUS, (on) => {
     replying = Boolean(on);
     win.setFocusable(replying);
     if (replying) win.focus();
   });
   // The page measures the banner whenever it changes and reports what it needs beyond the disc
   // row; the window makes that room on the side the banner grows toward.
-  ipcMain.on(CHANNELS.BUBBLE_BANNER_EXTRA, (e, px) => {
-    if (!owns(e)) return;
+  ipc.on(CHANNELS.BUBBLE_BANNER_EXTRA, (px) => {
     const next = Math.max(0, Math.min(600, Number(px) || 0));
     if (next === bannerExtra) return;
     bannerExtra = next;
     applyBounds();
   });
-  ipcMain.on(CHANNELS.BUBBLE_REPLY, (e, href, text) => {
-    if (!owns(e) || !validReply(href, text)) return;
-    onReply(href, text.trim());
-  });
+  ipc.on(CHANNELS.BUBBLE_REPLY, (href, text) => { if (validReply(href, text)) onReply(href, text.trim()); });
 
   return {
     win,

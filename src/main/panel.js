@@ -1,10 +1,11 @@
-const { app, BrowserWindow, shell, screen, powerMonitor, nativeTheme } = require('electron');
+const { app, shell, screen, powerMonitor, nativeTheme } = require('electron');
 const { panelPosition } = require('../lib/layout');
 const { unreadFromTitle } = require('../lib/unread');
 const { isInternal, staysInPanel, browserUrl } = require('../lib/links');
 const { shouldRefresh, looksLikeErrorPage, errorRetryDelay } = require('../lib/refresh');
 const scrape = require('./scrape');
 const { joinAllSpaces } = require('./workspaces');
+const { createFloatingWindow } = require('./floating-window');
 
 const REFRESH_TICK_MS = 60 * 1000;
 const noLog = { debug() {}, info() {}, warn() {}, error() {} };
@@ -15,19 +16,12 @@ const noLog = { debug() {}, info() {}, warn() {}, error() {} };
 function createPanel({ onUnread, onShown = () => {}, onBlurred = () => {}, overFullscreen = true, log = noLog }) {
   // Transparent so the page can draw its own card silhouette (scrape.FRAME_CSS: 16px corners and
   // a hairline) instead of the square window edge; macOS casts a shadow that follows the shape.
-  const win = new BrowserWindow({
-    width: 420, height: 640, resizable: false, fullscreenable: false,
-    show: false, frame: false, transparent: true, alwaysOnTop: true, skipTaskbar: true,
-    webPreferences: {
-      contextIsolation: true,
-      nodeIntegration: false,
-      // The page spends its life hidden; throttled timers would let its live connection lapse.
-      backgroundThrottling: false,
-    },
+  const win = createFloatingWindow({
+    level: 'floating', width: 420, height: 640, overFullscreen, hasShadow: true,
+    url: 'https://www.messenger.com',
+    // The page spends its life hidden; throttled timers would let its live connection lapse.
+    webPreferences: { backgroundThrottling: false },
   });
-  win.setAlwaysOnTop(true, 'floating');
-  joinAllSpaces(win, overFullscreen);
-  win.loadURL('https://www.messenger.com');
 
   win.on('blur', () => { win.hide(); onBlurred(); });
   // The panel is the app's connection to Messenger: it is only ever hidden, never closed (Cmd+W

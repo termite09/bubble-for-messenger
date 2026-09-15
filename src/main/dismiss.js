@@ -1,7 +1,7 @@
-const { BrowserWindow, screen } = require('electron');
+const { screen } = require('electron');
 const { CHANNELS } = require('../lib/ipc');
-const path = require('path');
 const { centerWithin } = require('../lib/layout');
+const { createFloatingWindow } = require('./floating-window');
 const { joinAllSpaces } = require('./workspaces');
 
 const SIZE = 120; // window; the visible target is centred inside it
@@ -11,20 +11,11 @@ const BOTTOM_MARGIN = 40;
 // A drop target that appears at the bottom-centre of the display while the bubble is being
 // dragged. Dropping the bubble onto it dismisses (quits) the app.
 function createDismissTarget({ overFullscreen = true } = {}) {
-  const win = new BrowserWindow({
-    width: SIZE, height: SIZE,
-    frame: false, transparent: true, hasShadow: false, resizable: false, fullscreenable: false,
-    alwaysOnTop: true, skipTaskbar: true, focusable: false, show: false,
-    webPreferences: {
-      preload: path.join(__dirname, '..', 'renderer', 'dismiss-preload.js'),
-      contextIsolation: true,
-      nodeIntegration: false,
-    },
+  const win = createFloatingWindow({
+    level: 'screen-saver', width: SIZE, height: SIZE, focusable: false, overFullscreen,
+    page: 'dismiss.html', preload: 'dismiss-preload.js',
   });
-  win.setAlwaysOnTop(true, 'screen-saver');
-  joinAllSpaces(win, overFullscreen);
   win.setIgnoreMouseEvents(true);
-  win.loadFile(path.join(__dirname, '..', 'renderer', 'dismiss.html'));
 
   let center = null; // screen point of the target centre while shown
 

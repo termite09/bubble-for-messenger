@@ -1,9 +1,7 @@
-const { BrowserWindow, ipcMain, screen } = require('electron');
+const { screen } = require('electron');
 const { CHANNELS } = require('../lib/ipc');
-const path = require('path');
+const { createFloatingWindow, ipcFor } = require('./floating-window');
 const { joinAllSpaces } = require('./workspaces');
-
-const RENDERER = path.join(__dirname, '..', 'renderer');
 const WIDTH = 360;
 const HEIGHT = 480;      // the tallest pane; the page asks for the exact height of the one it shows
 const MIN_HEIGHT = 200;
@@ -17,34 +15,30 @@ function createSettingsWindow({ getSettings, setSetting, subscribe, onOpenMessen
 
   function ensure() {
     if (win) return win;
-    win = new BrowserWindow({
-      width: WIDTH, height: HEIGHT, show: false,
-      frame: false, transparent: true, resizable: false, fullscreenable: false, alwaysOnTop: true, skipTaskbar: true,
-      webPreferences: {
-        preload: path.join(RENDERER, 'settings-preload.js'),
-        contextIsolation: true,
-        nodeIntegration: false,
-      },
+    win = createFloatingWindow({
+      level: 'floating', width: WIDTH, height: HEIGHT, overFullscreen, hasShadow: true,
+      page: 'settings.html', preload: 'settings-preload.js',
     });
-    win.setAlwaysOnTop(true, 'floating');
-    joinAllSpaces(win, overFullscreen);
-    win.loadFile(path.join(RENDERER, 'settings.html'));
     win.on('closed', () => { win = null; });
+    wire(win);
     return win;
   }
 
-  const owns = (e) => Boolean(win) && e.sender === win.webContents;
-  ipcMain.handle(CHANNELS.SETTINGS_GET, (e) => (owns(e) ? getSettings() : null));
-  ipcMain.on(CHANNELS.SETTINGS_SET, (e, key, value) => { if (owns(e)) setSetting(key, value); });
-  ipcMain.on(CHANNELS.SETTINGS_CLOSE, (e) => { if (owns(e)) win.hide(); });
-  // The page reports how tall the pane it shows is; the card's top edge stays put.
-  ipcMain.on(CHANNELS.SETTINGS_RESIZE, (e, height) => {
-    if (!owns(e) || !Number.isFinite(height)) return;
-    const h = Math.round(Math.min(Math.max(height, MIN_HEIGHT), MAX_HEIGHT));
-    const { x, y } = win.getBounds();
-    win.setBounds({ x, y, width: WIDTH, height: h }, true);
-  });
-  ipcMain.on(CHANNELS.SETTINGS_OPEN_MESSENGER_PREFERENCES, (e) => { if (owns(e)) onOpenMessengerPreferences(); });
+  // The page's IPC is registered with its window, once it exists (the window is made lazily).
+  function wire(w) {
+    const ipc = ipcFor(w);
+    ipc.handle(CHANNELS.SETTINGS_GET, () => getSettings());
+    ipc.on(CHANNELS.SETTINGS_SET, (key, value) => setSetting(key, value));
+    ipc.on(CHANNELS.SETTINGS_CLOSE, () => w.hide());
+    // The page reports how tall the pane it shows is; the card's top edge stays put.
+    ipc.on(CHANNELS.SETTINGS_RESIZE, (height) => {
+      if (!Number.isFinite(height)) return;
+      const h = Math.round(Math.min(Math.max(height, MIN_HEIGHT), MAX_HEIGHT));
+      const { x, y } = w.getBounds();
+      w.setBounds({ x, y, width: WIDTH, height: h }, true);
+    });
+    ipc.on(CHANNELS.SETTINGS_OPEN_MESSENGER_PREFERENCES, () => onOpenMessengerPreferences());
+  }
   subscribe((s) => { if (win) win.webContents.send(CHANNELS.SETTINGS_CHANGED, s); });
 
   return {
