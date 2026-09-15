@@ -24,7 +24,9 @@ const unchanged = (state) => ({ state, landed: null, changed: false, displayChan
 // own ("You: …", a thread Messenger bolds for another reason), never while the panel shows.
 function reduceRecent(state, rows, { visible }) {
   if (!rows) return unchanged(state);
-  if (rows.length === 0 && state.recent.length > 0) return unchanged(state);
+  // An empty list is never a reading: a page mid-load pushes one before its rows render. (So
+  // an account with no chats at all is seeded by its first chat, whose arrival is not announced.)
+  if (rows.length === 0) return unchanged(state);
   const key = fullKey(rows);
   if (key === state.recentKey) return unchanged(state);
   const before = new Map(state.recent.map((r) => [r.href, r]));

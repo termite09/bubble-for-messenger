@@ -113,6 +113,14 @@ function narrow() {
 }
 
 observe(document);
+// Messenger can replace the list node (switching inboxes, say); the narrowed observer would
+// then watch a detached tree. One cheap check per document mutation batch catches that.
+new MutationObserver(() => {
+  if (observed && observed !== document && !observed.isConnected) {
+    observe(document);
+    schedule();
+  }
+}).observe(document, { childList: true, subtree: true });
 ipcRenderer.on('panel:read', () => {
   lastKey = '';
   report();

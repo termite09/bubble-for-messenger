@@ -134,8 +134,16 @@ function createPanel({
   });
   powerMonitor.on('suspend', () => note('suspend'));
   powerMonitor.on('resume', () => note('resume'));
+  // Chromium's own error page fires did-finish-load too; that is not a load of Messenger. A
+  // new navigation clears the mark (a failure mid-body has no error page and no finish).
+  let loadFailed = false;
+  win.webContents.on('did-start-navigation', (details) => {
+    if (details && details.isMainFrame && !details.isSameDocument) loadFailed = false;
+  });
   win.webContents.on('did-fail-load', (_e, code, _desc, _url, isMainFrame) => {
-    if (isMainFrame && code !== -3) note('fail-load');
+    if (!isMainFrame || code === -3) return;
+    loadFailed = true;
+    note('fail-load');
   });
   setInterval(() => {
     reportStatus();
@@ -152,6 +160,10 @@ function createPanel({
   let errorRetries = 0;
   let errorTimer = null;
   win.webContents.on('did-finish-load', async () => {
+    if (loadFailed) {
+      loadFailed = false;
+      return;
+    }
     scrape.setFrame(win.webContents, true);
     scrape.setCompact(win.webContents, compact);
     applyTheme();

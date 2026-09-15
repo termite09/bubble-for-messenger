@@ -247,7 +247,9 @@ const replyActions = {
       await wc.insertText(text).catch(() => {});
       await delay(REPLY_POLL_MS);
       const after = href ? await replyActions.snapshot(wc, href, text) : null;
-      if (after && after.draftMatches) return true;
+      // The editor took it, or the check could not tell: the delivery loop decides. Only a
+      // clear "not there" falls back to typing — anything else could double the text.
+      if (!after || after.draftMatches) return true;
     }
     for (const ch of text) wc.sendInputEvent({ type: 'char', keyCode: ch });
     return true;

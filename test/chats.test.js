@@ -75,8 +75,14 @@ test('untrusted reads change nothing: null, or an empty list over a non-empty on
   const back = reduceRecent(empty.state, [row('/t/1/', { unread: true })], hidden);
   assert.equal(back.landed, null);
   assert.equal(back.changed, false);
-  // An empty list on an empty state is fine (nothing to protect).
-  assert.equal(reduceRecent(initialState(), [], hidden).state.seeded, true);
+  // An empty list never seeds either: the page pushes one before its rows render, and the
+  // first real read must still be the one that announces nothing.
+  const blank = reduceRecent(initialState(), [], hidden);
+  assert.equal(blank.state.seeded, false);
+  assert.equal(
+    reduceRecent(blank.state, [row('/t/1/', { unread: true, preview: 'x' })], hidden).landed,
+    null,
+  );
 });
 
 test('displayChanged tracks only what the stack draws', () => {

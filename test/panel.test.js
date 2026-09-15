@@ -96,3 +96,42 @@ test('closing hides the panel, except when the app is quitting; blur hides and r
   assert.equal(prevented, false);
   assert.equal(panel.isVisible(), false);
 });
+
+// Chromium's network error page fires did-finish-load too; it must not count as a load, or
+// the retry a failed load is owed would be forgotten.
+test("a failed load stays a failed load through the error page's did-finish-load", () => {
+  electron.shell.openExternal = async () => {};
+  const panel = createPanel({ onUnread() {} });
+  const win = electron.windows[electron.windows.length - 1];
+  win.webContents.emit(
+    'did-fail-load',
+    {},
+    -106,
+    'ERR_INTERNET_DISCONNECTED',
+    'https://www.messenger.com/',
+    true,
+  );
+  win.webContents.emit('did-finish-load');
+  assert.notEqual(panel.liveness().failLoadAt, null);
+  assert.equal(panel.liveness().failCount, 1);
+  win.webContents.emit('did-finish-load'); // a real load afterwards
+  assert.equal(panel.liveness().failLoadAt, null);
+});
+
+test('a failure mid-body does not swallow the next successful load', () => {
+  electron.shell.openExternal = async () => {};
+  const panel = createPanel({ onUnread() {} });
+  const win = electron.windows[electron.windows.length - 1];
+  win.webContents.emit(
+    'did-fail-load',
+    {},
+    -101,
+    'ERR_CONNECTION_RESET',
+    'https://www.messenger.com/',
+    true,
+  );
+  // No error page, no did-finish-load; the liveness reload starts a new navigation…
+  win.webContents.emit('did-start-navigation', { isMainFrame: true, isSameDocument: false });
+  win.webContents.emit('did-finish-load');
+  assert.equal(panel.liveness().failLoadAt, null); // …and its finish counts as a load
+});
