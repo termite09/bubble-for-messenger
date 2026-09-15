@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { press, move, release } = require('../src/lib/drag');
+const { press, move, release, armed, ARM_MS } = require('../src/lib/drag');
 
 const area = { x: 0, y: 0, width: 1000, height: 800 };
 const anchor = { x: 100, y: 100 };
@@ -51,6 +51,10 @@ test('the ✕ target hears only when hot changes; a drop on it dismisses, elsewh
     overDismiss: over,
   });
   assert.equal(m.hotChanged, false);
-  assert.equal(release(m.drag, { overDismiss: true }), 'dismiss');
-  assert.equal(release(m.drag, { overDismiss: false }), 'snap');
+  // Over the target, but not for long: a snap. Rested there for the arming time: a dismissal.
+  assert.equal(release(m.drag, { overDismiss: true, now: 100 }), 'snap');
+  assert.equal(release(m.drag, { overDismiss: true, now: ARM_MS }), 'dismiss');
+  assert.equal(release(m.drag, { overDismiss: false, now: ARM_MS }), 'snap');
+  assert.equal(armed(m.drag, ARM_MS - 1), false);
+  assert.equal(armed(m.drag, ARM_MS), true);
 });

@@ -200,10 +200,12 @@ function createBubble({
   // sample means is lib/drag.
   let drag = null; // lib/drag state while pressed
   let dragTimer = null;
+  let dragState = 'idle'; // what the ✕ target was last told
   function endDrag() {
     clearInterval(dragTimer);
     dragTimer = null;
     drag = null;
+    dragState = 'idle';
   }
 
   const ipc = ipcFor(win);
@@ -226,17 +228,22 @@ function createBubble({
     dragTimer = setInterval(() => {
       const cursor = screen.getCursorScreenPoint();
       // Keep the disc fully on whichever display the cursor is over.
+      const now = Date.now();
       const step = dragLib.move(drag, {
         cursor,
         anchor,
         size: SIZE,
         area: screen.getDisplayNearestPoint(cursor).workArea,
         overDismiss: (p) => Boolean(dismiss) && dismiss.isOver({ ...p, width: SIZE, height: SIZE }),
+        now,
       });
       drag = step.drag;
       if (step.becameDrag && dismiss) dismiss.show(bounds()); // first real movement: reveal the ✕ target
       if (step.position) moveTo(step.position.x, step.position.y);
-      if (step.hotChanged && dismiss) dismiss.setHot(drag.hot);
+      // The target arms once the disc has rested on it: 'arming' while it waits, then 'armed'.
+      const state = !drag.hot ? 'idle' : dragLib.armed(drag, now) ? 'armed' : 'arming';
+      if (state !== dragState && dismiss) dismiss.setHot(state);
+      dragState = state;
     }, DRAG_TICK_MS);
   });
 
@@ -244,6 +251,7 @@ function createBubble({
     if (!drag) return;
     const outcome = dragLib.release(drag, {
       overDismiss: Boolean(dismiss) && dismiss.isOver(bounds()),
+      now: Date.now(),
     });
     endDrag();
     if (dismiss) dismiss.hide();
