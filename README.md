@@ -62,12 +62,15 @@ if you want your login gone too, `~/Library/Application Support/Bubble for Messe
   chat wears a white ring, and the others stay one click away. Click anywhere else, or the
   bubble, to put it all away. Messenger stays loaded in the background, so messages keep
   arriving.
-- **Pin a chat** — right-click a head → *Pin*. Up to five pinned chats sit next to the Inbox
-  head, under a hairline, whether or not they're recent; *Unpin* the same way.
+- **Hover a head** for its name; the pin badge that appears pins or unpins it (right-click →
+  *Pin* works too). Up to five pinned chats sit next to the Inbox head, under a hairline,
+  whether or not they're recent. The Inbox head's chip carries *···* for the app's menu.
+- **The disc says when something's wrong** — its mark dims when Messenger is unreachable
+  (hover for *Offline* / *Reconnecting…*) and shows *Sign in* when nobody is signed in.
 - **Straight back** — after closing a chat, clicking the bubble within the next 30 seconds (a
   setting) reopens that chat, stack and all, instead of just the stack.
 - **Drag to dismiss** — drag the bubble onto the ✕ target that appears at the bottom of the
-  screen to quit the app.
+  screen and hold it there a moment (a ring fills) to quit the app.
 - **Right-click the bubble** for *Open Messenger*, *Reload Messenger*, *Settings…*, *Reset Bubble
   Position* and *Quit*.
 - Persistent login, native notifications, dark mode, and links opening in your default browser
@@ -87,14 +90,15 @@ Right-click the bubble → **Settings…** (or Cmd+,). Every switch applies at o
   appears in the bubble's menu as *Update to X…*, which opens the release page. Nothing is
   downloaded on its own.
 - **Size** — Small / Medium / Large, for the disc, the chat heads and the banner.
-- **Unread count** — Off, Steady, or Pulsing (the count breathes slowly while anything is unread).
 
-**Messages**
+**Notifications**
 - **Banner when a message lands**, and whether it **shows the message** or only who wrote — for
   screen sharing or public places.
-- **Reply from the banner** — the ↩; off if the bubble should never take the keyboard.
+- **Reply from the banner** — the ↩ (or click the message text); off if the bubble should never
+  take the keyboard.
 - **macOS notifications from Messenger** — Messenger's own Notification Center banners, in
   addition to the bubble.
+- **Unread count** — Off, Steady, or Pulsing (the count breathes slowly while anything is unread).
 - **New-message sound** — this is Messenger's own switch (Preferences → Notification sounds);
   the *Open* button takes you there. Messenger keeps it per profile, so it starts off in Bubble
   even if it's on in your browser.

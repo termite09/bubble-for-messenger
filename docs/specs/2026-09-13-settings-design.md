@@ -13,11 +13,11 @@ design language, applied immediately and saved to the existing `settings.json`.
 | `startAtLogin` | `false` | Bubble | **Start at login.** |
 | `checkUpdates` | `true` | Bubble | **Check for updates.** Once a day GitHub's latest release is compared with this build; a newer one shows in the bubble's menu as "Update to X…" (opens the release page; nothing is downloaded). |
 | `bubbleSize` | `'small'` | Bubble | **Size**: Small / Medium / Large — 44 / 56 / 68 px for the disc, the chat heads and the banner. |
-| `banner` | `true` | Messages | **Banner when a message lands.** The disc unrolls for a few seconds. |
-| `bannerPreview` | `true` | Messages | **Show the message in the banner.** Off shows only who wrote — for screen sharing or public places. |
-| `quickReply` | `true` | Messages | **Reply from the banner.** The ↩ on the banner. Off if the bubble should never take the keyboard. |
-| `notifications` | `true` | Messages | **macOS notifications from Messenger.** Messenger's own Notification Center banners, in addition to the bubble. |
-| `badge` | `'steady'` | Bubble | **Unread count**: Off / Steady / Pulsing. Pulsing breathes the pill between full and a third while anything is unread. A boolean in an older `settings.json` migrates (`true` → steady, `false` → off). |
+| `banner` | `true` | Notifications | **Banner when a message lands.** The disc unrolls for a few seconds. |
+| `bannerPreview` | `true` | Notifications | **Show the message in the banner.** Off shows only who wrote — for screen sharing or public places. |
+| `quickReply` | `true` | Notifications | **Reply from the banner.** The ↩ on the banner. Off if the bubble should never take the keyboard. |
+| `notifications` | `true` | Notifications | **macOS notifications from Messenger.** Messenger's own Notification Center banners, in addition to the bubble. |
+| `badge` | `'steady'` | Notifications | **Unread count**: Off / Steady / Pulsing. Pulsing breathes the pill between full and a third while anything is unread. A boolean in an older `settings.json` migrates (`true` → steady, `false` → off). |
 | `theme` | `'system'` | Panel | **Appearance**: System / Light / Dark, of the Messenger panel. System follows macOS. |
 | `reopenLast` | `30` | Panel | **Reopen the last chat**: Off / 15 s / 30 s / 1 min / 5 min (seconds `0, 15, 30, 60, 300`). See `2026-09-14-stack-and-banner-design.md`. |
 | `spellcheck` | `true` | Panel | **Spell check.** |
@@ -88,9 +88,9 @@ onOpenMessengerPreferences })` returning `{ open(displayBounds), setOverFullscre
   section headings with a hairline rule, system-blue for an "on" switch, segmented controls
   for the three-way choices. Rows are 44 px min, 16 px side padding. A ✕ in the top-right; the
   title "Settings" as the card's header, and under it a full-width segmented tab bar — **Bubble**
-  (over full-screen, start at login, size, unread count), **Messages** (banner, show message,
-  reply, macOS notifications, sound), **Panel** (appearance, spell check; a Privacy caption for
-  telemetry). One pane is shown at a time; the tab is not remembered.
+  (over full-screen, start at login, size, unread count), **Notifications** (banner, show message,
+  reply, macOS notifications, unread count, sound), **Panel** (appearance, spell check, reopen; a
+  Privacy caption for telemetry). The rows fade across the height change. One pane is shown at a time; the tab is not remembered.
 - IPC: `settings:get`, `settings:set` (main: `isSettingKey` + normalize, save, apply, then
   broadcast `settings:changed` with the full object), `settings:close`, `settings:resize`,
   `settings:open-messenger-preferences` (→ `panel.openPreferences`: the inbox, then Messenger's

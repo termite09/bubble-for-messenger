@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+- Hover any head for its name; the pin badge appears on hover and pins or unpins on click.
+  The Inbox chip carries "···" (the app's menu) and "+N more" when rows were left out.
+- A clicked head shows its ring at once and dims until the chat is showing.
+- Reply states: a turning ring while sending, a tick once sent; a failure stays long enough
+  to read and says the text is in the chat.
+- Clicking the banner's message text opens the reply field.
+- The ✕ target arms only after the disc rests on it for a moment (a ring fills), so a fling
+  can no longer quit the app.
+- The disc's mark dims when Messenger is unreachable (hover: Offline / Reconnecting…) and a
+  "Sign in" chip appears when nobody is signed in; clicking the disc then opens the login page.
+- Settings tabs are Bubble / Notifications / Panel; the unread count lives with the other
+  notification settings; switching tabs fades instead of jumping.
+- The panel's hairline is black on the light theme.
+- On the first launch the disc introduces itself.
+
 ## v2.4.0 (2026-09-15) — Bubble for Messenger
 
 ### Security
