@@ -112,6 +112,10 @@
       main {
         flex: 1;
         padding-bottom: 8px;
+        transition: opacity 100ms linear;
+      }
+      main.switching {
+        opacity: 0;
       }
       section[hidden] {
         display: none;
@@ -327,10 +331,10 @@
             ><input
               type="radio"
               name="tab"
-              value="messages"
+              value="notifications"
               role="tab"
-              aria-controls="tab-messages"
-            /><span>Messages</span></label
+              aria-controls="tab-notifications"
+            /><span>Notifications</span></label
           >
           <label
             ><input
@@ -387,19 +391,8 @@
               >
             </div>
           </div>
-          <div class="row">
-            <div class="text">
-              <div class="name">Unread count</div>
-              <div class="sub">Pulsing breathes slowly while anything is unread.</div>
-            </div>
-            <div class="segments" role="radiogroup" aria-label="Unread count">
-              <label><input type="radio" name="badge" value="off" /><span>Off</span></label>
-              <label><input type="radio" name="badge" value="steady" /><span>Steady</span></label>
-              <label><input type="radio" name="badge" value="pulse" /><span>Pulsing</span></label>
-            </div>
-          </div>
         </section>
-        <section data-tab="messages" id="tab-messages" role="tabpanel" hidden>
+        <section data-tab="notifications" id="tab-notifications" role="tabpanel" hidden>
           <label class="row"
             ><div class="text">
               <div class="name">Banner when a message lands</div>
@@ -434,6 +427,17 @@
             <span class="switch"
               ><input type="checkbox" data-key="notifications" /><span></span></span
           ></label>
+          <div class="row">
+            <div class="text">
+              <div class="name">Unread count</div>
+              <div class="sub">Pulsing breathes slowly while anything is unread.</div>
+            </div>
+            <div class="segments" role="radiogroup" aria-label="Unread count">
+              <label><input type="radio" name="badge" value="off" /><span>Off</span></label>
+              <label><input type="radio" name="badge" value="steady" /><span>Steady</span></label>
+              <label><input type="radio" name="badge" value="pulse" /><span>Pulsing</span></label>
+            </div>
+          </div>
           <div class="row">
             <div class="text">
               <div class="name">New-message sound</div>

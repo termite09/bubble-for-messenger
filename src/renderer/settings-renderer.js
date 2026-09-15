@@ -34,17 +34,31 @@ window.addEventListener('keydown', (e) => {
 
 // One pane in the flow at a time; the window is made as tall as that pane needs. (The card
 // fills the window, so its own height says nothing: the parts are measured instead.)
+// The rows fade out, the window takes its new height (macOS animates it), the new rows fade
+// in — so a switch reads as one motion rather than a jump.
+let first = true;
 function showTab(name) {
-  let shown;
-  for (const section of document.querySelectorAll('main > section')) {
-    section.hidden = section.dataset.tab !== name;
-    if (!section.hidden) shown = section;
+  const main = document.querySelector('main');
+  const swap = () => {
+    let shown;
+    for (const section of document.querySelectorAll('main > section')) {
+      section.hidden = section.dataset.tab !== name;
+      if (!section.hidden) shown = section;
+    }
+    for (const tab of document.querySelectorAll('input[name="tab"]'))
+      tab.setAttribute('aria-selected', String(tab.value === name));
+    const chrome =
+      document.querySelector('header').offsetHeight + document.querySelector('nav').offsetHeight;
+    window.settingsApi.resize(chrome + shown.offsetHeight + 8 + 2); // main's padding-bottom, the card's hairlines
+    main.classList.remove('switching');
+  };
+  if (first) {
+    first = false;
+    swap();
+    return;
   }
-  for (const tab of document.querySelectorAll('input[name="tab"]'))
-    tab.setAttribute('aria-selected', String(tab.value === name));
-  const chrome =
-    document.querySelector('header').offsetHeight + document.querySelector('nav').offsetHeight;
-  window.settingsApi.resize(chrome + shown.offsetHeight + 8 + 2); // main's padding-bottom, the card's hairlines
+  main.classList.add('switching');
+  setTimeout(swap, 100);
 }
 
 window.settingsApi.onSettings(render);
