@@ -103,3 +103,16 @@ test('reloads back off while nothing improves, and the backoff resets once the p
   s = reduce(s, 'resume', 30 * MIN);
   assert.equal(decide(s, { ...up, now: 30 * MIN + BACKOFF_MS[0] }).reload, true);
 });
+
+// The Mac's dark wakes run the app for a moment with no network: nothing that happens between
+// suspend and resume is a reason to reload; the resume itself is.
+test('asleep means no reloads, whatever the page looks like; the wake reloads once', () => {
+  let s = play([
+    ['loaded', 0],
+    ['request-ok', MIN],
+    ['suspend', 2 * MIN],
+  ]);
+  assert.deepEqual(decide(s, { ...up, now: 30 * MIN }), { reload: false, reason: 'asleep' });
+  s = reduce(s, 'resume', 60 * MIN);
+  assert.deepEqual(decide(s, { ...up, now: 60 * MIN + 1 }), { reload: true, reason: 'resume' });
+});

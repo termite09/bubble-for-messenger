@@ -117,6 +117,7 @@ function createPanel({
   ses.webRequest.onErrorOccurred(metaFilter, (d) => {
     if (d.resourceType === 'webSocket') note('socket-error');
   });
+  powerMonitor.on('suspend', () => note('suspend'));
   powerMonitor.on('resume', () => note('resume'));
   win.webContents.on('did-fail-load', (_e, code, _desc, _url, isMainFrame) => {
     if (isMainFrame && code !== -3) note('fail-load');

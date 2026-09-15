@@ -15,6 +15,7 @@ const initial = (now) => ({
   lastRequestAt: now,
   socketErrorAt: null,
   resumePending: false,
+  suspended: false, // between the Mac's suspend and its resume: dark wakes run us, briefly, offline
   failLoadAt: null,
   failCount: 0,
   lastReloadAt: null,
@@ -41,8 +42,10 @@ function reduce(state, event, now) {
       return { ...state, socketErrorAt: state.socketErrorAt || now };
     case 'request-ok':
       return { ...alive(state, now), lastRequestAt: now };
+    case 'suspend':
+      return { ...state, suspended: true };
     case 'resume':
-      return { ...state, resumePending: true };
+      return { ...state, resumePending: true, suspended: false };
     case 'reload':
       return {
         ...state,
@@ -67,6 +70,7 @@ const alive = (state, now) =>
 function decide(state, { visible, online, now }) {
   const none = (reason) => ({ reload: false, reason });
   if (visible) return none('visible');
+  if (state.suspended) return none('asleep');
   if (!online) return none('offline');
   const backoff =
     state.lastReloadAt === null
