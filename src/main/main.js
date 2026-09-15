@@ -553,10 +553,21 @@ app.whenReady().then(() => {
     60 * 60 * 1000,
   ).unref();
 
-  // First run: nothing to show until the user signs in, so bring the inbox (the login page) up.
+  // First run: nothing to show until the user signs in, so bring the inbox (the login page) up,
+  // and let the disc introduce itself.
   if (!store.existed)
     panel.win.webContents.once('did-finish-load', () =>
-      setTimeout(() => panel.openInbox(bubble.getBounds()), 500),
+      setTimeout(() => {
+        panel.openInbox(bubble.getBounds());
+        bubble.landed({
+          href: null,
+          name: 'Welcome to Bubble',
+          preview:
+            'Sign in to Messenger beside me. Then: click me for your chats, right-click for settings, drag me anywhere.',
+          avatar: null,
+          hold: 30000,
+        });
+      }, 500),
     );
 
   // Development only: what a driver attached over --inspect needs to see and poke.

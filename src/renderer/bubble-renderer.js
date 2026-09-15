@@ -306,16 +306,19 @@ const fold = (after) => {
   landedTimer = setTimeout(() => body.classList.remove('landed'), after);
 };
 
+// A banner with no chat behind it (the first-run welcome) has nothing to open or reply to;
+// a click folds it.
 window.bubbleApi.onLanded((item) => {
   if (replying() || sending) return; // don't yank a reply out from under the user
-  landedHref = item.href;
+  landedHref = item.href || null;
   fillAvatar(landedAv, item);
   landedName.textContent = item.name;
   landedSub.textContent = item.preview || 'New message';
   body.classList.remove('sent', 'failed');
+  body.classList.toggle('notice', !landedHref);
   landedInput.placeholder = 'Reply to ' + item.name;
   body.classList.add('landed');
-  fold(4000);
+  fold(item.hold || 4000);
 });
 // Clicking the banner opens that conversation. It lives inside the disc, so stop the press
 // from starting a drag and the release from counting as a disc click.
@@ -327,10 +330,10 @@ landed.addEventListener('mouseleave', () => {
 });
 landed.addEventListener('click', (e) => {
   e.stopPropagation();
-  if (!landedHref || replying() || sending) return;
+  if (replying() || sending) return;
   body.classList.remove('landed');
   clearTimeout(landedTimer);
-  window.bubbleApi.openChat(landedHref);
+  if (landedHref) window.bubbleApi.openChat(landedHref);
 });
 
 // ---- Reply from the banner --------------------------------------------------------------------
