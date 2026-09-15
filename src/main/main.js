@@ -13,6 +13,7 @@ const { isTelemetryUrl } = require('../lib/telemetry');
 const { normalizeSettings, isSettingKey, isPermissionGranted, isMetaOrigin, BUBBLE_SIZES } = require('../lib/settings');
 const { removeStaleLockFiles } = require('../lib/storage');
 const { createLog } = require('./log');
+const { createSettingsStore } = require('./settings-store');
 
 const RECENT_POLL_MS = 5000;
 
@@ -23,6 +24,8 @@ const legacyUserData = path.join(app.getPath('appData'), 'MessengerBubble');
 if (!fs.existsSync(userData) && fs.existsSync(legacyUserData)) {
   try { fs.renameSync(legacyUserData, userData); } catch (e) {}
 }
+// The profile is the user's alone, like every Chromium profile.
+try { fs.mkdirSync(userData, { recursive: true, mode: 0o700 }); fs.chmodSync(userData, 0o700); } catch (e) {}
 app.setPath('userData', userData);
 
 // One copy at a time: a second launch hands over to the running one and leaves. This must come
@@ -39,22 +42,10 @@ process.on('uncaughtException', (err) => log.error('uncaught exception', { err }
 app.on('render-process-gone', (_event, wc, details) => log.error('renderer gone', { url: wc.getURL().split('?')[0], reason: details.reason, exitCode: details.exitCode }));
 app.on('child-process-gone', (_event, details) => log.error('child process gone', { type: details.type, reason: details.reason, exitCode: details.exitCode }));
 
-function loadSettings() {
-  try {
-    return JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-  } catch (e) {
-    return {};
-  }
-}
-
-function saveSettings() {
-  try {
-    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
-  } catch (e) {}
-}
-
-let settings = normalizeSettings(loadSettings());
-const settingsListeners = new Set(); // called with the full settings after every change
+// The settings: one store (load, normalise, atomic save), mirrored here for the many readers.
+const store = createSettingsStore({ file: settingsPath, normalize: normalizeSettings, log, positionDelayMs: 300 });
+let settings = store.get();
+store.subscribe((next, prev) => { settings = next; applySettings(prev); });
 
 let bubble;
 let panel;
@@ -62,15 +53,10 @@ let dismiss;
 let settingsWindow;
 let lastUnread = 0;
 
-// One setting changed on the page: normalize, save, apply what differs, tell every listener.
+// One setting changed on the page: the store normalises, saves and notifies; applySettings
+// runs from the subscription above. Only page-visible keys may come this way.
 function updateSetting(key, value) {
-  if (!isSettingKey(key)) return settings;
-  const prev = settings;
-  settings = normalizeSettings({ ...settings, [key]: value });
-  saveSettings();
-  applySettings(prev);
-  for (const fn of settingsListeners) fn(settings);
-  return settings;
+  return isSettingKey(key) ? store.set(key, value) : settings;
 }
 
 // What the bubble page needs to know: the reply control, how the count shows, and the disc size.
@@ -161,12 +147,11 @@ function refreshPins() {
     changed = true;
     return { href: p.href, name: row.name, avatarUrl: row.avatarUrl };
   });
-  if (changed) { settings = normalizeSettings({ ...settings, pins }); saveSettings(); }
+  if (changed) store.patch({ pins });
 }
 
 function setPins(pins) {
-  settings = normalizeSettings({ ...settings, pins });
-  saveSettings();
+  store.patch({ pins });
   if (bubble.isExpanded()) showStack(false);
 }
 
@@ -356,7 +341,6 @@ app.whenReady().then(() => {
 
   dismiss = createDismissTarget({ overFullscreen: settings.overFullscreen });
 
-  let saveTimer;
   bubble = createBubble({
     position: settings.bubble,
     dismiss,
@@ -390,16 +374,14 @@ app.whenReady().then(() => {
     onDismiss: () => app.quit(),
     onMoved: (pos) => {
       panel.follow(bubble.getStackBounds());
-      settings.bubble = pos;
-      clearTimeout(saveTimer);
-      saveTimer = setTimeout(saveSettings, 300);
+      store.setPosition(pos);
     },
   });
 
   settingsWindow = createSettingsWindow({
     getSettings: () => settings,
     setSetting: updateSetting,
-    subscribe: (fn) => settingsListeners.add(fn),
+    subscribe: (fn) => store.subscribe((s) => fn(s)),
     // Messenger's own switches (notification sounds among them) live in its Preferences.
     onOpenMessengerPreferences: () => { activeHref = null; panel.openPreferences(bubble.getBounds()); },
   });
