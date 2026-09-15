@@ -348,6 +348,13 @@ function closeReply() {
   body.classList.remove('replying');
   window.bubbleApi.replyFocus(false);
 }
+// The message itself is the reply affordance too: clicking it opens the field (the name row
+// still opens the chat). Off with the reply setting, when it opens the chat like the rest.
+landedSub.addEventListener('click', (e) => {
+  if (body.classList.contains('no-reply') || !landedHref || sending) return;
+  e.stopPropagation();
+  openReply();
+});
 landedReply.addEventListener('click', (e) => {
   e.stopPropagation();
   openReply();

@@ -566,6 +566,14 @@
           transform: rotate(360deg);
         }
       }
+      /* Hovering the message brightens it and the ↩, the way a place to type announces itself. */
+      body:not(.no-reply):not(.replying):not(.sending) #landed-sub:hover {
+        color: var(--ink);
+      }
+      body:not(.no-reply) #landed-sub:hover ~ #landed-reply {
+        background: var(--rule);
+        color: var(--ink);
+      }
       body.sending #landed-reply {
         display: none;
       }
