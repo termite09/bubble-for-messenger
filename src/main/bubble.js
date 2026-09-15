@@ -31,7 +31,7 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
 
   const win = createFloatingWindow({
     level: 'screen-saver', x: anchor.x, y: anchor.y, width: SIZE, height: SIZE, focusable: false, overFullscreen,
-    page: 'bubble.html', preload: 'bubble-preload.js', webPreferences: { zoomFactor: scale },
+    page: 'bubble.html', preload: 'bubble-preload.js', webPreferences: { zoomFactor: scale, webgl: false },
   });
   win.setIgnoreMouseEvents(true, { forward: true });
   win.once('ready-to-show', () => { win.showInactive(); applyBounds(); });

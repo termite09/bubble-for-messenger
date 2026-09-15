@@ -77,7 +77,8 @@ function applySettings(prev) {
   if ((changed('quickReply') || changed('badge') || changed('bubbleSize')) && bubble) bubble.setSettings(rendererSettings());
   if (changed('theme')) nativeTheme.themeSource = settings.theme;
   if (changed('spellcheck') && panel) panel.session().setSpellCheckerEnabled(settings.spellcheck);
-  // banner, bannerPreview, notifications and blockTelemetry are read where they matter.
+  if (changed('blockTelemetry')) blockTelemetry(settings.blockTelemetry);
+  // banner, bannerPreview, notifications, reopenLast and pins are read where they matter.
 }
 // The chat state (lib/chats): the list as last read, the open chat, the one put away.
 let chats = chatsLib.initialState();
@@ -174,11 +175,11 @@ function restrictPermissions() {
 
 // Drop Facebook's logging beacons at the network layer. Only the pure telemetry sinks listed in
 // lib/telemetry are cancelled; everything Messenger needs to work passes untouched.
-function blockTelemetry() {
-  session.defaultSession.webRequest.onBeforeRequest(
-    { urls: ['*://*.facebook.com/*', '*://*.messenger.com/*'] },
-    (details, callback) => callback({ cancel: settings.blockTelemetry && isTelemetryUrl(details.url) }),
-  );
+// The listener costs every matching request a hop through the main process, so it is only
+// registered while the setting is on.
+function blockTelemetry(on) {
+  const filter = { urls: ['*://*.facebook.com/*', '*://*.messenger.com/*'] };
+  session.defaultSession.webRequest.onBeforeRequest(filter, on ? (details, callback) => callback({ cancel: isTelemetryUrl(details.url) }) : null);
 }
 
 const runInPanel = (js) => panel && scrape.run(panel.win.webContents, js, { userGesture: true }).catch(() => {});
@@ -317,7 +318,7 @@ app.whenReady().then(() => {
   createMenu();
   persistFacebookCookies();
   restrictPermissions();
-  blockTelemetry();
+  blockTelemetry(settings.blockTelemetry); // before the panel starts loading
 
   panel = createPanel({
     log,

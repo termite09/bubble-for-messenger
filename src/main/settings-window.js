@@ -17,7 +17,7 @@ function createSettingsWindow({ getSettings, setSetting, subscribe, onOpenMessen
     if (win) return win;
     win = createFloatingWindow({
       level: 'floating', width: WIDTH, height: HEIGHT, overFullscreen, hasShadow: true,
-      page: 'settings.html', preload: 'settings-preload.js',
+      page: 'settings.html', preload: 'settings-preload.js', webPreferences: { webgl: false },
     });
     win.on('closed', () => { win = null; });
     wire(win);

@@ -11,37 +11,47 @@ const BOTTOM_MARGIN = 40;
 // A drop target that appears at the bottom-centre of the display while the bubble is being
 // dragged. Dropping the bubble onto it dismisses (quits) the app.
 function createDismissTarget({ overFullscreen = true } = {}) {
-  const win = createFloatingWindow({
-    level: 'screen-saver', width: SIZE, height: SIZE, focusable: false, overFullscreen,
-    page: 'dismiss.html', preload: 'dismiss-preload.js',
-  });
-  win.setIgnoreMouseEvents(true);
-
+  let win = null;
+  let over = overFullscreen;
   let center = null; // screen point of the target centre while shown
 
+  // Made on the first drag: most launches never see one.
+  function ensure() {
+    if (win) return win;
+    win = createFloatingWindow({
+      level: 'screen-saver', width: SIZE, height: SIZE, focusable: false, overFullscreen: over,
+      page: 'dismiss.html', preload: 'dismiss-preload.js', paintWhenInitiallyHidden: false, webPreferences: { webgl: false },
+    });
+    win.setIgnoreMouseEvents(true);
+    return win;
+  }
+
   return {
-    win,
     // Show centred at the bottom of the display the bubble is on.
     show(bubbleBounds) {
+      const w = ensure();
       const area = screen.getDisplayMatching(bubbleBounds).workArea;
       const x = Math.round(area.x + area.width / 2 - SIZE / 2);
       const y = Math.round(area.y + area.height - SIZE - BOTTOM_MARGIN);
-      win.setBounds({ x, y, width: SIZE, height: SIZE });
+      w.setBounds({ x, y, width: SIZE, height: SIZE });
       center = { x: x + SIZE / 2, y: y + SIZE / 2 };
-      win.showInactive();
+      w.showInactive();
     },
     hide() {
       center = null;
-      win.hide();
+      if (win) win.hide();
     },
     // True when the bubble centre is within the hit radius of the target.
     isOver(bubbleBounds) {
       return center ? centerWithin(bubbleBounds, center, HIT_RADIUS) : false;
     },
     setHot(hot) {
-      win.webContents.send(CHANNELS.DISMISS_HOT, hot);
+      if (win) win.webContents.send(CHANNELS.DISMISS_HOT, hot);
     },
-    setOverFullscreen: (on) => joinAllSpaces(win, on),
+    setOverFullscreen(on) {
+      over = on;
+      if (win) joinAllSpaces(win, on);
+    },
   };
 }
 

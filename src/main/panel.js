@@ -20,7 +20,8 @@ function createPanel({ onUnread, onShown = () => {}, onBlurred = () => {}, overF
     level: 'floating', width: 420, height: 640, overFullscreen, hasShadow: true,
     url: 'https://www.messenger.com',
     // The page spends its life hidden; throttled timers would let its live connection lapse.
-    webPreferences: { backgroundThrottling: false },
+    // Its scripts are the same multi-megabyte bundle every load: cache them compiled.
+    webPreferences: { backgroundThrottling: false, v8CacheOptions: 'bypassHeatCheck' },
   });
 
   win.on('blur', () => { win.hide(); onBlurred(); });

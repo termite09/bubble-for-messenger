@@ -48,32 +48,39 @@ function fillAvatar(target, item) {
 }
 
 // A head: the contact's photo filling a 44px disc, name as the tooltip, blue dot when unread.
-// Right-click pins or unpins it (main shows the menu).
+// Right-click pins or unpins it (main shows the menu). Heads are kept between refreshes and
+// brought up to date in place, so a refresh never re-decodes pictures or restarts a hover.
+const PIN_SVG = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M7.5 1l3.5 3.5-1.2 1.2-.6-.3L7 7.6V9l-.7.7L4.5 7.9 1.9 10.5 1.2 9.8l2.6-2.6-1.8-1.8.7-.7h1.4l2.2-2.2-.3-.6z"/></svg>';
 function headEl(item) {
   const el = document.createElement('div');
-  el.className = 'head card' + (item.unread ? ' unread' : '') + (item.pinned ? ' pinned' : '');
+  el.className = 'head card';
   el.dataset.href = item.href;
-  el.title = item.name;
-  if (item.avatar) {
-    const img = document.createElement('img');
-    img.src = item.avatar;
-    img.alt = '';
-    el.appendChild(img);
-  } else {
-    const initial = document.createElement('div');
-    initial.className = 'initial';
-    initial.textContent = item.name.slice(0, 1).toUpperCase();
-    el.appendChild(initial);
-  }
+  el.appendChild(document.createElement('div')); // the picture or initial
   const dot = document.createElement('div');
   dot.className = 'dot';
   el.appendChild(dot);
   const pin = document.createElement('div');
   pin.className = 'pin';
-  pin.innerHTML = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M7.5 1l3.5 3.5-1.2 1.2-.6-.3L7 7.6V9l-.7.7L4.5 7.9 1.9 10.5 1.2 9.8l2.6-2.6-1.8-1.8.7-.7h1.4l2.2-2.2-.3-.6z"/></svg>';
+  pin.innerHTML = PIN_SVG;
   el.appendChild(pin);
   el.addEventListener('click', () => window.bubbleApi.openChat(item.href));
   el.addEventListener('contextmenu', (e) => { e.preventDefault(); e.stopPropagation(); window.bubbleApi.headMenu(item.href); });
+  return updateHead(el, item);
+}
+
+function updateHead(el, item) {
+  el.classList.toggle('unread', Boolean(item.unread));
+  el.classList.toggle('pinned', Boolean(item.pinned));
+  if (el.title !== item.name) el.title = item.name;
+  const face = el.firstChild;
+  if (item.avatar) {
+    if (face.tagName !== 'IMG') { const img = document.createElement('img'); img.alt = ''; face.replaceWith(img); }
+    if (el.firstChild.src !== item.avatar) el.firstChild.src = item.avatar;
+  } else {
+    if (face.tagName !== 'DIV') { const d = document.createElement('div'); face.replaceWith(d); }
+    el.firstChild.className = 'initial';
+    el.firstChild.textContent = item.name.slice(0, 1).toUpperCase();
+  }
   return el;
 }
 
@@ -133,13 +140,16 @@ window.bubbleApi.onFan((data) => {
   if (!data || data.animate === 'clear') { fan.replaceChildren(); body.classList.remove('open'); return; }
   if (data.animate === 'out') { body.classList.remove('open'); return; }
   const wasOpen = body.classList.contains('open');
-  fan.replaceChildren();
   // items arrive newest-first and read top-down, pinned ones last; the inbox closes the list.
-  const els = data.items.map(headEl);
+  // Existing heads are reused by href and reordered; only what changed is touched.
+  const existing = new Map([...fan.querySelectorAll('.head[data-href]')].map((el) => [el.dataset.href, el]));
+  const inbox = fan.querySelector('.head.inbox') || inboxEl();
+  const els = data.items.map((item) => (existing.has(item.href) ? updateHead(existing.get(item.href), item) : headEl(item)));
+  for (const el of els) el.classList.remove('first-pinned');
   const firstPinned = els.find((el) => el.classList.contains('pinned'));
   if (firstPinned && firstPinned !== els[0]) firstPinned.classList.add('first-pinned');
-  els.push(inboxEl());
-  for (const el of els) fan.appendChild(el);
+  els.push(inbox);
+  fan.replaceChildren(...els); // moves the kept nodes; nothing is re-created
   setDistances();
   markActive();
   if (data.animate === 'in' && !wasOpen) {
