@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v2.4.0 (2026-09-15) — Bubble for Messenger
 
 ### Security
 - Server-side redirects can no longer carry the Messenger panel (and the session) off Meta's
