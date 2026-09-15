@@ -302,6 +302,8 @@ function createBubble({
     // otherwise just the disc.
     getStackBounds: () =>
       stackBounds({ anchor, size: SIZE, scale, fanCount, bannerExtra, area: area() }),
+    // The chat the page was asked for is now showing: its head stops looking busy.
+    opened: () => win.webContents.send(CHANNELS.BUBBLE_OPENED),
     setActive: (href) => {
       lastActive = href;
       win.webContents.send(CHANNELS.BUBBLE_ACTIVE, href);

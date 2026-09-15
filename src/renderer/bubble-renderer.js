@@ -94,7 +94,12 @@ function headEl(item) {
   pin.className = 'pin';
   pin.innerHTML = PIN_SVG;
   el.appendChild(pin);
-  el.addEventListener('click', () => window.bubbleApi.openChat(item.href));
+  // The ring goes on and the head dims at once; the panel takes a moment to show.
+  el.addEventListener('click', () => {
+    setActive(item.href);
+    el.classList.add('busy');
+    window.bubbleApi.openChat(item.href);
+  });
   el.addEventListener('contextmenu', (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -229,6 +234,10 @@ function setActive(href) {
   markActive();
 }
 window.bubbleApi.onActive(setActive);
+const clearBusy = () => {
+  for (const el of fan.querySelectorAll('.head.busy')) el.classList.remove('busy');
+};
+window.bubbleApi.onOpened(clearBusy);
 
 // ---- "A message landed" ----------------------------------------------------------------------
 const landedInput = document.getElementById('landed-input');
@@ -267,6 +276,7 @@ window.bubbleApi.onLanded((item) => {
   fillAvatar(landedAv, item);
   landedName.textContent = item.name;
   landedSub.textContent = item.preview || 'New message';
+  body.classList.remove('sent', 'failed');
   landedInput.placeholder = 'Reply to ' + item.name;
   body.classList.add('landed');
   fold(4000);
@@ -320,6 +330,7 @@ landedInput.addEventListener('keydown', (e) => {
   sending = true;
   closeReply();
   body.classList.add('sending');
+  body.classList.remove('sent', 'failed');
   landedSub.textContent = 'Sending…';
   window.bubbleApi.sendReply(landedHref, text);
   // Main answers within its 12 s budget; should the answer never come (a crashed page, say),
@@ -339,8 +350,10 @@ function replyResult(ok) {
   clearTimeout(sendTimer);
   sending = false;
   body.classList.remove('sending');
-  landedSub.textContent = ok ? 'Sent' : 'Couldn’t send — opened the chat';
-  fold(ok ? 1200 : 300);
+  body.classList.add(ok ? 'sent' : 'failed');
+  // A tick for a moment; a failure stays long enough to read, and says where the text went.
+  landedSub.textContent = ok ? 'Sent' : 'Couldn’t send — your text is in the chat';
+  fold(ok ? 1200 : 4000);
 }
 window.bubbleApi.onReplyResult(replyResult);
 

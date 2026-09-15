@@ -449,7 +449,10 @@ app.whenReady().then(() => {
       }
     },
     onRows: (rows) => refreshRecent(rows),
-    onShown: syncActive,
+    onShown: () => {
+      syncActive();
+      if (bubble) bubble.opened();
+    },
     onBlurred: rememberChat,
   });
   setInterval(refreshRecent, RECENT_POLL_MS);

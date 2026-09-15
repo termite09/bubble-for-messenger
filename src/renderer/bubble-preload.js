@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('bubbleApi', {
   onFan: (cb) => ipcRenderer.on('bubble:fan', (_event, data) => cb(data)),
   onLayout: (cb) => ipcRenderer.on('bubble:layout', (_event, data) => cb(data)),
   onActive: (cb) => ipcRenderer.on('bubble:active', (_event, href) => cb(href)),
+  onOpened: (cb) => ipcRenderer.on('bubble:opened', () => cb()),
   onLanded: (cb) => ipcRenderer.on('bubble:landed', (_event, item) => cb(item)),
   replyFocus: (on) => ipcRenderer.send('bubble:reply-focus', Boolean(on)),
   bannerExtra: (px) => ipcRenderer.send('bubble:banner-extra', px),

@@ -17,6 +17,7 @@ const CHANNELS = Object.freeze({
   BUBBLE_LAYOUT: 'bubble:layout',
   BUBBLE_FAN: 'bubble:fan',
   BUBBLE_ACTIVE: 'bubble:active',
+  BUBBLE_OPENED: 'bubble:opened',
   BUBBLE_BADGE: 'bubble:badge',
   BUBBLE_LANDED: 'bubble:landed',
   BUBBLE_REPLY_RESULT: 'bubble:reply-result',

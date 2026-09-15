@@ -314,11 +314,20 @@
         height: 1px;
         background: var(--rule);
       }
-      /* The open conversation: a paper ring outside the hairline. */
+      /* The open conversation: a paper ring outside the hairline. While its chat is still on
+         its way the face dims, so a click reads as taken the moment it lands. */
       .head.active {
         box-shadow:
           var(--lift),
           0 0 0 2px var(--ink);
+      }
+      .head img,
+      .head .initial {
+        transition: opacity 160ms linear;
+      }
+      .head.busy img,
+      .head.busy .initial {
+        opacity: 0.55;
       }
       .dot {
         position: absolute;
@@ -481,6 +490,36 @@
       body.replying #landed:hover {
         background: var(--card);
       }
+      /* Reply states: a turning ring while sending, a paper tick once sent, ash for a failure. */
+      body.sending #landed-sub::before,
+      body.sent #landed-sub::before {
+        content: '';
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        margin-right: 6px;
+        vertical-align: -1px;
+        box-sizing: border-box;
+        border-radius: 5px;
+      }
+      body.sending #landed-sub::before {
+        border: 1.5px solid var(--dim);
+        border-top-color: var(--ink);
+        animation: turn 800ms linear infinite;
+      }
+      body.sent #landed-sub::before {
+        background: var(--ink);
+        -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M2 5.2l2.2 2.2L8 3' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+          center / contain no-repeat;
+      }
+      body.sent #landed-sub {
+        color: var(--ink);
+      }
+      @keyframes turn {
+        to {
+          transform: rotate(360deg);
+        }
+      }
       body.sending #landed-reply {
         display: none;
       }
@@ -490,6 +529,10 @@
 
       /* Reduce Motion: no travel, just the crossfade. */
       @media (prefers-reduced-motion: reduce) {
+        body.sending #landed-sub::before {
+          animation: none;
+          border-top-color: var(--dim);
+        }
         #count {
           transition: none;
         }
