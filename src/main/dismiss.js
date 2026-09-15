@@ -1,4 +1,5 @@
 const { BrowserWindow, screen } = require('electron');
+const { CHANNELS } = require('../lib/ipc');
 const path = require('path');
 const { centerWithin } = require('../lib/layout');
 const { joinAllSpaces } = require('./workspaces');
@@ -47,7 +48,7 @@ function createDismissTarget({ overFullscreen = true } = {}) {
       return center ? centerWithin(bubbleBounds, center, HIT_RADIUS) : false;
     },
     setHot(hot) {
-      win.webContents.send('dismiss:hot', hot);
+      win.webContents.send(CHANNELS.DISMISS_HOT, hot);
     },
     setOverFullscreen: (on) => joinAllSpaces(win, on),
   };

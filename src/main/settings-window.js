@@ -1,4 +1,5 @@
 const { BrowserWindow, ipcMain, screen } = require('electron');
+const { CHANNELS } = require('../lib/ipc');
 const path = require('path');
 const { joinAllSpaces } = require('./workspaces');
 
@@ -33,18 +34,18 @@ function createSettingsWindow({ getSettings, setSetting, subscribe, onOpenMessen
   }
 
   const owns = (e) => Boolean(win) && e.sender === win.webContents;
-  ipcMain.handle('settings:get', (e) => (owns(e) ? getSettings() : null));
-  ipcMain.on('settings:set', (e, key, value) => { if (owns(e)) setSetting(key, value); });
-  ipcMain.on('settings:close', (e) => { if (owns(e)) win.hide(); });
+  ipcMain.handle(CHANNELS.SETTINGS_GET, (e) => (owns(e) ? getSettings() : null));
+  ipcMain.on(CHANNELS.SETTINGS_SET, (e, key, value) => { if (owns(e)) setSetting(key, value); });
+  ipcMain.on(CHANNELS.SETTINGS_CLOSE, (e) => { if (owns(e)) win.hide(); });
   // The page reports how tall the pane it shows is; the card's top edge stays put.
-  ipcMain.on('settings:resize', (e, height) => {
+  ipcMain.on(CHANNELS.SETTINGS_RESIZE, (e, height) => {
     if (!owns(e) || !Number.isFinite(height)) return;
     const h = Math.round(Math.min(Math.max(height, MIN_HEIGHT), MAX_HEIGHT));
     const { x, y } = win.getBounds();
     win.setBounds({ x, y, width: WIDTH, height: h }, true);
   });
-  ipcMain.on('settings:open-messenger-preferences', (e) => { if (owns(e)) onOpenMessengerPreferences(); });
-  subscribe((s) => { if (win) win.webContents.send('settings:changed', s); });
+  ipcMain.on(CHANNELS.SETTINGS_OPEN_MESSENGER_PREFERENCES, (e) => { if (owns(e)) onOpenMessengerPreferences(); });
+  subscribe((s) => { if (win) win.webContents.send(CHANNELS.SETTINGS_CHANGED, s); });
 
   return {
     // Centre the card in the work area of the display holding `bounds` (the bubble).

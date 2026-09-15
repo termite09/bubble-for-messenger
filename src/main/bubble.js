@@ -1,4 +1,5 @@
 const { BrowserWindow, ipcMain, screen } = require('electron');
+const { CHANNELS } = require('../lib/ipc');
 const path = require('path');
 const { isClick, clampToArea, fanLayout, windowFrame, snapToEdge, EDGE_MARGIN } = require('../lib/layout');
 const { isThreadHref } = require('../lib/recent');
@@ -48,7 +49,7 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
   let lastSettings = null;
   win.webContents.on('did-finish-load', () => {
     win.webContents.setZoomFactor(scale);
-    if (lastSettings) win.webContents.send('bubble:settings', lastSettings);
+    if (lastSettings) win.webContents.send(CHANNELS.BUBBLE_SETTINGS, lastSettings);
     applyBounds(); // the page's placement inside the window, lost with the old document
   });
 
@@ -111,7 +112,7 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
   function applyBounds() {
     const l = layout();
     win.setBounds(l.window);
-    win.webContents.send('bubble:layout', l.renderer);
+    win.webContents.send(CHANNELS.BUBBLE_LAYOUT, l.renderer);
   }
 
   function moveTo(x, y) {
@@ -172,16 +173,16 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
     shield.hide();
     const gen = ++animGen;
     if (immediate) {
-      win.webContents.send('bubble:fan', { animate: 'clear' });
+      win.webContents.send(CHANNELS.BUBBLE_FAN, { animate: 'clear' });
       fanCount = 0;
       return;
     }
-    win.webContents.send('bubble:fan', { animate: 'out' });
+    win.webContents.send(CHANNELS.BUBBLE_FAN, { animate: 'out' });
     // Let the fold play, then drop the rows and shrink the window. Sizing on fanCount (not
     // `expanded`) keeps the window large while rows still take layout height.
     setTimeout(() => {
       if (gen !== animGen || expanded) return;
-      win.webContents.send('bubble:fan', { animate: 'clear' });
+      win.webContents.send(CHANNELS.BUBBLE_FAN, { animate: 'clear' });
       fanCount = 0;
       applyBounds();
     }, COLLAPSE_MS);
@@ -204,14 +205,14 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
     shield.setBounds(screen.getDisplayMatching(bounds()).bounds);
     if (!shield.isVisible()) shield.showInactive();
     // 'in' plays the deploy; 'update' just swaps the contents (used by the periodic refresh).
-    win.webContents.send('bubble:fan', { animate: animate ? 'in' : 'update', items });
+    win.webContents.send(CHANNELS.BUBBLE_FAN, { animate: animate ? 'in' : 'update', items });
   }
 
   // While the mouse button is down we poll the cursor and move the window under it.
   let drag = null; // { timer, offsetX, offsetY, cursor, collapsedOnPress, moved }
   const owns = (e) => e.sender === win.webContents;
 
-  ipcMain.on('bubble:drag-start', (e) => {
+  ipcMain.on(CHANNELS.BUBBLE_DRAG_START, (e) => {
     if (!owns(e) || drag) return;
     stopSnap();
     const collapsedOnPress = expanded;
@@ -236,7 +237,7 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
     }, 16);
   });
 
-  ipcMain.on('bubble:drag-end', (e) => {
+  ipcMain.on(CHANNELS.BUBBLE_DRAG_END, (e) => {
     if (!owns(e) || !drag) return;
     clearInterval(drag.timer);
     const { collapsedOnPress, moved } = drag;
@@ -255,37 +256,37 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
     if (!collapsedOnPress) onClick();
   });
 
-  ipcMain.on('bubble:head-menu', (e, href) => {
+  ipcMain.on(CHANNELS.BUBBLE_HEAD_MENU, (e, href) => {
     if (owns(e) && isThreadHref(href)) onHeadMenu(href);
   });
-  ipcMain.on('bubble:context-menu', (e) => {
+  ipcMain.on(CHANNELS.BUBBLE_CONTEXT_MENU, (e) => {
     if (owns(e)) onContextMenu();
   });
   // The stack stays open after picking a chat, so the next conversation is one click away;
   // the panel opens beyond the banners.
-  ipcMain.on('bubble:open-chat', (e, href) => {
+  ipcMain.on(CHANNELS.BUBBLE_OPEN_CHAT, (e, href) => {
     if (!owns(e) || !isThreadHref(href)) return;
     onOpenChat(href);
   });
-  ipcMain.on('bubble:open-inbox', (e) => {
+  ipcMain.on(CHANNELS.BUBBLE_OPEN_INBOX, (e) => {
     if (!owns(e)) return;
     collapse();
     onOpenInbox();
   });
   // A press outside the stack (on the shield) puts everything away.
-  ipcMain.on('shield:click', (e) => {
+  ipcMain.on(CHANNELS.SHIELD_CLICK, (e) => {
     if (e.sender !== shield.webContents) return;
     collapse();
     onClose('shield');
   });
   // The window is mostly transparent padding; only pass clicks through when over a card.
-  ipcMain.on('bubble:hit', (e, over) => {
+  ipcMain.on(CHANNELS.BUBBLE_HIT, (e, over) => {
     if (!owns(e)) return;
     win.setIgnoreMouseEvents(!over, { forward: true });
   });
   // The window is non-focusable so it never takes the keyboard from the user's work. The reply
   // field is the one exception: focus is lent when it opens and taken back when it closes.
-  ipcMain.on('bubble:reply-focus', (e, on) => {
+  ipcMain.on(CHANNELS.BUBBLE_REPLY_FOCUS, (e, on) => {
     if (!owns(e)) return;
     replying = Boolean(on);
     win.setFocusable(replying);
@@ -293,14 +294,14 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
   });
   // The page measures the banner whenever it changes and reports what it needs beyond the disc
   // row; the window makes that room on the side the banner grows toward.
-  ipcMain.on('bubble:banner-extra', (e, px) => {
+  ipcMain.on(CHANNELS.BUBBLE_BANNER_EXTRA, (e, px) => {
     if (!owns(e)) return;
     const next = Math.max(0, Math.min(600, Number(px) || 0));
     if (next === bannerExtra) return;
     bannerExtra = next;
     applyBounds();
   });
-  ipcMain.on('bubble:reply', (e, href, text) => {
+  ipcMain.on(CHANNELS.BUBBLE_REPLY, (e, href, text) => {
     if (!owns(e) || !validReply(href, text)) return;
     onReply(href, text.trim());
   });
@@ -310,7 +311,7 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
     expand,
     collapse,
     isExpanded: () => expanded,
-    setBadge: (n) => win.webContents.send('bubble:badge', n),
+    setBadge: (n) => win.webContents.send(CHANNELS.BUBBLE_BADGE, n),
     getBounds: bounds,
     // The rect a panel should sit beside: the head column (disc plus stack) while it is open,
     // otherwise just the disc.
@@ -319,10 +320,10 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
       const c = layout().content;
       return { x: edge() === 'right' ? c.x + c.width - SIZE : c.x, y: c.y, width: SIZE, height: c.height };
     },
-    setActive: (href) => win.webContents.send('bubble:active', href),
+    setActive: (href) => win.webContents.send(CHANNELS.BUBBLE_ACTIVE, href),
     // A message just arrived for `item`: unroll its banner out of the disc for a moment.
-    landed: (item) => win.webContents.send('bubble:landed', item),
-    replyResult: (ok) => win.webContents.send('bubble:reply-result', Boolean(ok)),
+    landed: (item) => win.webContents.send(CHANNELS.BUBBLE_LANDED, item),
+    replyResult: (ok) => win.webContents.send(CHANNELS.BUBBLE_REPLY_RESULT, Boolean(ok)),
     // Whether the disc (and the shield beneath an open stack) float over full-screen apps.
     setOverFullscreen: (on) => {
       joinAllSpaces(win, on);
@@ -330,7 +331,7 @@ function createBubble({ position, onClick, onClose, onMoved, onContextMenu, onHe
     },
     setSettings: (s) => {
       lastSettings = s;
-      win.webContents.send('bubble:settings', s);
+      win.webContents.send(CHANNELS.BUBBLE_SETTINGS, s);
       const next = BUBBLE_SIZES[s.bubbleSize] || BASE;
       if (next !== SIZE) resize(next);
     },
