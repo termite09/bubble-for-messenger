@@ -67,12 +67,14 @@ function createPanel({ onUnread, onShown = () => {}, onBlurred = () => {}, overF
     applyTheme();
     loadedAt = Date.now();
     clearTimeout(errorTimer);
-    const doc = await win.webContents.executeJavaScript(`({
+    const doc = await scrape.run(win.webContents, `({
       elementCount: document.getElementsByTagName('*').length,
       interstitial: !!document.querySelector('.uiInterstitial, #back, #icon'),
-    })`, true).catch(() => null);
+    })`).catch(() => null);
     if (!looksLikeErrorPage(doc)) { errorRetries = 0; return; }
-    errorTimer = setTimeout(() => win.webContents.reload(), errorRetryDelay(errorRetries++));
+    // Never reload a page the user is looking at: a small login or checkpoint page can look
+    // like Facebook's error page to the probe.
+    errorTimer = setTimeout(() => { if (!win.isVisible()) win.webContents.reload(); }, errorRetryDelay(errorRetries++));
   });
 
   win.webContents.on('page-title-updated', (_event, title) => onUnread(unreadFromTitle(title)));

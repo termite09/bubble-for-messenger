@@ -88,3 +88,16 @@ test('setTheme swaps Messenger\'s own dark/light classes on <html>', async () =>
   assert.match(ran[1], /add\('__fb-light-mode'\)/);
   assert.match(ran[1], /remove\('__fb-dark-mode'\)/);
 });
+
+const { run } = require('../src/main/scrape');
+
+// A page that never answers must not wedge the open queue: every script has a deadline, and
+// runs in its own world when the page offers one.
+test('run: isolated world when available, and a timeout either way', async () => {
+  const calls = [];
+  const wc = { executeJavaScriptInIsolatedWorld: (world, scripts, gesture) => { calls.push([world, scripts[0].code, gesture]); return new Promise(() => {}); } };
+  await assert.rejects(run(wc, '1 + 1', { timeoutMs: 20 }), /timed out/);
+  assert.deepEqual(calls, [[1001, '1 + 1', false]]);
+  const plain = { executeJavaScript: async (code) => code.length };
+  assert.equal(await run(plain, 'abc'), 3);
+});

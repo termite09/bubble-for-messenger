@@ -37,13 +37,27 @@ const RECENT_CHATS_SCRIPT = `(() => {
   return out;
 })()`;
 
+// Every script the app runs in the page goes through here: in its own isolated world (the
+// page's JS cannot swap out the DOM built-ins these scripts rely on), with a deadline (a page
+// that never answers must not wedge the open queue), and with a user gesture only for the
+// scripts that click. `wc` in tests is a fake with executeJavaScript alone.
+const WORLD = 1001;
+function run(wc, code, { timeoutMs = 3000, userGesture = false } = {}) {
+  let timer;
+  const deadline = new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('page script timed out')), timeoutMs); });
+  const exec = wc.executeJavaScriptInIsolatedWorld
+    ? wc.executeJavaScriptInIsolatedWorld(WORLD, [{ code }], userGesture)
+    : wc.executeJavaScript(code, userGesture);
+  return Promise.race([exec, deadline]).finally(() => clearTimeout(timer));
+}
+
 const onMessenger = (wc) => /^https:\/\/(www\.)?messenger\.com\//.test(wc.getURL());
 
 // The chat list, or null when the page's rows can't be trusted right now (see the script).
 async function readRecentChats(wc) {
   if (!onMessenger(wc)) return [];
   try {
-    const raw = await wc.executeJavaScript(RECENT_CHATS_SCRIPT, true);
+    const raw = await run(wc, RECENT_CHATS_SCRIPT, { timeoutMs: 2000 });
     return raw === null ? null : normalizeRows(raw);
   } catch (e) {
     return [];
@@ -56,7 +70,7 @@ async function readRecentChats(wc) {
 // *behind* the thread pane — so we require the point to hit-test to the row itself (topmost),
 // which makes a covered list fall through to the reload path used for switching.
 function rowPoint(wc, href) {
-  return wc.executeJavaScript(`(() => {
+  return run(wc, `(() => {
     const links = [...document.querySelectorAll('a[role="link"][href^=${JSON.stringify(href)}]')]
       .sort((a, b) => {
         const ra = a.getBoundingClientRect(); const rb = b.getBoundingClientRect();
@@ -71,7 +85,7 @@ function rowPoint(wc, href) {
       if (hit && (hit === a || a.contains(hit))) return { x, y };
     }
     return null;
-  })()`, true).catch(() => null);
+  })()`).catch(() => null);
 }
 
 const delay = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -102,19 +116,19 @@ function reload(wc, url) {
 // The conversation is showing when [role=main] is the topmost element at its own centre.
 // (Presence alone is not enough: the list keeps its layout behind an open thread.)
 function threadShowing(wc) {
-  return wc.executeJavaScript(`(() => {
+  return run(wc, `(() => {
     const m = document.querySelector('[role="main"]');
     if (!m) return false;
     const r = m.getBoundingClientRect();
     if (r.height < 200) return false;
     const el = document.elementFromPoint(Math.round(r.left + r.width / 2), Math.round(r.top + r.height / 2));
     return !!(el && m.contains(el));
-  })()`, true).catch(() => false);
+  })()`).catch(() => false);
 }
 
 // Any conversation row is clickable, i.e. the list is in front.
 function listInteractive(wc) {
-  return wc.executeJavaScript(`(() => {
+  return run(wc, `(() => {
     for (const a of document.querySelectorAll('a[role="link"][href*="/t/"]')) {
       const r = a.getBoundingClientRect();
       if (r.width <= 60 || r.height <= 20 || r.top < 0 || r.bottom > innerHeight) continue;
@@ -122,7 +136,7 @@ function listInteractive(wc) {
       if (el && (el === a || a.contains(el))) return true;
     }
     return false;
-  })()`, true).catch(() => false);
+  })()`).catch(() => false);
 }
 
 function click(wc, point) {
@@ -144,7 +158,7 @@ async function waitUntil(check, wc, timeout) {
 // control just long enough to click it, then hide it again. The panel is held invisible by the
 // caller during this, so the control is never clickable — or visible — to the user.
 async function backToList(wc) {
-  const point = await wc.executeJavaScript(`(() => {
+  const point = await run(wc, `(() => {
     let s = document.getElementById('mb-back');
     if (!s) { s = document.createElement('style'); s.id = 'mb-back'; document.head.appendChild(s); }
     s.textContent = '[aria-label="Back"]{display:block!important;opacity:0!important;pointer-events:auto!important}';
@@ -152,8 +166,8 @@ async function backToList(wc) {
     if (!b) return null;
     const r = b.getBoundingClientRect();
     return r.width > 0 ? { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) } : null;
-  })()`, true).catch(() => null);
-  const unhide = () => wc.executeJavaScript(`(() => { const s = document.getElementById('mb-back'); if (s) s.textContent = ''; })()`, true).catch(() => {});
+  })()`).catch(() => null);
+  const unhide = () => run(wc, `(() => { const s = document.getElementById('mb-back'); if (s) s.textContent = ''; })()`).catch(() => {});
   if (!point) { await unhide(); return false; }
   click(wc, point);
   const ok = await waitUntil(listInteractive, wc, 2000);
@@ -199,7 +213,7 @@ const FIND_COMPOSER = `[...document.querySelectorAll(${JSON.stringify(COMPOSER)}
 }) || null`;
 const replyActions = {
   // What the loop needs to know this instant. `href` is a validated thread path.
-  snapshot: (wc, href, text) => wc.executeJavaScript(`(() => {
+  snapshot: (wc, href, text) => run(wc, `(() => {
     const box = ${FIND_COMPOSER};
     const content = box ? (box.textContent || '') : '';
     const want = ${JSON.stringify(href)}.replace(/\\/$/, '');
@@ -210,17 +224,25 @@ const replyActions = {
       draftMatches: content.includes(${JSON.stringify(text)}),
       sendAvailable: !!box && document.activeElement === box,
     };
-  })()`, true).catch(() => null),
-  // Messenger's editor ignores execCommand('insertText') and synthetic paste; only trusted key
-  // input reaches it. So: focus the composer in the page, then type the text as input events.
-  insert: async (wc, text) => {
-    const focused = await wc.executeJavaScript(`(() => {
+  })()`).catch(() => null),
+  // Messenger's editor ignores execCommand('insertText') and synthetic paste; only trusted
+  // input reaches it. So: focus the composer in the page, then commit the text the way an
+  // input method does (insertText) — one event for the whole reply, emoji included — and, if
+  // the editor did not take it, type it as key events, one per character.
+  insert: async (wc, text, href) => {
+    const focused = await run(wc, `(() => {
       const box = ${FIND_COMPOSER};
       if (!box) return false;
       box.focus();
       return document.activeElement === box;
-    })()`, true).catch(() => false);
+    })()`, { userGesture: true }).catch(() => false);
     if (!focused) return false;
+    if (typeof wc.insertText === 'function') {
+      await wc.insertText(text).catch(() => {});
+      await delay(REPLY_POLL_MS);
+      const after = href ? await replyActions.snapshot(wc, href, text) : null;
+      if (after && after.draftMatches) return true;
+    }
     for (const ch of text) wc.sendInputEvent({ type: 'char', keyCode: ch });
     return true;
   },
@@ -244,7 +266,7 @@ async function deliverReply(wc, href, text, { actions = replyActions, now = Date
     phase = decision.phase;
     switch (decision.action) {
       case 'wait': await wait(REPLY_POLL_MS); break;
-      case 'insert': if (!await actions.insert(wc, text)) return false; await wait(REPLY_POLL_MS); break;
+      case 'insert': if (!await actions.insert(wc, text, href)) return false; await wait(REPLY_POLL_MS); break;
       case 'send': if (!await actions.send(wc)) return false; await wait(REPLY_POLL_MS); break;
       case 'success': return true;
       default: return false;
@@ -278,7 +300,7 @@ const COMPACT_CSS = [
 // opaque box inside [role=main]) and write a rule for that exact class combination. Runs
 // again on every compact apply, so a Messenger deploy that renames classes self-heals.
 function fitThread(wc) {
-  return wc.executeJavaScript(`(() => {
+  return run(wc, `(() => {
     const m = document.querySelector('[role="main"]');
     if (!m) return '';
     let card = null, best = 0;
@@ -291,16 +313,16 @@ function fitThread(wc) {
     if (!card || !card.classList.length) return '';
     return '.' + [...card.classList].map((c) => CSS.escape(c)).join('.') +
       '{margin:0!important;border-radius:0!important;height:100vh!important;max-height:100vh!important}';
-  })()`, true).catch(() => '').then((css) => setStyle(wc, 'mb-fit', css));
+  })()`).catch(() => '').then((css) => setStyle(wc, 'mb-fit', css));
 }
 
 // Set the text of a persistent <style id> in the page (created on first use, toggled after).
 function setStyle(wc, id, css) {
-  return wc.executeJavaScript(`(() => {
+  return run(wc, `(() => {
     let s = document.getElementById(${JSON.stringify(id)});
     if (!s) { s = document.createElement('style'); s.id = ${JSON.stringify(id)}; document.head.appendChild(s); }
     s.textContent = ${JSON.stringify(css)};
-  })()`, true).catch(() => {});
+  })()`).catch(() => {});
 }
 
 const setCompact = (wc, on) => Promise.all([
@@ -328,11 +350,11 @@ const FRAME_CSS = [
 ].join('');
 
 function setFrame(wc, on) {
-  return wc.executeJavaScript(`(() => {
+  return run(wc, `(() => {
     for (const id of ['mb-ground', 'mb-frame']) {
       if (!document.getElementById(id)) { const d = document.createElement('div'); d.id = id; document.body.appendChild(d); }
     }
-  })()`, true).catch(() => {}).then(() => setStyle(wc, 'mb-frame-css', on ? FRAME_CSS : ''));
+  })()`).catch(() => {}).then(() => setStyle(wc, 'mb-frame-css', on ? FRAME_CSS : ''));
 }
 
 // Messenger decides its theme once, at load, from its own preference (Light / Dark / Device);
@@ -341,17 +363,17 @@ function setFrame(wc, on) {
 // (--card-background, --primary-text, --web-wash ...) keys off; the app swaps them itself.
 function setTheme(wc, dark) {
   const [add, remove] = dark ? ['__fb-dark-mode', '__fb-light-mode'] : ['__fb-light-mode', '__fb-dark-mode'];
-  return wc.executeJavaScript(`(() => {
+  return run(wc, `(() => {
     const c = document.documentElement.classList;
     c.remove('${remove}');
     c.add('${add}');
-  })()`, true).catch(() => {});
+  })()`).catch(() => {});
 }
 
 // Messenger's Preferences dialog, where its own switches (notification sounds, dark mode) are:
 // the account gear at the top of the inbox, then the first item of its menu.
 function openPreferences(wc) {
-  return wc.executeJavaScript(`(async () => {
+  return run(wc, `(async () => {
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     const gear = [...document.querySelectorAll('[aria-label]')].find((e) => /Settings, help and more$/.test(e.getAttribute('aria-label')));
     if (!gear) return false;
@@ -361,16 +383,16 @@ function openPreferences(wc) {
     if (!item) return false;
     item.click();
     return true;
-  })()`, true).catch(() => false);
+  })()`, { userGesture: true, timeoutMs: 6000 }).catch(() => false);
 }
 
 // Back to the chat list. In the narrow layout an open thread shows a Back button.
 function openInbox(wc) {
   if (!onMessenger(wc)) return wc.loadURL('https://www.messenger.com/').catch(() => {});
-  return wc.executeJavaScript(`(() => {
+  return run(wc, `(() => {
     const back = document.querySelector('[aria-label="Back"]');
     if (back) back.click();
-  })()`, true).catch(() => {});
+  })()`, { userGesture: true, timeoutMs: 3000 }).catch(() => {});
 }
 
-module.exports = { readRecentChats, openThread, openInbox, openPreferences, setCompact, setFrame, setTheme, sendReply, deliverReply, replyActions, RECENT_CHATS_SCRIPT, FRAME_CSS };
+module.exports = { run, readRecentChats, openThread, openInbox, openPreferences, setCompact, setFrame, setTheme, sendReply, deliverReply, replyActions, RECENT_CHATS_SCRIPT, FRAME_CSS };

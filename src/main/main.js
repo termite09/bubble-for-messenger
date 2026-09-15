@@ -6,6 +6,7 @@ const { createPanel } = require('./panel');
 const { createDismissTarget } = require('./dismiss');
 const { createSettingsWindow } = require('./settings-window');
 const { fetchAvatar } = require('./avatars');
+const scrape = require('./scrape');
 const { LIMIT: RECENT_LIMIT, MAX_PINS, mergeHeads } = require('../lib/recent');
 const chatsLib = require('../lib/chats');
 const { isMetaHost } = require('../lib/links');
@@ -180,7 +181,7 @@ function blockTelemetry() {
   );
 }
 
-const runInPanel = (js) => panel && panel.win.webContents.executeJavaScript(js).catch(() => {});
+const runInPanel = (js) => panel && scrape.run(panel.win.webContents, js, { userGesture: true }).catch(() => {});
 
 // The compose button lives in the inbox view, so bring that up first.
 async function newMessage() {
@@ -297,6 +298,18 @@ function createMenu() {
 // A second launch handed over to this one: show the stack — unless this one is on its way out.
 let quitting = false;
 app.on('second-instance', () => { if (bubble && !quitting) showStack().catch(() => {}); });
+
+// Every renderer is sandboxed (the window factory sets it per window; this makes it the rule),
+// and no page may open a window or leave its own document: the local pages never navigate,
+// and the panel has its own, richer guard (panel.js).
+app.enableSandbox();
+app.on('web-contents-created', (_event, wc) => {
+  wc.setWindowOpenHandler(() => ({ action: 'deny' }));
+  wc.on('will-navigate', (event, url) => {
+    const isPanel = panel && wc === panel.win.webContents;
+    if (!isPanel && !url.startsWith('file://')) event.preventDefault();
+  });
+});
 
 app.whenReady().then(() => {
   if (!primary) return;

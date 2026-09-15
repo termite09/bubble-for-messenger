@@ -27,3 +27,19 @@ test('fetchAvatar accepts raster images only, within the size cap', async () => 
   assert.equal(await fetchAvatar(sessionWith({ 'content-type': 'image/png' }, Buffer.alloc(1024 * 1024 + 1)), url(5)), null);
   assert.equal(await fetchAvatar(sessionWith({ 'content-type': 'image/png' }, Buffer.from('x'), false), url(6)), null);
 });
+
+test('fetchAvatar caches by picture path across signature changes, and forgets failures after a while', async () => {
+  let fetches = 0;
+  const ses = { fetch: async () => { fetches++; return { ok: true, headers: { get: (k) => (k === 'content-type' ? 'image/png' : null) }, arrayBuffer: async () => Buffer.from('p') }; } };
+  const a = await fetchAvatar(ses, 'https://scontent.xx.fbcdn.net/v/t39/pic1.jpg?oh=a&oe=1');
+  const b = await fetchAvatar(ses, 'https://scontent.xx.fbcdn.net/v/t39/pic1.jpg?oh=b&oe=2');
+  assert.equal(a, b);
+  assert.equal(fetches, 1);
+  let t = 0;
+  const failing = { fetch: async () => { fetches++; throw new Error('offline'); } };
+  assert.equal(await fetchAvatar(failing, 'https://scontent.xx.fbcdn.net/v/t39/pic2.jpg', () => t), null);
+  assert.equal(await fetchAvatar(failing, 'https://scontent.xx.fbcdn.net/v/t39/pic2.jpg', () => t + 1000), null);
+  assert.equal(fetches, 2); // within the minute: not retried
+  await fetchAvatar(failing, 'https://scontent.xx.fbcdn.net/v/t39/pic2.jpg', () => t + 61_000);
+  assert.equal(fetches, 3); // after it: retried
+});
