@@ -98,9 +98,10 @@ macOS. The settings card's close key checks `metaKey || ctrlKey`.
 - `installedByHomebrew()` returns false when `!CAPS.homebrew`, so the update item opens the
   release page — the existing non-Homebrew path.
 - `package.json` build: `win.target` = `nsis` (per-user, no admin prompt, one-click) and
-  `portable`; `win.icon` = `assets/icon.ico`, generated from `assets/icon.png` and committed
-  beside `icon.icns`. `artifactName` is set for both targets so the workflow can name the
-  files it expects.
+  `portable`; `win.icon` = `assets/icon.png` (1024 px; electron-builder converts it to an
+  `.ico` at build time, so none is committed). `artifactName` is set for both targets — the
+  defaults would give the installer and the portable exe the same name — so the workflow can
+  name the files it expects.
 - Profile: `%APPDATA%\Bubble for Messenger` (the same `getPath('appData')` join).
 - Start at login: `setLoginItemSettings` writes the Run registry key, pointing at the
   installed exe or, for the portable build, wherever it is run from.
