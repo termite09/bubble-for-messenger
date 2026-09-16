@@ -64,8 +64,16 @@ function showTab(name) {
   setTimeout(swap, 100);
 }
 
+// A row for something the platform has no equivalent of (Spaces, vibrancy) is not shown. The
+// rows are settled before the first pane is measured, so the card opens at the right height.
+function hideUnsupported(caps) {
+  for (const row of document.querySelectorAll('[data-needs]'))
+    row.hidden = !(caps && caps[row.dataset.needs]);
+}
+
 window.settingsApi.onSettings(render);
-window.settingsApi.get().then((s) => {
+Promise.all([window.settingsApi.get(), window.settingsApi.capabilities()]).then(([s, caps]) => {
+  hideUnsupported(caps);
   if (s) render(s);
   showTab('bubble');
 });

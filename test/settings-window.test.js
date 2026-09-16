@@ -40,3 +40,30 @@ test('the settings card is frosted by the Glass setting, opaque otherwise', () =
   electron.nativeTheme.prefersReducedTransparency = false;
   electron.nativeTheme.shouldUseDarkColors = true;
 });
+
+const { capabilities } = require('../src/lib/platform');
+const { CHANNELS } = require('../src/lib/ipc');
+const { from } = require('./helpers/electron-stub');
+
+// No vibrancy (Windows): the card takes the ground colour whatever the Glass setting says, the
+// macOS-only window options are not passed, and the page can ask what the platform has so it
+// hides the Glass and full-screen rows.
+test('without vibrancy the card is opaque, and the page can ask for the capabilities', async () => {
+  const caps = capabilities('win32');
+  const sw = createSettingsWindow({
+    getSettings: () => ({ glass: true }),
+    setSetting() {},
+    subscribe() {},
+    onOpenMessengerPreferences() {},
+    caps,
+  });
+  sw.open({ x: 0, y: 0, width: 44, height: 44 });
+  const win = electron.windows[electron.windows.length - 1];
+  assert.equal(win.vibrancy, undefined); // setVibrancy never called
+  assert.equal(win.background, '#1c1c1e');
+  assert.equal('roundedCorners' in win.opts, false);
+  assert.equal('visualEffectState' in win.opts, false);
+  const handler = electron.ipcMain.handlers.get(CHANNELS.SETTINGS_CAPABILITIES);
+  assert.deepEqual(await handler(from(win)), caps);
+  assert.equal(await handler({ sender: {} }), null); // another window's page gets nothing
+});

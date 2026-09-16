@@ -37,6 +37,7 @@ const CHANNELS = Object.freeze({
   DISMISS_HOT: 'dismiss:hot',
   // settings page ↔ main
   SETTINGS_GET: 'settings:get',
+  SETTINGS_CAPABILITIES: 'settings:capabilities',
   SETTINGS_SET: 'settings:set',
   SETTINGS_CLOSE: 'settings:close',
   SETTINGS_RESIZE: 'settings:resize',

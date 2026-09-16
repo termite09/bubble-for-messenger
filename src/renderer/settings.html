@@ -116,6 +116,9 @@
       section[hidden] {
         display: none;
       }
+      .row[hidden] {
+        display: none;
+      }
 
       /* A row that opens something rather than switching it: a hairline button, like a segment. */
       .open {
@@ -367,7 +370,7 @@
       </nav>
       <main>
         <section data-tab="bubble" id="tab-bubble" role="tabpanel">
-          <label class="row"
+          <label class="row" data-needs="spaces"
             ><div class="text">
               <div class="name">Show over full-screen apps</div>
               <div class="sub">
@@ -391,7 +394,7 @@
             </div>
             <span class="switch"><input type="checkbox" data-key="instagram" /><span></span></span
           ></label>
-          <label class="row"
+          <label class="row" data-needs="vibrancy"
             ><div class="text">
               <div class="name">Glass</div>
               <div class="sub">

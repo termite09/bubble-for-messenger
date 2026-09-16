@@ -2,6 +2,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('settingsApi', {
   get: () => ipcRenderer.invoke('settings:get'),
+  capabilities: () => ipcRenderer.invoke('settings:capabilities'),
   set: (key, value) => ipcRenderer.send('settings:set', key, value),
   close: () => ipcRenderer.send('settings:close'),
   resize: (height) => ipcRenderer.send('settings:resize', height),
