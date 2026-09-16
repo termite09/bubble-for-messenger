@@ -12,6 +12,7 @@ const { pickUnread } = require('../lib/chats');
 const { installedByHomebrew, HOMEBREW_UPGRADE, HOMEBREW_TRUST } = require('../lib/install');
 const { shouldPersistCookie, persistentCookie } = require('../lib/cookies');
 const { isTelemetryUrl } = require('../lib/telemetry');
+const { CAPS } = require('../lib/platform');
 const {
   normalizeSettings,
   isSettingKey,
@@ -462,17 +463,25 @@ function createMenu() {
     Menu.buildFromTemplate([
       {
         label: app.name,
-        submenu: [
-          { role: 'about' },
-          { type: 'separator' },
-          { label: 'Settings…', accelerator: 'CmdOrCtrl+,', click: openSettings },
-          { type: 'separator' },
-          { role: 'hide' },
-          { role: 'hideOthers' },
-          { role: 'unhide' },
-          { type: 'separator' },
-          { role: 'quit' },
-        ],
+        // The application-menu roles are macOS's; elsewhere this menu is Settings and Quit
+        // (the bar itself is not shown on a frameless window, but its accelerators work).
+        submenu: CAPS.dock
+          ? [
+              { role: 'about' },
+              { type: 'separator' },
+              { label: 'Settings…', accelerator: 'CmdOrCtrl+,', click: openSettings },
+              { type: 'separator' },
+              { role: 'hide' },
+              { role: 'hideOthers' },
+              { role: 'unhide' },
+              { type: 'separator' },
+              { role: 'quit' },
+            ]
+          : [
+              { label: 'Settings…', accelerator: 'CmdOrCtrl+,', click: openSettings },
+              { type: 'separator' },
+              { role: 'quit' },
+            ],
       },
       {
         label: 'Edit',
@@ -500,7 +509,10 @@ function createMenu() {
                 { type: 'separator' },
                 { role: 'reload' },
                 { role: 'forceReload' },
-                { role: 'toggleDevTools', accelerator: 'CmdOrCtrl+Option+I' },
+                {
+                  role: 'toggleDevTools',
+                  accelerator: CAPS.dock ? 'CmdOrCtrl+Option+I' : 'CmdOrCtrl+Shift+I',
+                },
               ]),
         ],
       },

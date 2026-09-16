@@ -27,9 +27,10 @@ document.getElementById('close').addEventListener('click', () => window.settings
 document
   .getElementById('open-sounds')
   .addEventListener('click', () => window.settingsApi.openMessengerPreferences());
-// Esc and Cmd+W both put the card away (there is no Window > Close: it would destroy the panel).
+// Esc and Cmd+W (Ctrl+W elsewhere) put the card away (there is no Window > Close: it would
+// destroy the panel).
 window.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' || (e.metaKey && e.key.toLowerCase() === 'w')) {
+  if (e.key === 'Escape' || ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'w')) {
     e.preventDefault();
     window.settingsApi.close();
   }
