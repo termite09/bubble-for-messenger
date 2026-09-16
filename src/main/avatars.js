@@ -4,7 +4,13 @@ const FAIL_TTL_MS = 60 * 1000; // a failed fetch is retried after a minute, not 
 const FETCH_TIMEOUT_MS = 8000;
 
 const MAX_BYTES = 1024 * 1024;
-const CDN_HOSTS = ['fbcdn.net', 'facebook.com', 'messenger.com'];
+const CDN_HOSTS = [
+  'fbcdn.net',
+  'facebook.com',
+  'messenger.com',
+  'cdninstagram.com',
+  'instagram.com',
+];
 
 // Messenger's picture URLs carry a signature in the query that changes on every page load;
 // the path names the picture. Caching by path keeps a picture across reloads.
@@ -33,6 +39,37 @@ function isAvatarUrl(url) {
 // The raster formats a profile picture comes in; anything else (SVG in particular) is refused.
 const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 
+// A picture is shown at most 68px wide (the largest disc) on a 2× display: anything bigger is
+// brought down to that before it is encoded, so a full-size photo does not ride every fan push
+// as a data URL. Only the formats the resizer is sure of; anything it cannot read goes as is.
+const MAX_EDGE = 136;
+const RESIZABLE = { 'image/jpeg': 'toJPEG', 'image/png': 'toPNG' };
+let nativeImage = null;
+try {
+  ({ nativeImage } = require('electron'));
+} catch (e) {
+  // outside Electron (tests): pictures pass through untouched
+}
+function shrink(buf, type) {
+  const encode = RESIZABLE[type];
+  if (!encode || !nativeImage || typeof nativeImage.createFromBuffer !== 'function') return buf;
+  try {
+    const img = nativeImage.createFromBuffer(buf);
+    if (img.isEmpty()) return buf;
+    const { width, height } = img.getSize();
+    if (Math.max(width, height) <= MAX_EDGE) return buf;
+    const scale = MAX_EDGE / Math.max(width, height);
+    const small = img.resize({
+      width: Math.round(width * scale),
+      height: Math.round(height * scale),
+      quality: 'good',
+    });
+    return encode === 'toJPEG' ? small.toJPEG(85) : small.toPNG();
+  } catch (e) {
+    return buf;
+  }
+}
+
 // Fetch a profile picture through the Messenger session and return a data URL the bubble can
 // render under its strict CSP. Memoised by picture (see cacheKey); a failure is remembered
 // only briefly; a fetch that hangs gives up after FETCH_TIMEOUT_MS.
@@ -50,7 +87,7 @@ function fetchAvatar(ses, url, now = Date.now) {
       if (Number(res.headers.get('content-length')) > MAX_BYTES) return null;
       const buf = Buffer.from(await res.arrayBuffer());
       if (buf.length > MAX_BYTES) return null;
-      return `data:${type};base64,${buf.toString('base64')}`;
+      return `data:${type};base64,${shrink(buf, type).toString('base64')}`;
     })
     .catch(() => null)
     .then((result) => {

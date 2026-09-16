@@ -110,3 +110,51 @@ test('the flx/warn interstitial is a redirect too', () => {
   assert.equal(staysInPanel(url), false);
   assert.equal(browserUrl(url), 'https://example.com/x');
 });
+
+// The Instagram panel: instagram.com is its home, facebook.com still hosts its login, and
+// Instagram's own link shim (l.instagram.com/?u=) is a redirect out like Meta's others.
+test('with the instagram.com domain, its pages are internal and messenger.com is not', () => {
+  assert.equal(isInternal('https://www.instagram.com/direct/inbox/', 'instagram.com'), true);
+  assert.equal(isInternal('https://www.messenger.com/t/1/', 'instagram.com'), false);
+  assert.equal(isInternal('https://www.instagram.com/direct/inbox/'), false); // Messenger's panel
+  assert.equal(staysInPanel('https://www.instagram.com/accounts/login/', 'instagram.com'), true);
+  assert.equal(staysInPanel('https://www.facebook.com/login.php', 'instagram.com'), true);
+  assert.equal(staysInPanel('https://www.messenger.com/', 'instagram.com'), false);
+});
+
+test('l.instagram.com is a link shim and instagram.com a Meta host', () => {
+  const url = 'https://l.instagram.com/?u=https%3A%2F%2Fexample.com%2Fx&e=abc';
+  assert.equal(isInternal(url, 'instagram.com'), false);
+  assert.equal(staysInPanel(url, 'instagram.com'), false);
+  assert.equal(browserUrl(url), 'https://example.com/x');
+  assert.equal(isMetaHost('www.instagram.com'), true);
+  assert.equal(isMetaHost('instagram.com.evil.example'), false);
+});
+
+const { matchesUrlPattern } = require('../src/lib/links');
+
+// The webRequest filter patterns, matched by hand: one session keeps one listener per event,
+// so the panels' liveness watches share it and sort the traffic by these.
+test('matchesUrlPattern understands scheme, host and path wildcards', () => {
+  assert.equal(
+    matchesUrlPattern('wss://gateway.instagram.com/ws/lightspeed', 'wss://gateway.instagram.com/*'),
+    true,
+  );
+  assert.equal(
+    matchesUrlPattern('https://www.facebook.com/x?y=1', 'https://*.facebook.com/*'),
+    true,
+  );
+  assert.equal(matchesUrlPattern('https://facebook.com/x', 'https://*.facebook.com/*'), true);
+  assert.equal(matchesUrlPattern('https://www.facebook.com/x', '*://*.facebook.com/*'), true);
+  assert.equal(
+    matchesUrlPattern('https://www.messenger.com/', 'https://www.messenger.com/*'),
+    true,
+  );
+  assert.equal(matchesUrlPattern('https://www.messenger.com/', 'https://*.facebook.com/*'), false);
+  assert.equal(matchesUrlPattern('https://notfacebook.com/', 'https://*.facebook.com/*'), false);
+  assert.equal(
+    matchesUrlPattern('wss://gateway.instagram.com/', 'https://*.instagram.com/*'),
+    false,
+  );
+  assert.equal(matchesUrlPattern('garbage', 'https://*.instagram.com/*'), false);
+});

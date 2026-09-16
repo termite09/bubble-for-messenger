@@ -6,6 +6,7 @@
       http-equiv="Content-Security-Policy"
       content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:"
     />
+    <link rel="stylesheet" href="tokens.css" />
     <style>
       /* The stack's deploy is one number: --p runs 0→1 and every banner derives its offset and
        opacity from it, so the fan opens as a single linked motion rather than five cards. */
@@ -24,19 +25,6 @@
         -webkit-user-select: none;
       }
       body {
-        --card: #1c1c1e;
-        --raised: #2c2c2e;
-        --ink: #f5f5f7;
-        --dim: #8e8e93;
-        --rule: rgba(255, 255, 255, 0.12);
-        --blue: #0a84ff;
-        --lift: 0 8px 24px rgba(0, 0, 0, 0.45);
-        --ease: cubic-bezier(
-          0.22,
-          1,
-          0.36,
-          1
-        ); /* ease-out-quint: fast start, long settle, no overshoot */
         font:
           13px/16px -apple-system,
           system-ui,
@@ -93,17 +81,21 @@
         justify-content: center;
         cursor: default;
       }
-      #disc img {
+      #mark {
         width: 24px;
         height: 24px;
         display: block;
         transition: opacity 200ms linear;
       }
+      /* Switching platform: the mark fades out, is swapped, and fades back in. */
+      body.swapping #mark {
+        opacity: 0;
+      }
       /* Messenger unreachable: the mark dims to ash, and a chip beside the disc says why on
          hover. Signed out: the chip stays, reading "Sign in", and the disc opens the login page. */
-      body.offline #disc img,
-      body.reconnecting #disc img,
-      body.signed-out #disc img {
+      body.offline #mark,
+      body.reconnecting #mark,
+      body.signed-out #mark {
         opacity: 0.35;
       }
       #status {
@@ -133,11 +125,62 @@
       }
       body.offline #disc:hover #status,
       body.reconnecting #disc:hover #status,
-      body.signed-out #status {
+      body.signed-out #status,
+      body.switching #status {
         opacity: 1;
       }
       body.landed #status {
         opacity: 0;
+      }
+      /* The other platform, as a satellite at the disc's foot (bottom-left, opposite the count):
+         its mark and, while it has unread, its count. Shown while it has unread; otherwise it
+         appears dimmed, mark only, while the disc is hovered — the switch is one hover away. */
+      #other {
+        position: absolute;
+        left: -10px;
+        bottom: -8px;
+        height: 24px;
+        padding: 0 3px;
+        box-sizing: border-box;
+        border-radius: 12px;
+        display: none;
+        align-items: center;
+        gap: 3px;
+        cursor: default;
+        opacity: 0.6;
+        transition: opacity 120ms linear;
+      }
+      #other img {
+        width: 16px;
+        height: 16px;
+        display: block;
+        pointer-events: none;
+      }
+      #other .n {
+        display: none;
+        padding-right: 3px;
+        color: var(--blue);
+        font:
+          600 12px/22px -apple-system,
+          system-ui,
+          sans-serif;
+      }
+      body.has-other #disc:hover #other,
+      body.other-unread #other {
+        display: flex;
+      }
+      body.other-unread #other {
+        opacity: 1;
+      }
+      body.other-unread #other .n {
+        display: block;
+      }
+      #other:hover {
+        opacity: 1;
+        border-color: var(--rule-active);
+      }
+      body.landed #other {
+        display: none;
       }
       #count {
         position: absolute;
@@ -149,7 +192,7 @@
         box-sizing: border-box;
         border-radius: 9px;
         background: var(--blue);
-        color: #fff;
+        color: var(--white);
         font:
           600 11px/18px -apple-system,
           system-ui,
@@ -193,9 +236,18 @@
         column-gap: 10px;
         align-items: center;
       }
+      /* The avatar spans both rows but keeps to the disc's own row, so on a long message it
+         still sits where the mark was: at the foot when the banner hangs from the disc, at the
+         top when it stands on it. */
       #landed .av {
         grid-row: 1 / 3;
         grid-column: 1;
+      }
+      body.up #landed .av {
+        align-self: end;
+      }
+      body.down #landed .av {
+        align-self: start;
       }
       #landed .name {
         grid-row: 1;
@@ -314,8 +366,8 @@
         stroke-linecap: round;
         stroke-linejoin: round;
       }
-      /* The caption chip beside a head: its name (the inbox: "Inbox", the app menu's "···",
-         how many rows were left out). Shown on hover; clicking it is clicking the head. */
+      /* The caption chip beside a head: its name (the inbox: "Inbox", and how many rows were
+         left out). Shown on hover; clicking it is clicking the head. */
       .head .caption {
         position: absolute;
         top: 50%;
@@ -338,17 +390,6 @@
       .head:hover .caption {
         opacity: 1;
         pointer-events: auto;
-      }
-      .caption .more {
-        margin-left: 6px;
-        padding: 0 4px;
-        border-radius: 6px;
-        color: var(--dim);
-        letter-spacing: 1px;
-      }
-      .caption .more:hover {
-        background: var(--raised);
-        color: var(--ink);
       }
       .caption .hidden-count {
         color: var(--dim);
@@ -374,10 +415,10 @@
         left: -10px;
       }
       .head:hover {
-        border-color: rgba(255, 255, 255, 0.28);
+        border-color: var(--rule-active);
       }
-      /* A hairline in the gap above the first pinned head parts the pinned from the recent. */
-      .head.first-pinned::before {
+      /* A hairline in the gap above the first recent head parts it from the pinned ones above. */
+      .head.first-recent::before {
         content: '';
         position: absolute;
         left: 6px;
@@ -459,11 +500,11 @@
 
       /* Landed-banner internals */
       .av {
+        position: relative;
         width: 32px;
         height: 32px;
         border-radius: 16px;
-        overflow: hidden;
-        background: #3a3a3c;
+        background: var(--slate);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -471,12 +512,29 @@
           600 13px -apple-system,
           system-ui,
           sans-serif;
-        color: #fff;
+        color: var(--white);
       }
       .av img {
         width: 100%;
         height: 100%;
+        border-radius: 50%;
         object-fit: cover;
+        display: block;
+      }
+      /* With two platforms on, the avatar wears the mini-mark of the one the message is from. */
+      .av .mini {
+        display: none;
+        position: absolute;
+        right: -3px;
+        bottom: -3px;
+        width: 14px;
+        height: 14px;
+        border-radius: 4px;
+        border: 2px solid var(--card);
+        box-sizing: content-box;
+        background: var(--card);
+      }
+      body.has-other .av .mini[src] {
         display: block;
       }
       .name {
@@ -514,11 +572,20 @@
         padding: 0;
         background: transparent;
         color: var(--dim);
-        font:
-          14px/24px -apple-system,
-          system-ui,
-          sans-serif;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         cursor: default;
+      }
+      #landed-reply svg {
+        width: 12px;
+        height: 12px;
+        display: block;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.6;
+        stroke-linecap: round;
+        stroke-linejoin: round;
       }
       #landed-reply:hover {
         background: var(--rule);
@@ -545,15 +612,16 @@
         -webkit-user-select: text;
         user-select: text;
         caret-color: var(--ink);
+        text-overflow: ellipsis; /* the placeholder carries a name */
       }
       #landed-input::placeholder {
         color: var(--dim);
       }
       #landed-input::selection {
-        background: rgba(255, 255, 255, 0.24);
+        background: var(--rule-active);
       }
       #landed-input:focus {
-        border-color: rgba(255, 255, 255, 0.28);
+        border-color: var(--rule-active);
       }
       body.replying #landed-sub,
       body.replying #landed .time,
@@ -567,6 +635,7 @@
       }
       body.replying #landed .av {
         grid-row: 1;
+        align-self: center;
       }
       body.replying #landed-input {
         display: block;
@@ -626,8 +695,11 @@
         display: none;
       }
 
-      /* Reduce Motion: no travel, just the crossfade. */
+      /* Reduce Motion: no travel, just the crossfade — and no fade on the mark swap. */
       @media (prefers-reduced-motion: reduce) {
+        #mark {
+          transition: none;
+        }
         body.sending #landed-sub::before {
           animation: none;
           border-top-color: var(--dim);
@@ -657,12 +729,18 @@
   <body class="up edge-right">
     <div id="content">
       <div id="fan"></div>
-      <div id="disc" class="card">
-        <img src="../../assets/icon.png" alt="" />
-        <div id="count"></div>
-        <div id="status"></div>
-        <div id="landed" class="card">
-          <div class="av" id="landed-av"></div>
+      <!-- The disc's name carries the platform and the count (the pill is decoration to a
+           reader); the banner is a status region, so a landed message is announced. -->
+      <div id="disc" class="card" role="button" aria-label="Messenger">
+        <img id="mark" src="../../assets/icon.png" alt="" />
+        <div id="count" aria-hidden="true"></div>
+        <div id="status" aria-hidden="true"></div>
+        <div id="other" class="card" role="button" aria-label="Switch platform">
+          <img alt="" />
+          <span class="n"></span>
+        </div>
+        <div id="landed" class="card" role="status" aria-live="polite" aria-atomic="true">
+          <div class="av" id="landed-av"><img class="mini" id="landed-mark" alt="" /></div>
           <div class="name" id="landed-name"></div>
           <div class="sub" id="landed-sub"></div>
           <input
@@ -671,9 +749,14 @@
             maxlength="2000"
             autocomplete="off"
             spellcheck="true"
+            aria-label="Reply"
           />
           <div class="time">now</div>
-          <button id="landed-reply" type="button" title="Reply" aria-label="Reply">&#x21A9;</button>
+          <button id="landed-reply" type="button" title="Reply" aria-label="Reply">
+            <svg viewBox="0 0 12 12" aria-hidden="true">
+              <path d="M10 2.5v2.5a2 2 0 0 1-2 2H2.5M5 4.5 2.5 7 5 9.5" />
+            </svg>
+          </button>
         </div>
       </div>
     </div>

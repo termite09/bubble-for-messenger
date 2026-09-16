@@ -1,6 +1,12 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { normalizeRows, isThreadHref } = require('../src/lib/recent');
+const {
+  normalizeRows,
+  isThreadHref,
+  platformOfHref,
+  nameHandle,
+  handleName,
+} = require('../src/lib/recent');
 
 test('isThreadHref accepts only clean thread paths', () => {
   assert.equal(isThreadHref('/t/123/'), true);
@@ -10,6 +16,40 @@ test('isThreadHref accepts only clean thread paths', () => {
   assert.equal(isThreadHref('https://www.messenger.com/t/1/'), false);
   assert.equal(isThreadHref(42), false);
   assert.equal(isThreadHref(undefined), false);
+});
+
+// Instagram chats are handled by thread id once known, and by name before that.
+test('isThreadHref accepts Instagram thread paths and name handles', () => {
+  assert.equal(isThreadHref('/direct/t/838117799114653/'), true);
+  assert.equal(isThreadHref('/direct/n/Spyros%20Lontos/'), true);
+  assert.equal(isThreadHref('/direct/n/'), false);
+  assert.equal(isThreadHref("/direct/n/a'b/"), false);
+  assert.equal(isThreadHref('/direct/t/abc/'), false);
+  assert.equal(isThreadHref('/direct/inbox/'), false);
+});
+
+test('platformOfHref says which platform a handle belongs to', () => {
+  assert.equal(platformOfHref('/t/1/'), 'messenger');
+  assert.equal(platformOfHref('/e2ee/t/1/'), 'messenger');
+  assert.equal(platformOfHref('/direct/t/1/'), 'instagram');
+  assert.equal(platformOfHref('/direct/n/primeweb/'), 'instagram');
+  assert.equal(platformOfHref('/marketplace/'), null);
+  assert.equal(platformOfHref(null), null);
+});
+
+// The handle is the name, encoded to a charset that is safe anywhere it might be spliced
+// (RFC 3986 unreserved plus %), and it round-trips — emoji and quotes included.
+test('nameHandle encodes a name into a handle and handleName decodes it back', () => {
+  const names = ['Spyros Lontos', '𝒮 𝒯 𝐸 𝒫 𝐻  🎀', "O'Brien (work) *!", 'a/b?c#d'];
+  for (const name of names) {
+    const href = nameHandle(name);
+    assert.ok(isThreadHref(href), href);
+    assert.match(href, /^\/direct\/n\/[A-Za-z0-9%._~-]+\/$/);
+    assert.equal(handleName(href), name);
+  }
+  assert.equal(handleName('/direct/t/1/'), null);
+  assert.equal(handleName('/t/1/'), null);
+  assert.equal(handleName('/direct/n/%E0%A4%A/'), null); // malformed percent-encoding
 });
 
 const row = (href, name = 'Name', extra = {}) => ({
@@ -165,10 +205,10 @@ test('reopenOpen: within the window, and only then', () => {
 
 const { mergeHeads } = require('../src/lib/recent');
 
-// The stack: up to five recent chats, then the pinned ones next to the inbox head (nearest
-// the disc when the stack grows up). A pinned chat that is also recent shows once, as pinned,
-// with what the recent row knows (unread, preview, fresh name and avatar).
-test('mergeHeads: recent minus pinned, then pins in pin order, refreshed from recent', () => {
+// The stack: the pinned chats first, in pin order, then up to five recent chats that are not
+// pinned. A pinned chat that is also recent shows once, as pinned, with what the recent row
+// knows (unread, preview, fresh name and avatar).
+test('mergeHeads: pins in pin order, then recent minus pinned, refreshed from recent', () => {
   const pins = [
     { href: '/t/9/', name: 'Old Name', avatarUrl: 'old' },
     { href: '/t/2/', name: 'B', avatarUrl: null },
@@ -182,13 +222,13 @@ test('mergeHeads: recent minus pinned, then pins in pin order, refreshed from re
   assert.deepEqual(
     out.map((i) => [i.href, i.pinned]),
     [
-      ['/t/1/', false],
-      ['/t/3/', false],
       ['/t/9/', true],
       ['/t/2/', true],
+      ['/t/1/', false],
+      ['/t/3/', false],
     ],
   );
-  assert.deepEqual(out[3], {
+  assert.deepEqual(out[1], {
     href: '/t/2/',
     name: 'B2',
     avatarUrl: 'b',
@@ -196,7 +236,7 @@ test('mergeHeads: recent minus pinned, then pins in pin order, refreshed from re
     preview: 'yo',
     pinned: true,
   });
-  assert.deepEqual(out[2], {
+  assert.deepEqual(out[0], {
     href: '/t/9/',
     name: 'Old Name',
     avatarUrl: 'old',
@@ -217,7 +257,7 @@ test('mergeHeads caps recent at the limit after removing pins', () => {
   const out = mergeHeads([{ href: '/t/0/', name: 'N0', avatarUrl: null }], recent, 5);
   assert.deepEqual(
     out.map((i) => i.href),
-    ['/t/1/', '/t/2/', '/t/3/', '/t/4/', '/t/5/', '/t/0/'],
+    ['/t/0/', '/t/1/', '/t/2/', '/t/3/', '/t/4/', '/t/5/'],
   );
   assert.deepEqual(mergeHeads([], []), []);
 });

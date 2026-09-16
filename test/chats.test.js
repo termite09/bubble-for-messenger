@@ -7,6 +7,7 @@ const {
   openChat,
   closeChat,
   discClick,
+  pickUnread,
 } = require('../src/lib/chats');
 
 const row = (href, extra = {}) => ({
@@ -121,4 +122,67 @@ test('open, close and the disc click: reopen within the window, the stack otherw
   assert.equal(closeChat(s, 9000), s);
   // Opening another chat forgets the remembered one.
   assert.equal(openChat(s, '/t/2/').lastChat, null);
+});
+
+// Instagram words the user's own last message "You sent an attachment." / "You: hi"; Messenger
+// "You: hi". Neither is someone else's message landing.
+test("Instagram's own-message wording never lands either", () => {
+  const s = reduceRecent(initialState(), [row('/direct/n/A/'), row('/direct/n/B/')], hidden).state;
+  const r = reduceRecent(
+    s,
+    [
+      row('/direct/n/A/', { unread: true, preview: 'You sent an attachment.' }),
+      row('/direct/n/B/'),
+    ],
+    hidden,
+  );
+  assert.equal(r.landed, null);
+  const r2 = reduceRecent(
+    s,
+    [row('/direct/n/A/', { unread: true, preview: 'Youssef: hey' }), row('/direct/n/B/')],
+    hidden,
+  );
+  assert.equal(r2.landed.href, '/direct/n/A/');
+});
+
+// A disc click with unread messages opens the newest received one: the chat whose message
+// landed last across the platforms, as long as it is still unread — else the focused
+// platform's top unread chat — else nothing (the click means what it meant before).
+test('pickUnread: the last landed chat that is still unread, across platforms', () => {
+  const accounts = {
+    messenger: {
+      recent: [row('/t/1/', { unread: true }), row('/t/2/')],
+      landed: { href: '/t/1/', at: 100 },
+    },
+    instagram: {
+      recent: [row('/direct/n/A/', { unread: true })],
+      landed: { href: '/direct/n/A/', at: 200 },
+    },
+  };
+  assert.deepEqual(pickUnread({ focused: 'messenger', accounts }), {
+    platform: 'instagram',
+    href: '/direct/n/A/',
+  });
+  // Read since it landed: the next one back.
+  accounts.instagram.recent[0].unread = false;
+  assert.deepEqual(pickUnread({ focused: 'instagram', accounts }), {
+    platform: 'messenger',
+    href: '/t/1/',
+  });
+});
+
+test("pickUnread: nothing landed yet → the focused platform's top unread, never the user's own", () => {
+  const accounts = {
+    messenger: {
+      recent: [row('/t/1/', { unread: true, preview: 'You: k' }), row('/t/2/', { unread: true })],
+      landed: null,
+    },
+    instagram: { recent: [row('/direct/n/A/', { unread: true })], landed: null },
+  };
+  assert.deepEqual(pickUnread({ focused: 'messenger', accounts }), {
+    platform: 'messenger',
+    href: '/t/2/',
+  });
+  accounts.messenger.recent[1].unread = false;
+  assert.equal(pickUnread({ focused: 'messenger', accounts }), null);
 });

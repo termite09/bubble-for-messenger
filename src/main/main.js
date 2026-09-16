@@ -1,14 +1,15 @@
-const { app, Menu, session, nativeTheme, net, shell } = require('electron');
+const { app, Menu, session, nativeTheme, net, shell, dialog, clipboard } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { createBubble } = require('./bubble');
-const { createPanel } = require('./panel');
+const { createAccount } = require('./account');
 const { createDismissTarget } = require('./dismiss');
 const { createSettingsWindow } = require('./settings-window');
-const { fetchAvatar } = require('./avatars');
 const scrape = require('./scrape');
-const { LIMIT: RECENT_LIMIT, MAX_PINS, mergeHeads } = require('../lib/recent');
-const chatsLib = require('../lib/chats');
+const { LIMIT: RECENT_LIMIT, MAX_PINS, platformOfHref } = require('../lib/recent');
+const { MESSENGER, INSTAGRAM, discState } = require('../lib/sites');
+const { pickUnread } = require('../lib/chats');
+const { installedByHomebrew, HOMEBREW_UPGRADE, HOMEBREW_TRUST } = require('../lib/install');
 const { shouldPersistCookie, persistentCookie } = require('../lib/cookies');
 const { isTelemetryUrl } = require('../lib/telemetry');
 const {
@@ -81,12 +82,17 @@ store.subscribe((next, prev) => {
 });
 
 let bubble;
-let panel;
 let dismiss;
 let settingsWindow;
-let lastUnread = 0;
-let panelStatus = { connection: 'online', signedOut: false };
 let updates = { latest: () => null, check: async () => null, due: () => false };
+
+// The platforms, live (main/account): Messenger always, Instagram by its setting. One is in
+// focus — its chats in the stack, its count on the disc; the other shows as a satellite.
+const accounts = {};
+let focused = 'messenger';
+const current = () => accounts[focused];
+const accountOf = (href) => accounts[platformOfHref(href)] || null;
+const eachAccount = (fn) => Object.values(accounts).forEach(fn);
 
 // One setting changed on the page: the store normalises, saves and notifies; applySettings
 // runs from the subscription above. Only page-visible keys may come this way.
@@ -106,128 +112,159 @@ const rendererSettings = () => ({
 function applySettings(prev) {
   const changed = (key) => !prev || prev[key] !== settings[key];
   if (changed('overFullscreen')) {
-    for (const w of [bubble, panel, dismiss, settingsWindow])
+    for (const w of [bubble, dismiss, settingsWindow])
       if (w) w.setOverFullscreen(settings.overFullscreen);
+    eachAccount((a) => a.panel.setOverFullscreen(settings.overFullscreen));
   }
   // Under `npm start` this would register Electron.app itself as the login item.
   if (changed('startAtLogin') && app.isPackaged)
     app.setLoginItemSettings({ openAtLogin: settings.startAtLogin });
-  if (changed('badge') && bubble) bubble.setBadge(settings.badge !== 'off' ? lastUnread : 0);
+  if (changed('badge')) pushDisc();
   if ((changed('quickReply') || changed('badge') || changed('bubbleSize')) && bubble)
     bubble.setSettings(rendererSettings());
   if (changed('theme')) nativeTheme.themeSource = settings.theme;
-  if (changed('spellcheck') && panel) panel.session().setSpellCheckerEnabled(settings.spellcheck);
+  if (changed('spellcheck')) session.defaultSession.setSpellCheckerEnabled(settings.spellcheck);
   if (changed('blockTelemetry')) blockTelemetry(settings.blockTelemetry);
-  // banner, bannerPreview, notifications, reopenLast and pins are read where they matter.
+  if (prev && changed('instagram')) {
+    if (settings.instagram) addInstagram();
+    else removeInstagram();
+  }
+  // banner, bannerPreview, notifications, reopenLast, platform and pins are read where they matter.
 }
-// The chat state (lib/chats): the list as last read, the open chat, the one put away.
-let chats = chatsLib.initialState();
 
-// The open conversation's banner reads as active in the stack.
-const syncActive = () => bubble && bubble.setActive(chats.activeHref);
+// The disc: the focused platform's mark and count, the other's satellite (lib/sites discState).
+function disc() {
+  const counts = {};
+  eachAccount((a) => (counts[a.site.id] = { unread: a.unread() }));
+  return discState({ focused, accounts: counts, badge: settings.badge });
+}
+function pushDisc() {
+  if (bubble) bubble.setPlatform(disc());
+}
+const otherPlatform = () => disc().other;
 
-// Putting a chat away — on the disc, on the shield, or by the panel losing focus — remembers
-// it for reopening (settings.reopenLast seconds) and takes the ring off it.
-function rememberChat() {
-  chats = chatsLib.closeChat(chats, Date.now());
+// The open conversation's head reads as active in the stack.
+const syncActive = () => bubble && bubble.setActive(current().chats().activeHref);
+
+// Bring a platform into focus: its chats in the stack, its count on the disc, its status on
+// the mark. The other platform's panel goes away (its blur handler remembers its open chat).
+function setFocus(id) {
+  if (!accounts[id] || id === focused) return;
+  current().hide();
+  focused = id;
+  store.patch({ platform: id });
+  pushDisc();
+  bubble.setStatus(current().status());
   syncActive();
+  if (bubble.isExpanded()) showStack(false);
+  refreshMenu();
+  log.info('platform focused', { platform: id });
 }
 
-// Take in the chat list — pushed by the panel's preload as it changes, or read from the page
-// by the safety poll — refresh the fan if it is open, and unroll a "message landed" banner
-// when a chat turns unread. Reads do not overlap: one at a time, with a request arriving
-// mid-read served by one more read after it.
-const stats = { pushes: 0, polls: 0 };
-let refreshing = false;
-let refreshAgain = false;
-let pendingRows = null;
-async function refreshRecent(pushed = null) {
-  if (!bubble || !panel) return;
-  if (pushed) pendingRows = pushed;
-  if (refreshing) {
-    refreshAgain = true;
-    return;
-  }
-  refreshing = true;
-  try {
-    let rows = pendingRows;
-    pendingRows = null;
-    if (rows) stats.pushes++;
-    else {
-      if (panel.isLoading()) return; // a page mid-reload has no rows worth reading
-      stats.polls++;
-      rows = await panel.readRecentChats();
-    }
-    if (!rows) return; // the list is scrolled: keep what we last knew rather than read the wrong rows
-    const ses = panel.session();
-    const next = await Promise.all(
-      rows.map(async (r) => ({ ...r, avatar: await fetchAvatar(ses, r.avatarUrl) })),
-    );
-    const result = chatsLib.reduceRecent(chats, next, {
-      visible: panel.isVisible(),
-      now: Date.now(),
-    });
-    chats = result.state;
-    if (!result.changed) return;
-    refreshPins();
-    const names = chats.recent.map((r) => r.name).join('\n');
-    if (names !== menuNames) {
-      menuNames = names;
-      createMenu();
-    }
-    if (bubble.isExpanded()) {
-      if (result.displayChanged) showStack(false);
-    } else if (result.landed && settings.banner)
-      bubble.landed(settings.bannerPreview ? result.landed : { ...result.landed, preview: '' });
-  } finally {
-    refreshing = false;
-    if (refreshAgain) {
-      refreshAgain = false;
-      refreshRecent();
-    }
-  }
+function createPlatform(site) {
+  const account = createAccount({
+    site,
+    log,
+    overFullscreen: settings.overFullscreen,
+    settings: () => settings,
+    patchPins: (pins) => store.patch({ pins }),
+    onUnread: () => pushDisc(),
+    onStatus: (status) => {
+      if (bubble && site.id === focused) bubble.setStatus(status);
+    },
+    // A message landed on either platform: the banner says which.
+    onLanded: (item) => {
+      if (!bubble || !settings.banner || bubble.isExpanded()) return;
+      bubble.landed(settings.bannerPreview ? item : { ...item, preview: '' });
+    },
+    onChanged: ({ displayChanged }) => {
+      if (site.id !== focused || !bubble) return;
+      refreshMenu();
+      syncActive();
+      if (displayChanged && bubble.isExpanded()) showStack(false);
+    },
+    onShown: () => {
+      syncActive();
+      if (bubble) bubble.opened();
+    },
+    // The panel put itself away (the user went elsewhere): its open chat is remembered by the
+    // account; the ring comes off its head.
+    onBlurred: () => {
+      if (site.id === focused) syncActive();
+    },
+    // The panel's own pin button on a row of the inbox.
+    onPin: (row) => togglePin(row.href, row),
+  });
+  accounts[site.id] = account;
+  return account;
 }
 
-// The stack: recent chats and pinned ones (lib/recent mergeHeads), each with its picture. A
-// pinned chat missing from the list gets its picture from the URL saved when it was pinned.
-async function stackItems() {
-  const ses = panel.session();
-  return Promise.all(
-    mergeHeads(settings.pins, chats.recent).map(async (it) =>
-      'avatar' in it ? it : { ...it, avatar: await fetchAvatar(ses, it.avatarUrl) },
-    ),
+// Instagram switched on: its panel loads, and its login page opens beside the disc with a word
+// from the disc, as on first launch.
+function addInstagram() {
+  if (accounts.instagram) return;
+  const account = createPlatform(INSTAGRAM);
+  pushDisc();
+  refreshMenu();
+  account.panel.win.webContents.once('did-finish-load', () =>
+    setTimeout(() => {
+      if (!accounts.instagram || !bubble) return;
+      setFocus('instagram');
+      account.openInbox(bubble.getBounds());
+      bubble.landed({
+        href: null,
+        name: 'Instagram is here',
+        preview:
+          'Sign in beside me. Click the small mark on my foot, or the Instagram head in the stack, to switch between the two.',
+        avatar: null,
+        platform: 'instagram',
+        hold: 30000,
+      });
+    }, 500),
   );
 }
-async function showStack(animate = true) {
-  bubble.expand(await stackItems(), animate);
+
+function removeInstagram() {
+  const account = accounts.instagram;
+  if (!account) return;
+  if (focused === 'instagram') setFocus('messenger');
+  delete accounts.instagram;
+  account.destroy();
+  pushDisc();
+  refreshMenu();
 }
 
-// A pinned chat that is in the list again keeps its saved name and picture URL fresh.
-function refreshPins() {
-  const { pins, changed } = chatsLib.refreshPins(settings.pins, chats.recent);
-  if (changed) store.patch({ pins });
+async function showStack(animate = true) {
+  bubble.expand(await current().stackItems(), animate);
 }
 
 function setPins(pins) {
   store.patch({ pins });
+  eachAccount((a) => a.syncPin());
   if (bubble.isExpanded()) showStack(false);
 }
 
-// Right-click on a head: pin it, or unpin it.
-// Pin a chat, or unpin it. Up to MAX_PINS; a chat not in the list cannot be pinned (nothing is
-// known about it) — but any pinned one can be unpinned.
-function togglePin(href) {
+// Pin a chat, or unpin it. Up to MAX_PINS per platform; a chat that is neither in the list
+// nor showing in the panel cannot be pinned (nothing is known about it) — but any pinned one
+// can be unpinned.
+const pinsOf = (href) =>
+  settings.pins.filter((p) => platformOfHref(p.href) === platformOfHref(href));
+function togglePin(href, known = null) {
   if (settings.pins.some((p) => p.href === href))
     return setPins(settings.pins.filter((p) => p.href !== href));
-  const row = chats.recent.find((r) => r.href === href);
-  if (!row || settings.pins.length >= MAX_PINS) return;
-  setPins([...settings.pins, { href, name: row.name, avatarUrl: row.avatarUrl }]);
+  const account = accountOf(href);
+  const row = known || (account && account.rowFor(href));
+  if (!account || !row || pinsOf(href).length >= MAX_PINS) return;
+  const pin = { href, name: row.name, avatarUrl: row.avatarUrl };
+  const threadHref = account.threadHrefOf(href);
+  if (threadHref) pin.threadHref = threadHref;
+  setPins([...settings.pins, pin]);
 }
 
 // Right-click on a head: pin it, or unpin it.
 function headMenu(href) {
   const pinned = settings.pins.some((p) => p.href === href);
-  const full = settings.pins.length >= MAX_PINS;
+  const full = pinsOf(href).length >= MAX_PINS;
   Menu.buildFromTemplate([
     pinned
       ? { label: 'Unpin', click: () => togglePin(href) }
@@ -250,8 +287,8 @@ function persistFacebookCookies() {
   });
 }
 
-// Electron grants every permission request by default. Only Messenger (and the facebook.com
-// login pages the panel may visit) get anything, and only what a chat client needs.
+// Electron grants every permission request by default. Only Meta's messaging sites (and the
+// facebook.com login pages the panels may visit) get anything, and only what a chat client needs.
 function restrictPermissions() {
   session.defaultSession.setPermissionRequestHandler((wc, permission, callback, details) => {
     callback(
@@ -265,50 +302,66 @@ function restrictPermissions() {
 }
 
 // Drop Facebook's logging beacons at the network layer. Only the pure telemetry sinks listed in
-// lib/telemetry are cancelled; everything Messenger needs to work passes untouched.
+// lib/telemetry are cancelled; everything the sites need to work passes untouched.
 // The listener costs every matching request a hop through the main process, so it is only
 // registered while the setting is on.
 function blockTelemetry(on) {
-  const filter = { urls: ['*://*.facebook.com/*', '*://*.messenger.com/*'] };
+  const filter = {
+    urls: ['*://*.facebook.com/*', '*://*.messenger.com/*', '*://*.instagram.com/*'],
+  };
   session.defaultSession.webRequest.onBeforeRequest(
     filter,
     on ? (details, callback) => callback({ cancel: isTelemetryUrl(details.url) }) : null,
   );
 }
 
-const runInPanel = (js) =>
-  panel &&
-  scrape
-    .run(panel.win.webContents, js, { userGesture: true })
-    .catch((err) => log.debug('panel script failed', { err }));
-
-// The compose button lives in the inbox view, so bring that up first.
+// The compose button lives in Messenger's inbox view, so bring that up first. (Instagram's
+// inbox has its own; the panel simply opens there.)
 async function newMessage() {
   if (!bubble) return;
-  chats = chatsLib.openChat(chats, null);
-  syncActive();
-  await panel.openInbox(bubble.getBounds());
-  runInPanel(`(() => {
+  const account = current();
+  await openInbox();
+  if (account.site.id !== 'messenger') return;
+  scrape
+    .run(
+      account.panel.win.webContents,
+      `(() => {
     const btn = document.querySelector('[aria-label="New message"]') ||
                 document.querySelector('[aria-label="Start a new message"]') ||
                 document.querySelector('[aria-label="Compose"]');
     if (btn) btn.click();
-  })()`);
+  })()`,
+      { userGesture: true },
+    )
+    .catch((err) => log.debug('panel script failed', { err }));
 }
 
-// Open a conversation beside the stack, bringing the stack up if it isn't already. The stack
-// must be up before the panel is placed: it is placed beside the column, not the disc.
+// Open a conversation beside the stack, bringing the stack up if it isn't already — and its
+// platform into focus if it isn't. The stack must be up before the panel is placed: it is
+// placed beside the column, not the disc.
 async function openChat(href) {
-  chats = chatsLib.openChat(chats, href);
+  const account = accountOf(href);
+  if (!account) return;
+  if (account.site.id !== focused) setFocus(account.site.id);
   if (!bubble.isExpanded()) await showStack();
   bubble.setActive(href);
-  panel.openThread(href, bubble.getStackBounds());
+  account.open(href, bubble.getStackBounds());
+}
+
+// The inbox beside the stack, the same way a conversation opens: the stack comes up if it
+// isn't, and stays, so a chat is still one click away while the inbox shows.
+async function openInbox() {
+  if (!bubble.isExpanded()) await showStack();
+  const opened = current().openInbox(bubble.getStackBounds());
+  syncActive();
+  return opened;
 }
 
 // Cmd+N opens the n-th most recent chat the same way a banner click does (a synthetic click
 // on the list row only highlights it at the panel's width).
 function openRecent(n) {
-  if (bubble && chats.recent[n]) openChat(chats.recent[n].href);
+  const row = bubble && current().chats().recent[n];
+  if (row) openChat(row.href);
 }
 
 function openSettings() {
@@ -319,19 +372,28 @@ const ISSUES_URL = 'https://github.com/termite09/bubble-for-messenger/issues/new
 
 function bubbleContextMenu() {
   const update = updates.latest();
-  Menu.buildFromTemplate([
+  const other = otherPlatform();
+  const openItems = Object.values(accounts).flatMap((a) => [
     {
-      label: 'Open Messenger',
+      label: `Open ${a.site.label}`,
       click: () => {
-        chats = chatsLib.openChat(chats, null);
-        syncActive();
-        panel.openInbox(bubble.getBounds());
+        setFocus(a.site.id);
+        openInbox();
       },
     },
-    { label: 'Reload Messenger', click: () => panel.reload() },
+    { label: `Reload ${a.site.label}`, click: () => a.panel.reload() },
+  ]);
+  Menu.buildFromTemplate([
+    ...(other
+      ? [
+          { label: `Switch to ${other.label}`, click: () => setFocus(other.id) },
+          { type: 'separator' },
+        ]
+      : []),
+    ...openItems,
     { type: 'separator' },
     ...(update
-      ? [{ label: `Update to ${update.version}…`, click: () => shell.openExternal(update.url) }]
+      ? [{ label: `Update to ${update.version}…`, click: () => offerUpdate(update) }]
       : []),
     { label: 'Settings…', click: openSettings },
     { label: 'Reset Bubble Position', click: () => bubble.resetPosition() },
@@ -348,13 +410,40 @@ function bubbleContextMenu() {
   ]).popup({ window: bubble.win });
 }
 
-// The app menu; rebuilt when the recent chats' names change, so Cmd+1–5 show who they open.
-let menuNames = '';
+// A newer release: the release page — or, for an app Homebrew installed, the command that
+// updates it (in full: on an untrusted tap the short name upgrades nothing, silently).
+async function offerUpdate(update) {
+  if (!installedByHomebrew()) return shell.openExternal(update.url);
+  const { response } = await dialog.showMessageBox({
+    type: 'info',
+    message: `Bubble ${update.version} is available`,
+    detail:
+      `You installed Bubble with Homebrew. Update it in Terminal:\n\n${HOMEBREW_UPGRADE}\n\n` +
+      `If Homebrew says nothing is outdated, trust the tap once:\n${HOMEBREW_TRUST}`,
+    buttons: ['Copy Command', 'Open Release Page', 'Later'],
+    defaultId: 0,
+    cancelId: 2,
+  });
+  if (response === 0) clipboard.writeText(HOMEBREW_UPGRADE);
+  else if (response === 1) shell.openExternal(update.url);
+}
+
+// The app menu; rebuilt when the focused platform's recent chats' names change, so Cmd+1–5
+// show who they open.
+let menuKey = '';
+function refreshMenu() {
+  const recent = current() ? current().chats().recent : [];
+  const key = focused + '\n' + recent.map((r) => r.name).join('\n');
+  if (key === menuKey) return;
+  menuKey = key;
+  createMenu();
+}
 function createMenu() {
+  const recent = current() ? current().chats().recent : [];
   const conversations = Array.from({ length: RECENT_LIMIT }, (_, i) => ({
-    label: chats.recent[i] ? chats.recent[i].name : `Recent Chat ${i + 1}`,
+    label: recent[i] ? recent[i].name : `Recent Chat ${i + 1}`,
     accelerator: `CmdOrCtrl+${i + 1}`,
-    enabled: Boolean(chats.recent[i]),
+    enabled: Boolean(recent[i]),
     click: () => openRecent(i),
   }));
 
@@ -429,12 +518,12 @@ app.on('second-instance', () => {
 
 // Every renderer is sandboxed (the window factory sets it per window; this makes it the rule),
 // and no page may open a window or leave its own document: the local pages never navigate,
-// and the panel has its own, richer guard (panel.js).
+// and the panels have their own, richer guard (panel.js).
 app.enableSandbox();
 app.on('web-contents-created', (_event, wc) => {
   wc.setWindowOpenHandler(() => ({ action: 'deny' }));
   wc.on('will-navigate', (event, url) => {
-    const isPanel = panel && wc === panel.win.webContents;
+    const isPanel = Object.values(accounts).some((a) => wc === a.panel.win.webContents);
     if (!isPanel && !url.startsWith('file://')) event.preventDefault();
   });
 });
@@ -445,31 +534,12 @@ app.whenReady().then(() => {
   createMenu();
   persistFacebookCookies();
   restrictPermissions();
-  blockTelemetry(settings.blockTelemetry); // before the panel starts loading
+  blockTelemetry(settings.blockTelemetry); // before the panels start loading
 
-  panel = createPanel({
-    log,
-    overFullscreen: settings.overFullscreen,
-    onUnread: (n) => {
-      if (!bubble) return;
-      // A title flash ("Name messaged you") says nothing about the count: keep the last one.
-      if (n !== null) {
-        lastUnread = n;
-        bubble.setBadge(settings.badge !== 'off' ? n : 0);
-      }
-    },
-    onRows: (rows) => refreshRecent(rows),
-    onStatus: (status) => {
-      panelStatus = status;
-      if (bubble) bubble.setStatus(status);
-    },
-    onShown: () => {
-      syncActive();
-      if (bubble) bubble.opened();
-    },
-    onBlurred: rememberChat,
-  });
-  setInterval(refreshRecent, RECENT_POLL_MS);
+  createPlatform(MESSENGER);
+  if (settings.instagram) createPlatform(INSTAGRAM);
+  focused = accounts[settings.platform] ? settings.platform : 'messenger';
+  setInterval(() => eachAccount((a) => a.refresh()), RECENT_POLL_MS);
 
   dismiss = createDismissTarget({ overFullscreen: settings.overFullscreen });
 
@@ -478,24 +548,26 @@ app.whenReady().then(() => {
     dismiss,
     overFullscreen: settings.overFullscreen,
     size: BUBBLE_SIZES[settings.bubbleSize],
-    // A disc click brings the stack up — or, soon after a chat was put away by clicking
-    // elsewhere, that chat straight back.
+    // A disc click opens the newest received message, on either platform — or, with nothing
+    // unread, brings the stack up (or, soon after a chat was put away by clicking elsewhere,
+    // that chat straight back).
     onClick: () => {
       // Signed out: the stack would be empty; the disc goes straight to the login page.
-      if (panelStatus.signedOut) {
-        chats = chatsLib.openChat(chats, null);
-        panel.openInbox(bubble.getBounds());
-        return;
-      }
-      const click = chatsLib.discClick(chats, Date.now(), settings.reopenLast);
+      if (current().status().signedOut) return openInbox();
+      const unread = {};
+      eachAccount((a) => (unread[a.site.id] = { recent: a.chats().recent, landed: a.landed() }));
+      const pick = pickUnread({ focused, accounts: unread });
+      if (pick) return openChat(pick.href);
+      const click = current().discClick(Date.now(), settings.reopenLast);
       if (click.action === 'reopen') openChat(click.href);
       else showStack();
     },
     // Pressing the disc while the stack is open, or anywhere outside it (the shield), puts it
     // all away — and remembers the open chat for a while.
     onClose: () => {
-      rememberChat();
-      panel.hide();
+      current().close();
+      syncActive();
+      current().hide();
     },
     onContextMenu: bubbleContextMenu,
     onHeadMenu: headMenu,
@@ -503,22 +575,21 @@ app.whenReady().then(() => {
     // A conversation opens beyond the stack, which stays (or comes) up so the other chats are
     // one click away without fanning out again.
     onOpenChat: (href) => openChat(href),
-    onOpenInbox: () => {
-      chats = chatsLib.openChat(chats, null);
-      syncActive();
-      panel.openInbox(bubble.getBounds());
-    },
-    // A reply typed into the banner goes out through the hidden page. If that fails, the
-    // conversation opens with whatever got as far as the composer, so nothing typed is lost.
+    onOpenInbox: openInbox,
+    onSwitch: setFocus,
+    // A reply typed into the banner goes out through that platform's hidden page, whichever is
+    // in focus. If that fails, the conversation opens with whatever got as far as the composer,
+    // so nothing typed is lost.
     onReply: async (href, text) => {
-      const ok = await panel.sendReply(href, text);
+      const account = accountOf(href);
+      const ok = account ? await account.reply(href, text) : false;
       if (!ok) log.warn('quick reply not delivered; opening the chat', { thread: hashHref(href) });
       bubble.replyResult(ok);
       if (!ok) openChat(href);
     },
     onDismiss: () => app.quit(),
     onMoved: (pos) => {
-      panel.follow(bubble.getStackBounds());
+      current().panel.follow(bubble.getStackBounds());
       store.setPosition(pos);
     },
   });
@@ -529,13 +600,14 @@ app.whenReady().then(() => {
     subscribe: (fn) => store.subscribe((s) => fn(s)),
     // Messenger's own switches (notification sounds among them) live in its Preferences.
     onOpenMessengerPreferences: () => {
-      chats = chatsLib.openChat(chats, null);
+      setFocus('messenger');
+      current().openPreferences(bubble.getBounds());
       syncActive();
-      panel.openPreferences(bubble.getBounds());
     },
   });
 
   applySettings(null);
+  pushDisc();
 
   // A newer release? A minute after launch, then daily; the bubble's menu says so.
   updates = createUpdateCheck({
@@ -556,9 +628,9 @@ app.whenReady().then(() => {
   // First run: nothing to show until the user signs in, so bring the inbox (the login page) up,
   // and let the disc introduce itself.
   if (!store.existed)
-    panel.win.webContents.once('did-finish-load', () =>
+    accounts.messenger.panel.win.webContents.once('did-finish-load', () =>
       setTimeout(() => {
-        panel.openInbox(bubble.getBounds());
+        accounts.messenger.openInbox(bubble.getBounds());
         bubble.landed({
           href: null,
           name: 'Welcome to Bubble',
@@ -573,15 +645,20 @@ app.whenReady().then(() => {
   // Development only: what a driver attached over --inspect needs to see and poke.
   if (!app.isPackaged)
     global.__bubble = {
-      state: () => chats,
+      state: () => current().chats(),
       settings: () => settings,
       store,
-      panel,
+      accounts,
+      focused: () => focused,
+      setFocus,
+      get panel() {
+        return current().panel;
+      },
       bubble,
       log,
-      refreshRecent,
+      refreshRecent: (rows) => current().refresh(rows),
       showStack,
-      stats,
+      stats: () => current().stats(),
       updates: () => updates,
     };
 });

@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { unreadFromTitle } = require('../src/lib/unread');
+const { unreadFromTitle, nameFromTitle } = require('../src/lib/unread');
 
 test('plain title has no unread', () => assert.equal(unreadFromTitle('Messenger'), 0));
 test('parses count prefix', () => assert.equal(unreadFromTitle('(3) Messenger'), 3));
@@ -21,4 +21,16 @@ test('a "messaged you" flash is unknown, not zero', () => {
 test('a plain title with or without a chat name is zero', () => {
   assert.equal(unreadFromTitle('Alex | Messenger'), 0);
   assert.equal(unreadFromTitle('Chats | Messenger'), 0);
+});
+
+// The open thread's name, as the title carries it: "(N) Name | Messenger". No name on the
+// inbox ("Messenger", "Chats | Messenger") or during a flash.
+test('nameFromTitle reads the open chat’s name out of the title', () => {
+  assert.equal(nameFromTitle('Alex | Messenger'), 'Alex');
+  assert.equal(nameFromTitle('(3) Alex Smith | Messenger'), 'Alex Smith');
+  assert.equal(nameFromTitle('(20+) A | B | Messenger'), 'A | B');
+  assert.equal(nameFromTitle('Messenger'), null);
+  assert.equal(nameFromTitle('Chats | Messenger'), null);
+  assert.equal(nameFromTitle('Alex messaged you'), null);
+  assert.equal(nameFromTitle(undefined), null);
 });

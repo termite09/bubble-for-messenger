@@ -1,5 +1,54 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- **Instagram messages** (Settings → Bubble, off by default): Instagram's inbox loads beside
+  Messenger's, and the disc switches between the two. One platform is *in focus* — its chats
+  in the stack, its count on the disc — while the other shows as a small satellite at the
+  disc's foot carrying its mark and unread count; click it, or right-click → *Switch to…*. Banners land from both platforms (the avatar wears
+  the platform's mark); clicking one switches focus and opens the chat, and replying from one
+  sends through that platform without switching. The focused platform is remembered across
+  launches. Instagram's own login stays in the profile like Messenger's.
+
+- Clicking the disc while something is unread opens the newest received message, on
+  whichever platform it arrived, instead of the stack.
+- Any chat can be pinned from the inbox: a pin appears on a chat row you hover — one click,
+  no need to open it first. On both platforms.
+- *Update to X…* shows the Homebrew command (with a Copy button) when Bubble was installed by
+  Homebrew, and the README explains `brew update` vs `brew upgrade` and the trust step.
+
+### Fixed
+- Opening an Instagram chat right after its panel was put away could fail while the inbox was
+  still sliding back in; the row is tried once more.
+- A Messenger chat could open with its messages out of view (header and composer only, the
+  card still inset). Compact mode looked for the thread card as "the largest opaque box", and
+  once a chat held a tall message block — a photo, a video — that block won and every block
+  sharing its classes was stretched to the panel's height. The card is now the box that holds
+  the composer, and the rule is only written when it names that one element.
+
+### Changed
+- Pinned chats sit at the top of the stack, above a hairline; the recent ones follow.
+- Pins are five per platform; an Instagram pin remembers the thread it was found in.
+- Two panels on one session share one request watch, each hearing its own site's sockets.
+- Settings: the *Reopen the last chat* choices take a line of their own under the text
+  instead of squeezing the label into a column; keyboard focus is a brighter hairline
+  (3:1 on the raised row); the Panel tab no longer repeats its own name as a caption.
+- Secondary text is a shade lighter (`#98989d`), so it keeps 4.5:1 on a hovered or focused
+  row as well as on the card.
+- The banner's reply arrow is drawn, like the ✕, tray and pin. On a long message the
+  banner's avatar stays on the disc's row.
+- The Inbox chip no longer carries "···"; the app's menu is the disc's right-click.
+- Opening the Inbox keeps the stack up, like opening a chat: the inbox sheet sits beside the
+  column and the heads stay one click away. Cmd+N and *Open Messenger* do the same.
+- For VoiceOver: the disc is named with its platform and unread count, a landed message is
+  announced, the reply field is named, and a head's name carries "pinned".
+- The palette is written once (`src/renderer/tokens.css`); the app's pages, the panel's
+  hairline and the pin button all take their colours from it.
+- Profile pictures larger than the biggest disc needs are downscaled before they travel to
+  the bubble; the hit test under the cursor runs once per frame; the panel watches
+  messenger.com with one structural observer instead of two, ignoring its inline styles.
+
 ## v2.5.0 (2026-09-15) — Bubble for Messenger
 
 ### Changed

@@ -32,7 +32,8 @@
     "productName": "Bubble",
     "files": [
       "src/**",
-      "assets/icon.png"
+      "assets/icon.png",
+      "assets/instagram.svg"
     ],
     "mac": {
       "category": "public.app-category.social-networking",

@@ -9,4 +9,14 @@ function unreadFromTitle(title) {
   return /messaged you$/i.test(t) ? null : 0;
 }
 
-module.exports = { unreadFromTitle };
+// The open thread's name, from "(N) Name | Messenger". The inbox ("Messenger", "Chats |
+// Messenger") and the "messaged you" flash carry none.
+function nameFromTitle(title) {
+  const t = String(title || '')
+    .trim()
+    .replace(/^\(\d+\+?\)\s*/, '');
+  const m = /^(.*\S)\s*\|\s*Messenger$/.exec(t);
+  return m && m[1] !== 'Chats' ? m[1] : null;
+}
+
+module.exports = { unreadFromTitle, nameFromTitle };

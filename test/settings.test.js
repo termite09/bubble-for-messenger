@@ -26,6 +26,8 @@ test('defaults are what the spec says', () => {
     blockTelemetry: true,
     reopenLast: 30,
     checkUpdates: true,
+    instagram: false,
+    platform: 'messenger',
   });
   assert.deepEqual(REOPEN_SECONDS, [0, 15, 30, 60, 300]);
   assert.deepEqual(THEMES, ['system', 'light', 'dark']);
@@ -146,4 +148,37 @@ test('pins are validated and capped, and absent means none', () => {
   ]);
   assert.equal(pins.length, 5);
   assert.equal(isSettingKey('pins'), false);
+});
+
+// The focused platform is remembered, but only while Instagram is on: off, there is only
+// Messenger to focus. A pin carries the thread path an Instagram chat was learned to have.
+test('platform is one of the two and reads as messenger while instagram is off', () => {
+  assert.equal(normalizeSettings({ instagram: true, platform: 'instagram' }).platform, 'instagram');
+  assert.equal(
+    normalizeSettings({ instagram: false, platform: 'instagram' }).platform,
+    'messenger',
+  );
+  assert.equal(normalizeSettings({ instagram: true, platform: 'tiktok' }).platform, 'messenger');
+  assert.equal(isSettingKey('instagram'), true);
+});
+
+test('pins keep an Instagram thread path when it is a clean one', () => {
+  const out = normalizeSettings({
+    pins: [
+      { href: '/direct/n/primeweb/', name: 'primeweb', threadHref: '/direct/t/838117799114653/' },
+      { href: '/direct/n/racers/', name: 'racers', threadHref: '/direct/t/x/' },
+      { href: '/t/1/', name: 'A' },
+    ],
+  });
+  assert.equal(out.pins[0].threadHref, '/direct/t/838117799114653/');
+  assert.equal(out.pins[1].threadHref, null);
+  assert.equal('threadHref' in out.pins[2], false); // Messenger pins are as they were
+});
+
+test('pins are capped at five per platform, not five in all', () => {
+  const messenger = [1, 2, 3, 4, 5, 6].map((i) => ({ href: `/t/${i}/`, name: 'M' + i }));
+  const instagram = [1, 2, 3, 4, 5, 6].map((i) => ({ href: `/direct/n/I${i}/`, name: 'I' + i }));
+  const pins = normalizeSettings({ pins: [...messenger, ...instagram] }).pins;
+  assert.equal(pins.filter((p) => p.href.startsWith('/t/')).length, 5);
+  assert.equal(pins.filter((p) => p.href.startsWith('/direct/')).length, 5);
 });

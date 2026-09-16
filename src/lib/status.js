@@ -10,11 +10,13 @@ function connectionState({ online, socketErrorAt }) {
   return 'online';
 }
 
-// A signed-out session lands on a login or checkpoint page on Meta's own hosts.
+// A signed-out session lands on a login or checkpoint page on Meta's own hosts: Messenger's
+// /login and /checkpoint, Instagram's /accounts/login (2FA under it) and /challenge.
+const SIGNED_OUT_PATH = /^\/(login|checkpoint|accounts\/login|challenge)(\/|\.php|$)/;
 function signedOut(url) {
   try {
     const u = new URL(url);
-    return isMetaHost(u.hostname) && /^\/(login|checkpoint)(\/|\.php|$)/.test(u.pathname);
+    return isMetaHost(u.hostname) && SIGNED_OUT_PATH.test(u.pathname);
   } catch (e) {
     return false;
   }

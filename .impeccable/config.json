@@ -47,6 +47,15 @@
         ],
         "createdAt": "2026-09-13T13:08:41.158Z",
         "reason": "Intentional: DESIGN.md's Radius Follows Height rule — 22px switch pill = 11px, 24px segmented control = 8px; the token scale predates these control sizes"
+      },
+      {
+        "rule": "broken-image",
+        "value": "*",
+        "files": [
+          "src/renderer/bubble.html"
+        ],
+        "createdAt": "2026-09-16T03:48:53.733Z",
+        "reason": "Claude, verified: both <img>s are populated at runtime (landed-mark is display:none until [src]; #other is hidden until has-other, set in the same call that assigns src) — no broken-image box can paint"
       }
     ]
   }

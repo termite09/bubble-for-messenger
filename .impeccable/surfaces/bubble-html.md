@@ -21,7 +21,8 @@ incumbent liquid-goo fan.
 
 OWN-WORLD: solid system-grey cards (#1c1c1e ground, #2c2c2e raised), 1px white rule at 12%
 (28% when active), soft lifted shadow 0 8px 24px rgba(0,0,0,.45), 14px card radius / 22px
-disc radius, SF Pro (system) 13px semibold names, 12px #8e8e93 secondary, 11px time. Blue
+disc radius, SF Pro (system) 13px semibold names, 12px #98989d secondary (ash, retuned 16 Sep
+2026 to hold 4.5:1 on the raised tone), 11px time. Values live once in src/renderer/tokens.css. Blue
 #0a84ff only on the unread count, unread dot, and the user's own message bubbles. No
 gradients, no vibrancy, no red. Recognisable with all content removed: a column of equal
 grey rounded cards with a hairline, one disc at the foot.

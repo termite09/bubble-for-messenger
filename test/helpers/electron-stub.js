@@ -16,12 +16,10 @@ function makeStub() {
       this.sent = [];
       this.zoom = 1;
       this.url = '';
+      this.userAgent = null;
       this.destroyed = false;
-      this.session = {
-        fetch: async () => ({ ok: false, headers: { get: () => null } }),
-        webRequest: { onCompleted() {}, onErrorOccurred() {}, onBeforeRequest() {} },
-        setSpellCheckerEnabled() {},
-      };
+      // One session for every window, as in the app; webRequest keeps one listener per event.
+      this.session = sharedSession;
     }
     send(channel, ...args) {
       this.sent.push([channel, ...args]);
@@ -34,6 +32,9 @@ function makeStub() {
     }
     getURL() {
       return this.url;
+    }
+    setUserAgent(ua) {
+      this.userAgent = ua;
     }
     executeJavaScript() {
       return Promise.resolve(null);
@@ -52,6 +53,22 @@ function makeStub() {
       this.emit('did-finish-load');
     }
   }
+
+  const sharedSession = {
+    fetch: async () => ({ ok: false, headers: { get: () => null } }),
+    webRequest: {
+      completed: null,
+      errored: null,
+      onCompleted(filter, fn) {
+        this.completed = fn ? { filter, fn } : null;
+      },
+      onErrorOccurred(filter, fn) {
+        this.errored = fn ? { filter, fn } : null;
+      },
+      onBeforeRequest() {},
+    },
+    setSpellCheckerEnabled() {},
+  };
 
   class BrowserWindow extends EventEmitter {
     constructor(opts) {
@@ -130,7 +147,9 @@ function makeStub() {
       this.focusable = on;
     }
     setOpacity() {}
-    setBackgroundColor() {}
+    setBackgroundColor() {
+      if (this.destroyed) throw new TypeError('Object has been destroyed');
+    }
     close() {
       this.emit('close', { preventDefault() {} });
     }

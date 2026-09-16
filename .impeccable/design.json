@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-13T00:00:00Z",
+  "generatedAt": "2026-09-16T03:58:09Z",
   "title": "Design System: Bubble for Messenger",
   "extensions": {
     "colorMeta": {
@@ -82,7 +82,7 @@
       "ash": {
         "role": "neutral",
         "displayName": "Ash",
-        "canonical": "#8e8e93",
+        "canonical": "#98989d",
         "tonalRamp": [
           "oklch(15% 0.007 286)",
           "oklch(27% 0.007 286)",
@@ -137,6 +137,21 @@
           "oklch(75% 0 0)",
           "oklch(87% 0 0)",
           "oklch(100% 0 0)"
+        ]
+      },
+      "hairline-focus": {
+        "role": "neutral",
+        "displayName": "Focus Hairline",
+        "canonical": "rgba(255,255,255,.45)",
+        "tonalRamp": [
+          "rgba(255,255,255,.04)",
+          "rgba(255,255,255,.08)",
+          "rgba(255,255,255,.12)",
+          "rgba(255,255,255,.2)",
+          "rgba(255,255,255,.28)",
+          "rgba(255,255,255,.45)",
+          "rgba(255,255,255,.7)",
+          "rgba(255,255,255,.95)"
         ]
       }
     },
@@ -204,7 +219,7 @@
       "kind": "custom",
       "refersTo": "disc",
       "description": "The resting chat head: a 44px graphite circle with the Messenger mark and a blue unread count overhanging its top-right.",
-      "html": "<div class=\"ds-stage\"><div class=\"ds-disc\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"11\" fill=\"#8e8e93\"/><path d=\"M6.5 14.5l3.4-3.6 2.6 2 3.6-2.9-3.6 3.8-2.6-2z\" fill=\"#1c1c1e\"/></svg><div class=\"ds-count\">3</div></div></div>",
+      "html": "<div class=\"ds-stage\"><div class=\"ds-disc\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"11\" fill=\"#98989d\"/><path d=\"M6.5 14.5l3.4-3.6 2.6 2 3.6-2.9-3.6 3.8-2.6-2z\" fill=\"#1c1c1e\"/></svg><div class=\"ds-count\">3</div></div></div>",
       "css": ".ds-stage { padding: 32px; } .ds-disc { position: relative; width: 44px; height: 44px; border-radius: 22px; background: #1c1c1e; border: 1px solid rgba(255,255,255,.12); box-shadow: 0 8px 24px rgba(0,0,0,.45); box-sizing: border-box; display: flex; align-items: center; justify-content: center; } .ds-disc svg { width: 24px; height: 24px; display: block; } .ds-count { position: absolute; right: -8px; top: -6px; min-width: 18px; height: 18px; padding: 0 5px; box-sizing: border-box; border-radius: 9px; background: #0a84ff; color: #fff; font: 600 11px/18px -apple-system, system-ui, sans-serif; text-align: center; pointer-events: none; }"
     },
     {
@@ -220,16 +235,16 @@
       "kind": "custom",
       "refersTo": "banner-landed",
       "description": "\"A message landed\": a 252x44 pill that unrolls out of the disc via clip-path over 220ms and folds back after 4s. Hover the stage to see it open.",
-      "html": "<div class=\"ds-stage ds-edge-right\"><div class=\"ds-disc-host\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"11\" fill=\"#8e8e93\"/><path d=\"M6.5 14.5l3.4-3.6 2.6 2 3.6-2.9-3.6 3.8-2.6-2z\" fill=\"#1c1c1e\"/></svg><div class=\"ds-landed\"><div class=\"ds-av\">I</div><div class=\"ds-text\"><div class=\"ds-name\">Ioanna Varvatsi</div><div class=\"ds-sub\">New message</div></div><div class=\"ds-time\">now</div></div></div></div>",
-      "css": ".ds-stage { padding: 32px 32px 32px 240px; font: 13px/16px -apple-system, system-ui, sans-serif; color: #f5f5f7; -webkit-font-smoothing: antialiased; } .ds-disc-host { position: relative; width: 44px; height: 44px; border-radius: 22px; background: #1c1c1e; border: 1px solid rgba(255,255,255,.12); box-shadow: 0 8px 24px rgba(0,0,0,.45); box-sizing: border-box; display: flex; align-items: center; justify-content: center; } .ds-disc-host > svg { width: 24px; height: 24px; display: block; } .ds-landed { position: absolute; top: -1px; right: -1px; width: 252px; height: 44px; border-radius: 22px; background: #1c1c1e; border: 1px solid rgba(255,255,255,.12); box-shadow: 0 8px 24px rgba(0,0,0,.45); box-sizing: border-box; display: flex; align-items: center; gap: 10px; padding: 0 14px 0 5px; clip-path: inset(0 0 0 208px round 22px); opacity: 0; transition: clip-path 220ms cubic-bezier(.22, 1, .36, 1), opacity 120ms linear; pointer-events: none; } .ds-stage:hover .ds-landed { clip-path: inset(0 round 22px); opacity: 1; } .ds-av { width: 32px; height: 32px; border-radius: 16px; flex: none; background: #3a3a3c; display: flex; align-items: center; justify-content: center; font: 600 13px -apple-system, system-ui, sans-serif; color: #fff; } .ds-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; } .ds-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-sub { font-size: 12px; line-height: 15px; color: #8e8e93; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-time { font-size: 11px; color: #8e8e93; flex: none; }"
+      "html": "<div class=\"ds-stage ds-edge-right\"><div class=\"ds-disc-host\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"11\" fill=\"#98989d\"/><path d=\"M6.5 14.5l3.4-3.6 2.6 2 3.6-2.9-3.6 3.8-2.6-2z\" fill=\"#1c1c1e\"/></svg><div class=\"ds-landed\"><div class=\"ds-av\">I</div><div class=\"ds-text\"><div class=\"ds-name\">Ioanna Varvatsi</div><div class=\"ds-sub\">New message</div></div><div class=\"ds-time\">now</div></div></div></div>",
+      "css": ".ds-stage { padding: 32px 32px 32px 240px; font: 13px/16px -apple-system, system-ui, sans-serif; color: #f5f5f7; -webkit-font-smoothing: antialiased; } .ds-disc-host { position: relative; width: 44px; height: 44px; border-radius: 22px; background: #1c1c1e; border: 1px solid rgba(255,255,255,.12); box-shadow: 0 8px 24px rgba(0,0,0,.45); box-sizing: border-box; display: flex; align-items: center; justify-content: center; } .ds-disc-host > svg { width: 24px; height: 24px; display: block; } .ds-landed { position: absolute; top: -1px; right: -1px; width: 252px; height: 44px; border-radius: 22px; background: #1c1c1e; border: 1px solid rgba(255,255,255,.12); box-shadow: 0 8px 24px rgba(0,0,0,.45); box-sizing: border-box; display: flex; align-items: center; gap: 10px; padding: 0 14px 0 5px; clip-path: inset(0 0 0 208px round 22px); opacity: 0; transition: clip-path 220ms cubic-bezier(.22, 1, .36, 1), opacity 120ms linear; pointer-events: none; } .ds-stage:hover .ds-landed { clip-path: inset(0 round 22px); opacity: 1; } .ds-av { width: 32px; height: 32px; border-radius: 16px; flex: none; background: #3a3a3c; display: flex; align-items: center; justify-content: center; font: 600 13px -apple-system, system-ui, sans-serif; color: #fff; } .ds-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; } .ds-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-sub { font-size: 12px; line-height: 15px; color: #98989d; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-time { font-size: 11px; color: #98989d; flex: none; }"
     },
     {
       "name": "Stack (one-progress deploy)",
       "kind": "custom",
       "refersTo": "banner",
       "description": "Three banners above a disc, deployed from one --p value: each row's translateY and opacity are derived from --p and its distance --d. Hover the stage to open.",
-      "html": "<div class=\"ds-stage\"><div class=\"ds-fan\"><div class=\"ds-banner\" style=\"--d: 180px\"><div class=\"ds-av\">P</div><div class=\"ds-text\"><div class=\"ds-name\">PokeMen</div><div class=\"ds-sub\">Diomidis: Mew parea m tha itan</div></div><div class=\"ds-time\">18h</div></div><div class=\"ds-banner\" style=\"--d: 120px\"><div class=\"ds-av\">S</div><div class=\"ds-text\"><div class=\"ds-name\">Spyros Lontos</div><div class=\"ds-sub\">The audio call ended.</div></div><div class=\"ds-time\">23h</div></div><div class=\"ds-banner ds-inbox\" style=\"--d: 60px\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"11\" fill=\"#8e8e93\"/><path d=\"M6.5 14.5l3.4-3.6 2.6 2 3.6-2.9-3.6 3.8-2.6-2z\" fill=\"#1c1c1e\"/></svg><div class=\"ds-name ds-quiet\">Open Messenger</div></div></div><div class=\"ds-disc\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"11\" fill=\"#8e8e93\"/><path d=\"M6.5 14.5l3.4-3.6 2.6 2 3.6-2.9-3.6 3.8-2.6-2z\" fill=\"#1c1c1e\"/></svg></div></div>",
-      "css": "@property --p { syntax: '<number>'; inherits: true; initial-value: 0; } .ds-stage { padding: 32px; display: flex; flex-direction: column; align-items: flex-end; font: 13px/16px -apple-system, system-ui, sans-serif; color: #f5f5f7; -webkit-font-smoothing: antialiased; } .ds-fan { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; --p: 0; transition: --p 220ms cubic-bezier(.22, 1, .36, 1); } .ds-stage:hover .ds-fan { --p: 1; } .ds-banner { width: 250px; height: 52px; border-radius: 14px; background: #1c1c1e; border: 1px solid rgba(255,255,255,.12); box-shadow: 0 8px 24px rgba(0,0,0,.45); box-sizing: border-box; display: flex; align-items: center; gap: 10px; padding: 0 12px 0 10px; cursor: default; flex: none; transform: translateY(calc((1 - var(--p)) * var(--d))); opacity: var(--p); } .ds-banner:hover { background: #2c2c2e; } .ds-banner.ds-inbox { height: 44px; padding-left: 12px; } .ds-banner.ds-inbox svg { width: 24px; height: 24px; display: block; } .ds-disc { width: 44px; height: 44px; border-radius: 22px; background: #1c1c1e; border: 1px solid rgba(255,255,255,.12); box-shadow: 0 8px 24px rgba(0,0,0,.45); box-sizing: border-box; display: flex; align-items: center; justify-content: center; flex: none; } .ds-disc svg { width: 24px; height: 24px; display: block; } .ds-av { width: 32px; height: 32px; border-radius: 16px; flex: none; background: #3a3a3c; display: flex; align-items: center; justify-content: center; font: 600 13px -apple-system, system-ui, sans-serif; color: #fff; } .ds-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; } .ds-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-quiet { font-weight: 500; } .ds-sub { font-size: 12px; line-height: 15px; color: #8e8e93; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-time { font-size: 11px; color: #8e8e93; flex: none; }"
+      "html": "<div class=\"ds-stage\"><div class=\"ds-fan\"><div class=\"ds-banner\" style=\"--d: 180px\"><div class=\"ds-av\">P</div><div class=\"ds-text\"><div class=\"ds-name\">PokeMen</div><div class=\"ds-sub\">Diomidis: Mew parea m tha itan</div></div><div class=\"ds-time\">18h</div></div><div class=\"ds-banner\" style=\"--d: 120px\"><div class=\"ds-av\">S</div><div class=\"ds-text\"><div class=\"ds-name\">Spyros Lontos</div><div class=\"ds-sub\">The audio call ended.</div></div><div class=\"ds-time\">23h</div></div><div class=\"ds-banner ds-inbox\" style=\"--d: 60px\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"11\" fill=\"#98989d\"/><path d=\"M6.5 14.5l3.4-3.6 2.6 2 3.6-2.9-3.6 3.8-2.6-2z\" fill=\"#1c1c1e\"/></svg><div class=\"ds-name ds-quiet\">Open Messenger</div></div></div><div class=\"ds-disc\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"11\" fill=\"#98989d\"/><path d=\"M6.5 14.5l3.4-3.6 2.6 2 3.6-2.9-3.6 3.8-2.6-2z\" fill=\"#1c1c1e\"/></svg></div></div>",
+      "css": "@property --p { syntax: '<number>'; inherits: true; initial-value: 0; } .ds-stage { padding: 32px; display: flex; flex-direction: column; align-items: flex-end; font: 13px/16px -apple-system, system-ui, sans-serif; color: #f5f5f7; -webkit-font-smoothing: antialiased; } .ds-fan { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; --p: 0; transition: --p 220ms cubic-bezier(.22, 1, .36, 1); } .ds-stage:hover .ds-fan { --p: 1; } .ds-banner { width: 250px; height: 52px; border-radius: 14px; background: #1c1c1e; border: 1px solid rgba(255,255,255,.12); box-shadow: 0 8px 24px rgba(0,0,0,.45); box-sizing: border-box; display: flex; align-items: center; gap: 10px; padding: 0 12px 0 10px; cursor: default; flex: none; transform: translateY(calc((1 - var(--p)) * var(--d))); opacity: var(--p); } .ds-banner:hover { background: #2c2c2e; } .ds-banner.ds-inbox { height: 44px; padding-left: 12px; } .ds-banner.ds-inbox svg { width: 24px; height: 24px; display: block; } .ds-disc { width: 44px; height: 44px; border-radius: 22px; background: #1c1c1e; border: 1px solid rgba(255,255,255,.12); box-shadow: 0 8px 24px rgba(0,0,0,.45); box-sizing: border-box; display: flex; align-items: center; justify-content: center; flex: none; } .ds-disc svg { width: 24px; height: 24px; display: block; } .ds-av { width: 32px; height: 32px; border-radius: 16px; flex: none; background: #3a3a3c; display: flex; align-items: center; justify-content: center; font: 600 13px -apple-system, system-ui, sans-serif; color: #fff; } .ds-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; } .ds-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-quiet { font-weight: 500; } .ds-sub { font-size: 12px; line-height: 15px; color: #98989d; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-time { font-size: 11px; color: #98989d; flex: none; }"
     },
     {
       "name": "Panel frame",
@@ -237,7 +252,7 @@
       "refersTo": "panel-frame",
       "description": "The conversation sheet's silhouette: messenger.com's own wash clipped to 16px with a 1px hairline on top. The content inside is Messenger's, never restyled; shown here as a placeholder.",
       "html": "<div class=\"ds-stage\"><div class=\"ds-sheet\"><div class=\"ds-ground\"></div><div class=\"ds-sheet-body\"><div class=\"ds-sender\"><div class=\"ds-av\">I</div><div class=\"ds-sender-name\">Ioanna Varvatsi</div></div><div class=\"ds-placeholder\">messenger.com content (not part of this system)</div></div><div class=\"ds-frame\"></div></div></div>",
-      "css": ".ds-stage { padding: 32px; font: 13px/16px -apple-system, system-ui, sans-serif; color: #f5f5f7; -webkit-font-smoothing: antialiased; } .ds-sheet { position: relative; width: 420px; height: 280px; border-radius: 16px; overflow: hidden; } .ds-ground { position: absolute; inset: 0; background: #1a1a1a; } .ds-frame { position: absolute; inset: 0; border-radius: 16px; border: 1px solid rgba(255,255,255,.12); box-sizing: border-box; pointer-events: none; } .ds-sheet-body { position: relative; height: 100%; display: flex; flex-direction: column; } .ds-sender { display: flex; align-items: center; gap: 12px; padding: 16px; } .ds-sender-name { font-size: 15px; font-weight: 600; } .ds-av { width: 32px; height: 32px; border-radius: 16px; flex: none; background: #3a3a3c; display: flex; align-items: center; justify-content: center; font: 600 13px -apple-system, system-ui, sans-serif; color: #fff; } .ds-placeholder { flex: 1; display: flex; align-items: center; justify-content: center; color: #8e8e93; font-size: 12px; }"
+      "css": ".ds-stage { padding: 32px; font: 13px/16px -apple-system, system-ui, sans-serif; color: #f5f5f7; -webkit-font-smoothing: antialiased; } .ds-sheet { position: relative; width: 420px; height: 280px; border-radius: 16px; overflow: hidden; } .ds-ground { position: absolute; inset: 0; background: #1a1a1a; } .ds-frame { position: absolute; inset: 0; border-radius: 16px; border: 1px solid rgba(255,255,255,.12); box-sizing: border-box; pointer-events: none; } .ds-sheet-body { position: relative; height: 100%; display: flex; flex-direction: column; } .ds-sender { display: flex; align-items: center; gap: 12px; padding: 16px; } .ds-sender-name { font-size: 15px; font-weight: 600; } .ds-av { width: 32px; height: 32px; border-radius: 16px; flex: none; background: #3a3a3c; display: flex; align-items: center; justify-content: center; font: 600 13px -apple-system, system-ui, sans-serif; color: #fff; } .ds-placeholder { flex: 1; display: flex; align-items: center; justify-content: center; color: #98989d; font-size: 12px; }"
     },
     {
       "name": "Dismiss target",
@@ -246,6 +261,30 @@
       "description": "The drop-to-quit target shown while dragging: a 56px graphite circle with a Paper cross. Arming scales it 1.2x and inverts to Paper with a Graphite cross; it never turns red. Hover to arm.",
       "html": "<div class=\"ds-stage\"><button class=\"ds-target\" type=\"button\" aria-label=\"Quit\"><svg viewBox=\"0 0 24 24\"><line x1=\"6\" y1=\"6\" x2=\"18\" y2=\"18\"/><line x1=\"18\" y1=\"6\" x2=\"6\" y2=\"18\"/></svg></button></div>",
       "css": ".ds-stage { padding: 32px; } .ds-target { width: 56px; height: 56px; border-radius: 28px; box-sizing: border-box; background: #1c1c1e; border: 1px solid rgba(255,255,255,.12); box-shadow: 0 8px 24px rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; padding: 0; cursor: default; outline: none; transition: transform .22s cubic-bezier(.22, 1, .36, 1), background .12s linear; } .ds-target svg { width: 22px; height: 22px; stroke: #f5f5f7; stroke-width: 2; fill: none; transition: stroke .12s linear; } .ds-target:hover, .ds-target:focus-visible { transform: scale(1.2); background: #f5f5f7; } .ds-target:hover svg, .ds-target:focus-visible svg { stroke: #1c1c1e; }"
+    },
+    {
+      "name": "Satellite",
+      "kind": "custom",
+      "refersTo": "disc",
+      "description": "The other platform at the disc's foot: its mark and, above zero, its count in System Blue; dimmed and count-less on hover when it has none.",
+      "html": "<div class=\"ds-stage\"><div class=\"ds-disc\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"11\" fill=\"#98989d\"/><path d=\"M6.5 14.5l3.4-3.6 2.6 2 3.6-2.9-3.6 3.8-2.6-2z\" fill=\"#1c1c1e\"/></svg><div class=\"ds-count\">3</div><div class=\"ds-sat\"><svg viewBox=\"0 0 16 16\" aria-hidden=\"true\"><rect x=\"1.5\" y=\"1.5\" width=\"13\" height=\"13\" rx=\"4\" fill=\"none\" stroke=\"#f5f5f7\" stroke-width=\"1.4\"/><circle cx=\"8\" cy=\"8\" r=\"3\" fill=\"none\" stroke=\"#f5f5f7\" stroke-width=\"1.4\"/><circle cx=\"11.6\" cy=\"4.4\" r=\".9\" fill=\"#f5f5f7\"/></svg><span>2</span></div></div></div>",
+      "css": ".ds-stage{--ds-card:#1c1c1e;--ds-raised:#2c2c2e;--ds-ink:#f5f5f7;--ds-dim:#98989d;--ds-rule:rgba(255,255,255,.12);--ds-rule-active:rgba(255,255,255,.28);--ds-rule-focus:rgba(255,255,255,.45);--ds-blue:#0a84ff;--ds-lift:0 8px 24px rgba(0,0,0,.45);--ds-ease:cubic-bezier(.22,1,.36,1);padding:32px}.ds-disc{position:relative;width:44px;height:44px;border-radius:22px;background:var(--ds-card);border:1px solid var(--ds-rule);box-shadow:var(--ds-lift);box-sizing:border-box;display:flex;align-items:center;justify-content:center}.ds-disc>svg{width:24px;height:24px;display:block}.ds-count{position:absolute;right:-8px;top:-6px;min-width:18px;height:18px;padding:0 5px;box-sizing:border-box;border-radius:9px;background:var(--ds-blue);color:#fff;font:600 11px/18px -apple-system,system-ui,sans-serif;text-align:center}.ds-sat{position:absolute;left:-10px;bottom:-8px;height:24px;padding:0 3px;box-sizing:border-box;border-radius:12px;background:var(--ds-card);border:1px solid var(--ds-rule);box-shadow:var(--ds-lift);display:flex;align-items:center;gap:3px;transition:border-color 120ms linear}.ds-sat:hover{border-color:var(--ds-rule-active)}.ds-sat svg{width:16px;height:16px;display:block}.ds-sat span{padding-right:3px;color:var(--ds-blue);font:600 12px/22px -apple-system,system-ui,sans-serif}"
+    },
+    {
+      "name": "Settings row with switch",
+      "kind": "input",
+      "refersTo": "head",
+      "description": "One preferences row: label over an ash line, a 36×22 switch that inverts to paper when on. Hover or focus-within raises the row; keyboard focus brightens the switch's hairline to the focus rule.",
+      "html": "<div class=\"ds-sheet\"><label class=\"ds-row\"><div class=\"ds-text\"><div class=\"ds-name\">Show over full-screen apps</div><div class=\"ds-sub\">Off keeps it off full-screen video and apps — and on the desktop it’s on.</div></div><span class=\"ds-switch\"><input type=\"checkbox\" checked /><span></span></span></label><label class=\"ds-row\"><div class=\"ds-text\"><div class=\"ds-name\">Start at login</div></div><span class=\"ds-switch\"><input type=\"checkbox\" /><span></span></span></label></div>",
+      "css": ".ds-sheet{--ds-card:#1c1c1e;--ds-raised:#2c2c2e;--ds-ink:#f5f5f7;--ds-dim:#98989d;--ds-rule:rgba(255,255,255,.12);--ds-rule-active:rgba(255,255,255,.28);--ds-rule-focus:rgba(255,255,255,.45);--ds-blue:#0a84ff;--ds-lift:0 8px 24px rgba(0,0,0,.45);--ds-ease:cubic-bezier(.22,1,.36,1);width:360px;background:var(--ds-card);border:1px solid var(--ds-rule);border-radius:16px;box-sizing:border-box;padding:8px 0;color:var(--ds-ink);font:13px/16px -apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased}.ds-row{position:relative;display:flex;align-items:center;gap:14px;min-height:44px;padding:6px 16px;box-sizing:border-box;cursor:default}.ds-row+.ds-row::before{content:'';position:absolute;left:16px;right:0;top:-1px;height:1px;background:var(--ds-rule)}.ds-row:hover,.ds-row:focus-within{background:var(--ds-raised)}.ds-text{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:1px}.ds-name{font-weight:500}.ds-sub{font-size:12px;line-height:16px;color:var(--ds-dim)}.ds-switch{position:relative;flex:none;width:36px;height:22px}.ds-switch input{position:absolute;inset:0;margin:0;opacity:0}.ds-switch span{position:absolute;inset:0;border-radius:11px;background:var(--ds-card);border:1px solid var(--ds-rule);box-sizing:border-box;transition:background 120ms linear,border-color 120ms linear}.ds-switch span::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:8px;background:var(--ds-dim);transition:transform 220ms var(--ds-ease),background 120ms linear}.ds-switch input:checked+span{background:var(--ds-ink);border-color:var(--ds-ink)}.ds-switch input:checked+span::after{background:var(--ds-card);transform:translateX(14px)}.ds-row:hover .ds-switch input:not(:checked)+span{border-color:var(--ds-rule-active)}.ds-switch input:focus-visible+span{border-color:var(--ds-rule-focus)}"
+    },
+    {
+      "name": "Segmented choice",
+      "kind": "chip",
+      "refersTo": "head",
+      "description": "A three-way (or five-way, on its own line) choice: hairline segments, the chosen one holding the raised tone; focus is an inset focus rule, never a ring.",
+      "html": "<div class=\"ds-seg-stage\"><div class=\"ds-segments\" role=\"radiogroup\" aria-label=\"Appearance\"><label><input type=\"radio\" name=\"ds-theme\" checked /><span>System</span></label><label><input type=\"radio\" name=\"ds-theme\" /><span>Light</span></label><label><input type=\"radio\" name=\"ds-theme\" /><span>Dark</span></label></div></div>",
+      "css": ".ds-seg-stage{--ds-card:#1c1c1e;--ds-raised:#2c2c2e;--ds-ink:#f5f5f7;--ds-dim:#98989d;--ds-rule:rgba(255,255,255,.12);--ds-rule-active:rgba(255,255,255,.28);--ds-rule-focus:rgba(255,255,255,.45);--ds-blue:#0a84ff;--ds-lift:0 8px 24px rgba(0,0,0,.45);--ds-ease:cubic-bezier(.22,1,.36,1);padding:24px;background:var(--ds-card);font:13px/16px -apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased}.ds-segments{display:inline-flex;border:1px solid var(--ds-rule);border-radius:8px;box-sizing:border-box;overflow:hidden}.ds-segments label{position:relative;cursor:default}.ds-segments input{position:absolute;inset:0;margin:0;opacity:0}.ds-segments span{display:block;padding:0 10px;font:500 12px/24px -apple-system,system-ui,sans-serif;color:var(--ds-dim);transition:background 120ms linear,color 120ms linear}.ds-segments label+label span{border-left:1px solid var(--ds-rule)}.ds-segments input:checked+span{background:var(--ds-raised);color:var(--ds-ink)}.ds-segments label:hover span{color:var(--ds-ink)}.ds-segments input:focus-visible+span{color:var(--ds-ink);box-shadow:inset 0 0 0 1px var(--ds-rule-focus)}"
     }
   ],
   "narrative": {
@@ -256,7 +295,7 @@
       "Blue only means unread: the count pill and the 6px dot, nowhere else",
       "System type at 13 / 12 / 11 px; weight 600 is the entire emphasis vocabulary",
       "One motion curve (ease-out-quint, 220 ms), one progress value for the stack, no overshoot, no stagger",
-      "The panel is framed, never restyled: messenger.com keeps its own wash, radii and bubbles behind a 16px hairline frame"
+      "The panel is framed, never restyled: messenger.com keeps its own wash and bubbles inside an opaque window with the system's rounded corners and a hairline just inside the edge"
     ],
     "rules": [
       {
@@ -275,13 +314,28 @@
         "section": "colors"
       },
       {
+        "name": "The One File Rule",
+        "body": "Every value above is written once, in `src/renderer/tokens.css`; the pages link it and `lib/tokens.js` reads it for the CSS the app writes into messenger.com. The sandboxed panel preload carries copies, held to the file by a test.",
+        "section": "colors"
+      },
+      {
+        "name": "The Count Pill Exception",
+        "body": "White on System Blue is 3.65:1, under AA for its 11px digits. Kept on purpose (September 2026): it is the system's own badge convention and the pill shows at most two characters; the satellite's blue-on-graphite count is 4.7:1.",
+        "section": "colors"
+      },
+      {
         "name": "The Thirteen Ceiling Rule",
-        "body": "No text the app itself sets is larger than 13px. Hierarchy comes from 600 versus 400 and Paper versus Ash.",
+        "body": "No text the app itself sets is larger than 13px (the initial in a head, at 15px, is a glyph, not a line of text). Hierarchy comes from 600 versus 400 and Paper versus Ash.",
         "section": "typography"
       },
       {
-        "name": "The One Line Rule",
-        "body": "Every text run in a card is `white-space: nowrap` with an ellipsis. Cards never grow to fit text.",
+        "name": "The Drawn Icon Rule",
+        "body": "Every icon is an inline SVG in one vocabulary — the ✕, the inbox tray, the pin, the reply arrow, the menu dots — stroked round at 1.6–2px or filled in `currentColor`. No unicode glyph stands in for one.",
+        "section": "typography"
+      },
+      {
+        "name": "The One Line Rule, with one exception",
+        "body": "Every text run in a card is `white-space: nowrap` with an ellipsis, and cards do not grow to fit text — except the landed banner's message, which wraps to at most six lines (then an ellipsis) so a message can be read without opening the chat; the banner grows away from the screen edge.",
         "section": "typography"
       },
       {
@@ -290,8 +344,8 @@
         "section": "layout"
       },
       {
-        "name": "The Sixty Pitch Rule",
-        "body": "Banner rows sit on a 60px pitch (52 + 8). `lib/layout.js` and `bubble-renderer.js` both hardcode it; change one and the fold offsets break.",
+        "name": "The Fifty-Two Pitch Rule",
+        "body": "Head rows sit on a 52px pitch (44 + 8). `lib/layout.js` and `bubble-renderer.js` both hardcode it; change one and the fold offsets break.",
         "section": "layout"
       },
       {
@@ -306,7 +360,7 @@
       },
       {
         "name": "The Radius Follows Height Rule",
-        "body": "Pills (disc, landed banner, count, avatar, dot, target) are radius = height / 2. Cards that hold two lines (banner, sheet) use 14px or 16px. Nothing is square-cornered.",
+        "body": "Pills (disc, landed banner, count, avatar, dot, pin, chip, satellite, field, target) are radius = height / 2. Controls that sit in a row (segments, the Open button) use 8px; cards that hold two lines (banner, settings card) use 14px or 16px; the sheet takes the system's window radius. Nothing is square-cornered.",
         "section": "shapes"
       }
     ],
@@ -314,8 +368,8 @@
       "Do build every new surface from the one material: Graphite (`#1c1c1e`), a 1px `rgba(255,255,255,.12)` rule, and `0 8px 24px rgba(0,0,0,.45)`.",
       "Do use the single curve `cubic-bezier(.22, 1, .36, 1)` at 220ms for any spatial change, and 120ms linear only for a colour or opacity crossfade riding alongside it.",
       "Do derive grouped motion from one progress value (`--p`) rather than per-item delays.",
-      "Do keep radii tied to height: half the height for pills and circles, 14px for a 52px card, 16px for the sheet.",
-      "Do show state with tone and rule (Raised Graphite on hover, 28% hairline when active), not with transforms or new colours.",
+      "Do keep radii tied to height: half the height for pills and circles, 16px for the sheet.",
+      "Do show state with tone and rule (Raised Graphite on hover; Raised Graphite plus the 28% hairline when active), not with transforms or new colours.",
       "Do leave messenger.com's own content alone inside the frame; the system owns the silhouette, not the page."
     ],
     "donts": [

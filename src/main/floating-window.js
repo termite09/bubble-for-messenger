@@ -7,7 +7,8 @@ const RENDERER = path.join(__dirname, '..', 'renderer');
 // Every window of the app is one of these: frameless, floating at its level, on every Space
 // (or one, by the full-screen setting), never full-screenable itself, and a sandboxed renderer
 // that reaches main only through its preload's contextBridge. `page`/`preload` name files in
-// src/renderer; a window that loads a remote site passes `url` and no page.
+// src/renderer; a window that loads a remote site passes `url` and no page, and may pass the
+// `userAgent` the site should see (set before the first load).
 function createFloatingWindow({
   level = 'floating',
   width,
@@ -17,6 +18,7 @@ function createFloatingWindow({
   page,
   preload,
   url,
+  userAgent = null,
   overFullscreen = true,
   focusable = true,
   transparent = true,
@@ -49,6 +51,7 @@ function createFloatingWindow({
   });
   win.setAlwaysOnTop(true, level);
   joinAllSpaces(win, overFullscreen);
+  if (userAgent) win.webContents.setUserAgent(userAgent);
   if (page) win.loadFile(path.join(RENDERER, page));
   else if (url) win.loadURL(url);
   return win;

@@ -1,0 +1,22 @@
+/* The one material, as custom properties. Every page of the app's own chrome links this file,
+   and lib/tokens.js reads it for the CSS the app writes into messenger.com (the frame's
+   hairline, the pin button), so a value lives here once. The names and roles: DESIGN.md. */
+:root {
+  --card: #1c1c1e; /* graphite: the ground of every card */
+  --raised: #2c2c2e; /* one tone up: hover, the chosen segment, the reply field */
+  --slate: #3a3a3c; /* behind a missing avatar */
+  --ink: #f5f5f7; /* paper: primary text, the inbox head, an armed target */
+  --dim: #98989d; /* ash: secondary text — 4.85:1 on raised, 5.9:1 on graphite */
+  --white: #fff; /* on the blue pill, and the initial in slate */
+  --rule: rgba(255, 255, 255, 0.12); /* the hairline on every card */
+  --rule-active: rgba(255, 255, 255, 0.28); /* the hairline on hover and on the open chat */
+  --rule-focus: rgba(255, 255, 255, 0.45); /* the hairline under keyboard focus: 3:1 on raised */
+  --blue: #0a84ff; /* unread, nowhere else */
+  --lift: 0 8px 24px rgba(0, 0, 0, 0.45); /* the one shadow */
+  --ease: cubic-bezier(
+    0.22,
+    1,
+    0.36,
+    1
+  ); /* ease-out-quint: fast start, long settle, no overshoot */
+}

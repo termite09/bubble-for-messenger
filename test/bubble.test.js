@@ -109,3 +109,24 @@ test('a size change zooms the page and keeps the disc on its edge', () => {
   assert.deepEqual(calls.moved.pop(), { x: 1440 - 68 - 16, y: 800 - 12 });
   assert.equal(win.getBounds().width, 250 * (68 / 44) + 2 * PAD * (68 / 44));
 });
+
+// Two platforms: the disc is told which mark and count to show and what the other platform's
+// satellite says.
+test('setPlatform reaches the page and the state handshake; a switch from the page is validated', async () => {
+  const switched = [];
+  const { bubble, win } = makeBubble({ onSwitch: (id) => switched.push(id) });
+  const state = {
+    id: 'messenger',
+    mark: 'icon.png',
+    badge: 3,
+    other: { id: 'instagram', label: 'Instagram', mark: 'instagram.svg', count: 2 },
+  };
+  bubble.setPlatform(state);
+  assert.deepEqual(sentOn(win, CHANNELS.BUBBLE_PLATFORM).pop(), [state]);
+  const handshake = await electron.ipcMain.handlers.get(CHANNELS.BUBBLE_STATE)(from(win));
+  assert.deepEqual(handshake.platform, state);
+  electron.ipcMain.emit(CHANNELS.BUBBLE_SWITCH, from(win), 'instagram');
+  electron.ipcMain.emit(CHANNELS.BUBBLE_SWITCH, from(win), 'tiktok');
+  electron.ipcMain.emit(CHANNELS.BUBBLE_SWITCH, from(win), { id: 'instagram' });
+  assert.deepEqual(switched, ['instagram']);
+});

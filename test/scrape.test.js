@@ -114,8 +114,8 @@ test("setTheme swaps Messenger's own dark/light classes on <html>", async () => 
   assert.match(ran[0], /add\('__fb-dark-mode'\)/);
   assert.match(ran[0], /remove\('__fb-light-mode'\)/);
   assert.match(ran[1], /add\('__fb-light-mode'\)/);
-  assert.match(ran[0], /--mb-hairline.*255,255,255/);
-  assert.match(ran[1], /--mb-hairline.*0,0,0/);
+  assert.match(ran[0], /--mb-hairline.*255, ?255, ?255/);
+  assert.match(ran[1], /--mb-hairline.*0, ?0, ?0/);
   assert.match(ran[1], /remove\('__fb-dark-mode'\)/);
 });
 
@@ -135,4 +135,42 @@ test('run: isolated world when available, and a timeout either way', async () =>
   assert.deepEqual(calls, [[1001, '1 + 1', false]]);
   const plain = { executeJavaScript: async (code) => code.length };
   assert.equal(await run(plain, 'abc'), 3);
+});
+
+const { readShowing } = require('../src/main/scrape');
+
+// The chat the panel is showing, for the stack: the thread path from the address and the
+// name from the title; nothing on the inbox or off the site.
+test('readShowing names the open thread from the title, or nothing on the inbox', async () => {
+  const page = (url, result) => ({ getURL: () => url, executeJavaScript: async () => result });
+  assert.deepEqual(
+    await readShowing(
+      page('https://www.messenger.com/t/1/', {
+        href: '/t/1/',
+        title: '(2) Alex Smith | Messenger',
+        avatarUrl: 'https://cdn/a.jpg',
+      }),
+    ),
+    { href: '/t/1/', name: 'Alex Smith', avatarUrl: 'https://cdn/a.jpg' },
+  );
+  // The page's path may lack the trailing slash the list rows carry; the handle is the row's.
+  assert.equal(
+    (
+      await readShowing(
+        page('https://www.messenger.com/t/1', { href: '/t/1', title: 'A | Messenger' }),
+      )
+    ).href,
+    '/t/1/',
+  );
+  assert.equal(
+    await readShowing(page('https://www.messenger.com/', { href: '/', title: 'Messenger' })),
+    null,
+  );
+  assert.equal(
+    await readShowing(
+      page('https://www.messenger.com/t/1/', { href: '/t/1/', title: 'Messenger' }),
+    ),
+    null,
+  );
+  assert.equal(await readShowing(page('https://www.facebook.com/login/', null)), null);
 });

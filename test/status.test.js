@@ -20,3 +20,19 @@ test('signedOut recognises the login and checkpoint pages', () => {
   assert.equal(signedOut('https://evil.example/login'), false);
   assert.equal(signedOut('not a url'), false);
 });
+
+// Instagram sends a signed-out session to /accounts/login/ (2FA lives under it) and a flagged
+// one to /challenge/.
+test('signedOut recognises Instagram login and challenge pages', () => {
+  assert.equal(
+    signedOut('https://www.instagram.com/accounts/login/?next=%2Fdirect%2Finbox%2F'),
+    true,
+  );
+  assert.equal(
+    signedOut('https://www.instagram.com/accounts/login/two_step_verification?x=1'),
+    true,
+  );
+  assert.equal(signedOut('https://www.instagram.com/challenge/action/abc/'), true);
+  assert.equal(signedOut('https://www.instagram.com/direct/inbox/'), false);
+  assert.equal(signedOut('https://www.instagram.com/accounts/edit/'), false);
+});

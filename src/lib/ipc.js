@@ -19,7 +19,8 @@ const CHANNELS = Object.freeze({
   BUBBLE_FAN: 'bubble:fan',
   BUBBLE_ACTIVE: 'bubble:active',
   BUBBLE_OPENED: 'bubble:opened',
-  BUBBLE_BADGE: 'bubble:badge',
+  BUBBLE_PLATFORM: 'bubble:platform',
+  BUBBLE_SWITCH: 'bubble:switch',
   BUBBLE_LANDED: 'bubble:landed',
   BUBBLE_REPLY_RESULT: 'bubble:reply-result',
   BUBBLE_SETTINGS: 'bubble:settings',
@@ -28,6 +29,9 @@ const CHANNELS = Object.freeze({
   // panel preload → main: the chat list's rows; main → preload: read them now
   PANEL_ROWS: 'panel:rows',
   PANEL_READ: 'panel:read',
+  // panel preload → main: the pin button was pressed; main → preload: what it shows
+  PANEL_PIN: 'panel:pin',
+  PANEL_PIN_STATE: 'panel:pin-state',
   // shield, dismiss target
   SHIELD_CLICK: 'shield:click',
   DISMISS_HOT: 'dismiss:hot',

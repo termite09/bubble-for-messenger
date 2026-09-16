@@ -27,7 +27,7 @@ system face at 13/12/11, weight and ash for hierarchy. Controls are drawn in tha
 switch is a 36×22 graphite pill with a hairline that, when on, inverts to paper with a graphite
 knob — the same inversion the ✕ target uses to arm. Blue appears nowhere on this surface (blue
 means unread). The appearance choice is three hairline-divided segments; the chosen one holds
-the raised tone. Focus is the 28% hairline, never a ring. Recognisable with the copy removed:
+the raised tone. Focus is the hairline, never a ring — at 45% (`--rule-focus`), which holds 3:1 on the raised row a focused control always sits on; hover stays at 28%. Recognisable with the copy removed:
 a graphite sheet, four ash captions, ten rows of hairline, ten small pills, some paper, some not.
 
 STORY: the user opens it, reads the row that matches the thing that bothered them, flips it,
@@ -38,8 +38,9 @@ FIRST VIEWPORT: the whole surface is one viewport: a 44px header row ("Settings"
 four groups each with an 11px uppercase ash caption and 44px-minimum rows: label (500) over
 one or two ash lines, control at the right on a 16px inset; rows separated by a hairline that
 starts at the text edge, and a row under the cursor or holding keyboard focus steps to Raised
-Graphite (Tone and Rule) — that step, plus the 28% hairline on an off switch, is the focus
-expression; never a ring. The primary action is any switch; the first row is
+Graphite (Tone and Rule) — that step, plus the focus hairline on the focused control, is the
+focus expression; never a ring. A control too wide to share its row (the five reopen
+choices) takes a full-width line under the text, in the tab bar's clothes (16 Sep 2026). The primary action is any switch; the first row is
 "Show over full-screen apps", the reason this surface exists.
 
 FORM: extension inside the established world, shaped directly. No seed key: new-work.md §3
@@ -53,5 +54,5 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 verdict, DESIGN.md, and every shipping raster carrying its provenance.
 
 ## Unresolved
-- Whether the ✕ header control and the banner's ↩ should share one drawn icon set (the banner
-  currently uses a unicode glyph).
+- (resolved 16 Sep 2026: the banner's reply arrow is a drawn SVG,
+  one vocabulary with the ✕, tray and pin — DESIGN.md's Drawn Icon Rule.)

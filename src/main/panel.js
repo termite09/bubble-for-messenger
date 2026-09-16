@@ -1,36 +1,72 @@
 const { app, shell, screen, powerMonitor, nativeTheme, net } = require('electron');
 const { panelPosition } = require('../lib/layout');
 const { unreadFromTitle } = require('../lib/unread');
-const { isInternal, staysInPanel, browserUrl } = require('../lib/links');
+const { isInternal, staysInPanel, browserUrl, matchesUrlPattern } = require('../lib/links');
 const { looksLikeErrorPage, errorRetryDelay } = require('../lib/refresh');
 const liveness = require('../lib/liveness');
 const { connectionState, signedOut } = require('../lib/status');
-const scrape = require('./scrape');
+const { MESSENGER } = require('../lib/sites');
 const { joinAllSpaces } = require('./workspaces');
 const { createFloatingWindow, ipcFor } = require('./floating-window');
 const { CHANNELS } = require('../lib/ipc');
 const { normalizeRows } = require('../lib/recent');
 
 const LIVENESS_TICK_MS = 30 * 1000;
-// Messenger's page wash (--web-wash) in each theme: the window's own colour, so nothing shows
-// through before the page paints or around its edges.
-const washFor = (dark) => (dark ? '#1a1a1a' : '#f5f5f5');
+// The page scripts for each site (lib/sites): the same surface, a different page.
+const SCRAPERS = { messenger: './scrape', instagram: './scrape-instagram' };
+
+// A session keeps one webRequest listener per event, and every panel shares the one session:
+// one listener per session here, sorting each request to the panels whose patterns it
+// matches. `watch` returns the way out.
+const watches = new Map(); // session -> Set of { urls, onCompleted, onError }
+function watchRequests(ses, entry) {
+  if (!watches.has(ses)) watches.set(ses, new Set());
+  const entries = watches.get(ses);
+  entries.add(entry);
+  const apply = () => {
+    const urls = [...new Set([...entries].flatMap((e) => e.urls))];
+    const dispatch = (kind) => (d) => {
+      for (const e of entries)
+        if (e.urls.some((pattern) => matchesUrlPattern(d.url, pattern))) e[kind](d);
+    };
+    if (!urls.length) {
+      ses.webRequest.onCompleted(null);
+      ses.webRequest.onErrorOccurred(null);
+      return;
+    }
+    ses.webRequest.onCompleted({ urls }, dispatch('onCompleted'));
+    ses.webRequest.onErrorOccurred({ urls }, dispatch('onError'));
+  };
+  apply();
+  return () => {
+    entries.delete(entry);
+    apply();
+  };
+}
 // Trial (audit, Sept 2026): set back to false if messages stop arriving while hidden.
 const PANEL_THROTTLE = true;
 const noLog = { debug() {}, info() {}, warn() {}, error() {} };
 
+// One panel per site (lib/sites; Messenger by default): a hidden window on the site's inbox.
 // `onShown` fires once the panel is actually visible to the user (not merely staged at opacity
 // 0), so the bubble can dock the open chat's avatar beside it at the right moment. `onBlurred`
 // fires when the panel put itself away because it lost focus (the user went elsewhere).
 function createPanel({
+  site = MESSENGER,
   onUnread,
   onRows = () => {},
   onStatus = () => {},
   onShown = () => {},
   onBlurred = () => {},
+  onNavigated = () => {},
+  onPin = () => {},
   overFullscreen = true,
   log = noLog,
 }) {
+  const scrape = require(SCRAPERS[site.id]);
+  // The site's page wash in each theme: the window's own colour, so nothing shows through
+  // before the page paints or around its edges.
+  const washFor = site.wash;
   // Opaque, in the wash of the current theme, with macOS's own rounded corners and shadow: a
   // transparent window with a shadow would be recomposited on every frame the page changes.
   const win = createFloatingWindow({
@@ -42,7 +78,8 @@ function createPanel({
     transparent: false,
     roundedCorners: true,
     backgroundColor: washFor(nativeTheme.shouldUseDarkColors),
-    url: 'https://www.messenger.com',
+    url: site.home,
+    userAgent: site.userAgent,
     // The preload watches the chat list and reports its rows (see renderer/panel-preload.js).
     preload: 'panel-preload.js',
     // The page spends its life hidden. Chromium's timer throttling for hidden pages is on
@@ -56,15 +93,18 @@ function createPanel({
     win.hide();
     onBlurred();
   });
-  // The chat list's rows, pushed by the preload whenever they change.
+  // The chat list's rows, pushed by the preload whenever they change; and the pin button.
   ipcFor(win).on(CHANNELS.PANEL_ROWS, (rows) => onRows(normalizeRows(rows)));
+  // The pin button on an inbox row: the row, as the page read it.
+  ipcFor(win).on(CHANNELS.PANEL_PIN, (row) => onPin(row));
   // The panel is the app's connection to Messenger: it is only ever hidden, never closed (Cmd+W
   // or a page's window.close would otherwise destroy it) — except by the app quitting, which
   // closes every window and must not be held up. A crashed page is loaded again.
   let quitting = false;
-  app.on('before-quit', () => {
+  const onQuit = () => {
     quitting = true;
-  });
+  };
+  app.on('before-quit', onQuit);
   win.on('close', (event) => {
     if (!quitting) {
       event.preventDefault();
@@ -104,6 +144,7 @@ function createPanel({
   // The disc shows whether Messenger is reachable and whether anyone is signed in.
   let lastStatus = '';
   const reportStatus = () => {
+    if (win.isDestroyed()) return; // a request settling as the app quits
     const status = {
       connection: connectionState({ online: net.isOnline(), socketErrorAt: live.socketErrorAt }),
       signedOut: signedOut(win.webContents.getURL()),
@@ -117,23 +158,17 @@ function createPanel({
     live = liveness.reduce(live, event, Date.now());
     reportStatus();
   };
-  const ses = win.webContents.session;
-  const metaFilter = {
-    urls: [
-      'wss://edge-chat.messenger.com/*',
-      'wss://edge-chat.facebook.com/*',
-      'https://www.messenger.com/*',
-      'https://*.facebook.com/*',
-    ],
-  };
-  ses.webRequest.onCompleted(metaFilter, (d) =>
-    note(d.resourceType === 'webSocket' ? 'socket-open' : 'request-ok'),
-  );
-  ses.webRequest.onErrorOccurred(metaFilter, (d) => {
-    if (d.resourceType === 'webSocket') note('socket-error');
+  const unwatch = watchRequests(win.webContents.session, {
+    urls: [...site.socketUrls],
+    onCompleted: (d) => note(d.resourceType === 'webSocket' ? 'socket-open' : 'request-ok'),
+    onError: (d) => {
+      if (d.resourceType === 'webSocket') note('socket-error');
+    },
   });
-  powerMonitor.on('suspend', () => note('suspend'));
-  powerMonitor.on('resume', () => note('resume'));
+  const onSuspend = () => note('suspend');
+  const onResume = () => note('resume');
+  powerMonitor.on('suspend', onSuspend);
+  powerMonitor.on('resume', onResume);
   // Chromium's own error page fires did-finish-load too; that is not a load of Messenger. A
   // new navigation clears the mark (a failure mid-body has no error page and no finish).
   let loadFailed = false;
@@ -145,7 +180,7 @@ function createPanel({
     loadFailed = true;
     note('fail-load');
   });
-  setInterval(() => {
+  const livenessTimer = setInterval(() => {
     reportStatus();
     const verdict = liveness.decide(live, {
       visible: win.isVisible(),
@@ -189,12 +224,15 @@ function createPanel({
     }, errorRetryDelay(errorRetries++));
   });
 
-  win.webContents.on('page-title-updated', (_event, title) => onUnread(unreadFromTitle(title)));
+  win.webContents.on('page-title-updated', (_event, title) => {
+    if (!win.isDestroyed()) onUnread(unreadFromTitle(title));
+  });
 
   // Never spawn a second window: it would carry the Facebook session with none of this
   // window's navigation policy. Messenger pages open in the panel itself, the rest externally.
   win.webContents.setWindowOpenHandler(({ url }) => {
-    if (isInternal(url)) win.loadURL(url).catch((err) => log.debug('panel load failed', { err }));
+    if (isInternal(url, site.domain))
+      win.loadURL(url).catch((err) => log.debug('panel load failed', { err }));
     else {
       const target = browserUrl(url);
       if (target) shell.openExternal(target);
@@ -207,16 +245,33 @@ function createPanel({
   // would otherwise carry the session out); `did-navigate` is the last resort should either be
   // bypassed: back to the inbox.
   const guardNavigation = (event, url) => {
-    if (staysInPanel(url)) return;
+    if (staysInPanel(url, site.domain)) return;
     event.preventDefault();
     const target = browserUrl(url);
     if (target) shell.openExternal(target);
   };
   win.webContents.on('will-navigate', guardNavigation);
   win.webContents.on('will-redirect', guardNavigation);
+  // Off the site, or on a part of it that is not messaging (Instagram's feed behind its inbox
+  // header's Back, say — reached in-page, by pushState): back to the inbox.
+  const belongs = (url) => {
+    if (!staysInPanel(url, site.domain)) return false;
+    try {
+      const u = new URL(url);
+      return !isInternal(url, site.domain) || site.panelPath(u.pathname);
+    } catch (e) {
+      return false;
+    }
+  };
   win.webContents.on('did-navigate', (_event, url) => {
     reportStatus();
-    if (!staysInPanel(url)) win.loadURL('https://www.messenger.com/').catch(() => {});
+    if (!belongs(url)) win.loadURL(site.home).catch(() => {});
+    else onNavigated(url);
+  });
+  win.webContents.on('did-navigate-in-page', (_event, url, isMainFrame) => {
+    if (!isMainFrame) return;
+    if (!belongs(url)) win.loadURL(site.home).catch(() => {});
+    else onNavigated(url);
   });
 
   // A single open thread is shorter than the full inbox. It is kept the same width, though:
@@ -255,9 +310,13 @@ function createPanel({
   // interleave its reload / row-click with the first. The chain never rejects.
   let queue = Promise.resolve();
   const enqueue = (fn) =>
-    (queue = queue.then(fn).catch((err) => log.warn('panel action failed', { err })));
+    (queue = queue
+      .then(() => (win.isDestroyed() ? undefined : fn())) // a destroyed panel has nothing left to do
+      .catch((err) => log.warn('panel action failed', { err })));
 
-  async function stageThread(href, bubbleBounds) {
+  // Resolves to what the site's openThread reports: for Instagram the thread path the page
+  // landed on (learned for a chat handled by name), for Messenger nothing.
+  async function stageThread(href, bubbleBounds, opts) {
     compact = true;
     resize('compact');
     // Stage the reload + row click invisibly (opacity 0 but rendered, so the click still
@@ -266,8 +325,9 @@ function createPanel({
     stage();
     try {
       await scrape.setCompact(win.webContents, true);
-      await scrape.openThread(win.webContents, href);
+      const landed = await scrape.openThread(win.webContents, href, opts);
       await scrape.setCompact(win.webContents, true);
+      return landed;
     } finally {
       // Whatever happened, never leave the panel staged: an invisible window still swallows
       // the clicks meant for whatever is underneath it.
@@ -294,11 +354,11 @@ function createPanel({
   // Send a reply through the page without showing it: a hidden window does not dispatch the
   // trusted row click, so stage it at opacity 0 like a thread open, then hide it again. If the
   // panel is already showing, it simply switches to that thread in view.
-  async function stageReply(href, text) {
+  async function stageReply(href, text, opts) {
     const wasHidden = !win.isVisible();
     if (wasHidden) stage();
     try {
-      return await scrape.sendReply(win.webContents, href, text);
+      return await scrape.sendReply(win.webContents, href, text, opts);
     } finally {
       // Never leave the invisible window up: it would swallow clicks meant for what's under it.
       if (wasHidden) {
@@ -311,6 +371,7 @@ function createPanel({
 
   const api = {
     win,
+    site,
     isVisible: () => win.isVisible(),
     isLoading: () => win.webContents.isLoading(),
     liveness: () => live,
@@ -329,14 +390,36 @@ function createPanel({
       win.webContents.reload();
     },
     readRecentChats: () => scrape.readRecentChats(win.webContents),
+    // The chat the page is showing ({ href, name, avatarUrl }, Instagram's with threadHref).
+    readShowing: () => scrape.readShowing(win.webContents),
+    // The pin button drawn by the preload on the inbox rows: which of them are pinned.
+    setPinState({ pins }) {
+      if (!win.isDestroyed()) win.webContents.send(CHANNELS.PANEL_PIN_STATE, { pins });
+    },
     requestRows: () => win.webContents.send(CHANNELS.PANEL_READ),
     session: () => win.webContents.session,
-    openThread: (href, bubbleBounds) => enqueue(() => stageThread(href, bubbleBounds)),
+    openThread: (href, bubbleBounds, opts) => enqueue(() => stageThread(href, bubbleBounds, opts)),
     openInbox: (bubbleBounds) => enqueue(() => stageInbox(bubbleBounds)),
+    // Back to the inbox without showing: where a hidden page waits for messages.
+    park: () => enqueue(() => scrape.openInbox(win.webContents)),
     openPreferences: (bubbleBounds) => enqueue(() => stagePreferences(bubbleBounds)),
     // Serialised with opens; the queue swallows rejections into undefined, hence `=== true`.
-    sendReply: (href, text) => enqueue(() => stageReply(href, text)).then((ok) => ok === true),
+    sendReply: (href, text, opts) =>
+      enqueue(() => stageReply(href, text, opts)).then((ok) => ok === true),
     setOverFullscreen: (on) => joinAllSpaces(win, on),
+    // For good — the close guard above only yields to the app quitting — and out of everything
+    // that would otherwise keep reaching for the window.
+    destroy() {
+      quitting = true;
+      unwatch();
+      clearInterval(livenessTimer);
+      clearTimeout(errorTimer);
+      nativeTheme.removeListener('updated', applyTheme);
+      powerMonitor.removeListener('suspend', onSuspend);
+      powerMonitor.removeListener('resume', onResume);
+      app.removeListener('before-quit', onQuit);
+      if (!win.isDestroyed()) win.destroy();
+    },
   };
   return api;
 }

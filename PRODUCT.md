@@ -56,6 +56,11 @@ ornament.
   only "Open Messenger") are part of the product.
 - Own profile dir (`~/Library/Application Support/Bubble for Messenger`) so it can run beside the
   upstream MessengerApp.
+- Optionally a second hidden panel on instagram.com's *mobile* web app (a phone user agent: the
+  desktop site folds its thread list to an avatar rail at 420 px). Instagram's list carries no
+  thread ids, so its chats are handled by name; its list only updates while it is the view in
+  front, so a put-away Instagram panel is parked on its inbox. One platform is *in focus* at a
+  time; the other's unread rides on the disc as a satellite.
 
 ## Capabilities and Constraints
 
@@ -63,11 +68,13 @@ ornament.
   on release, position persisted; blue unread count (`9+` cap); right-click menu (Open
   Messenger, Reload Messenger, Settings…, Reset Bubble Position, Quit). When a message lands, the disc
   unrolls into a banner (avatar, name, the whole message up to six lines) for four seconds.
-- Stack: up to 5 recent chats as 44 px round heads (photo, name on hover, blue dot when
-  unread), newest first, then up to 5 pinned chats under a hairline, with a paper Inbox head
-  last; grows up when it fits, else down, leaving rows out rather than leaving the screen;
+- Stack: up to 5 pinned chats first, above a hairline, then up to 5 recent chats as 44 px
+  round heads (photo, name on hover, blue dot when unread), newest first, with a paper Inbox
+  head last; any chat can be pinned from the inbox (a pin on the hovered row) or from its head
+  in the stack; grows up when it fits, else down, leaving rows out rather than leaving the screen;
   stays open while a conversation is open so the next chat is one click away; a press
-  anywhere outside it closes stack and panel. A chat closed within the last 30 s (a setting)
+  anywhere outside it closes stack and panel. A disc click with something unread opens the
+  newest received message (either platform); a chat closed within the last 30 s (a setting)
   reopens on the next click of the disc.
 - Panel: opens 8 px beyond the stack, an opaque window with the system's rounded corners and
   a hairline inside the edge, in the theme's wash; the open chat's head wears a ring.
@@ -83,8 +90,13 @@ ornament.
   set; panel appearance, spell check, reopen-last-chat window, telemetry blocking. Applied at
   once; saved atomically to `settings.json` (0600), which also holds the disc position and
   the pinned chats.
+- Two platforms (Sept 2026): Messenger always, Instagram by a switch (off by default — a
+  second renderer, a few hundred MB). The focused platform's mark is on the disc and its count
+  in the blue pill; the other is a satellite pill at the disc's foot (its mark, its count in
+  blue; dimmed and count-less on hover when it has none); right-click → *Switch to…* too. Banners come from both, the avatar wearing the platform's mini-mark; a click switches
+  and opens, a reply sends without switching. Pins are five per platform.
 - Explicitly out of scope so far: pop-out to a full-size window, menu-bar tray icon, sender
-  avatar on the main bubble.
+  avatar on the main bubble, more than two platforms, both platforms' chats in one stack.
 - Undecided: whether the app should ever show a first-run/onboarding hint (there is none; the
   bubble simply appears bottom-right).
 

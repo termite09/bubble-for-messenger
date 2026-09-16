@@ -1,7 +1,9 @@
 const body = document.body;
 const content = document.getElementById('content');
 const disc = document.getElementById('disc');
+const mark = document.getElementById('mark');
 const count = document.getElementById('count');
+const other = document.getElementById('other');
 const fan = document.getElementById('fan');
 const landed = document.getElementById('landed');
 const landedAv = document.getElementById('landed-av');
@@ -26,15 +28,23 @@ disc.addEventListener('contextmenu', (e) => {
 });
 
 // The window is mostly transparent padding. Tell the main process whether the cursor is over
-// something real so it can let clicks fall through everywhere else.
+// something real so it can let clicks fall through everywhere else. The hit test is a layout
+// query, so it runs once per frame for the last position, not once per mouse event.
 let overContent = false;
+let hitFrame = null;
+let hitAt = null;
 window.addEventListener('mousemove', (e) => {
-  const el = document.elementFromPoint(e.clientX, e.clientY);
-  const hit = Boolean(el && el.closest('.card'));
-  if (hit !== overContent) {
-    overContent = hit;
-    window.bubbleApi.hit(hit);
-  }
+  hitAt = { x: e.clientX, y: e.clientY };
+  if (hitFrame !== null) return;
+  hitFrame = requestAnimationFrame(() => {
+    hitFrame = null;
+    const el = document.elementFromPoint(hitAt.x, hitAt.y);
+    const hit = Boolean(el && el.closest('.card'));
+    if (hit !== overContent) {
+      overContent = hit;
+      window.bubbleApi.hit(hit);
+    }
+  });
 });
 window.addEventListener('mouseleave', () => {
   if (overContent) {
@@ -43,13 +53,75 @@ window.addEventListener('mouseleave', () => {
   }
 });
 
+const countText = (n) => (n > 9 ? '9+' : String(n));
+let platformLabel = 'Messenger';
 function setBadge(n) {
-  const text = n > 9 ? '9+' : String(n);
+  const text = countText(n);
   if (count.textContent !== text) count.textContent = text; // a repaint only when it changed
   count.classList.toggle('visible', n > 0);
+  // The pill is hidden from readers; the disc's own name says what it says.
+  disc.setAttribute('aria-label', n > 0 ? `${platformLabel}, ${text} unread` : platformLabel);
   pulse();
 }
-window.bubbleApi.onBadge(setBadge);
+
+// ---- Platforms --------------------------------------------------------------------------------
+// { id, mark, badge, other } (lib/sites discState): the disc wears the focused platform's mark
+// and count; the other platform, if any, is the satellite at the disc's foot, and clicking it
+// brings it into focus.
+const markSrc = (file) => '../../assets/' + file;
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+let otherPlatform = null;
+const marks = {}; // platform id -> mark file, from the platform push
+let swapTimer = null;
+function setMark(file) {
+  const src = markSrc(file);
+  if (mark.getAttribute('src') === src) return;
+  if (reduceMotion.matches || !mark.getAttribute('src')) {
+    mark.src = src;
+    return;
+  }
+  // Fade out, swap, fade in: the mark's own opacity transition, both ways.
+  clearTimeout(swapTimer);
+  body.classList.add('swapping');
+  swapTimer = setTimeout(() => {
+    mark.src = src;
+    body.classList.remove('swapping');
+  }, 200);
+}
+function setPlatform(state) {
+  if (!state) return;
+  marks[state.id] = state.mark;
+  if (state.other) marks[state.other.id] = state.other.mark;
+  setMark(state.mark);
+  platformLabel = state.label || platformLabel;
+  setBadge(state.badge || 0);
+  otherPlatform = state.other || null;
+  body.classList.toggle('has-other', Boolean(otherPlatform));
+  body.classList.toggle('other-unread', Boolean(otherPlatform && otherPlatform.count > 0));
+  if (otherPlatform) {
+    other.querySelector('img').src = markSrc(otherPlatform.mark);
+    other.querySelector('.n').textContent = countText(otherPlatform.count);
+    other.setAttribute('aria-label', 'Switch to ' + otherPlatform.label);
+    other.title = 'Switch to ' + otherPlatform.label;
+  }
+}
+window.bubbleApi.onPlatform(setPlatform);
+// The satellite lives inside the disc: its press must not start a drag, and its release must
+// not count as a disc click. Hovering it says what it does in the status chip.
+other.addEventListener('mousedown', (e) => e.stopPropagation());
+other.addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (otherPlatform) window.bubbleApi.switchPlatform(otherPlatform.id);
+});
+other.addEventListener('mouseenter', () => {
+  if (!otherPlatform) return;
+  statusEl.textContent = 'Switch to ' + otherPlatform.label;
+  body.classList.add('switching');
+});
+other.addEventListener('mouseleave', () => {
+  body.classList.remove('switching');
+  setStatus(lastStatus);
+});
 
 // The pulsing count (a setting): the pill dims and brightens every 1.2 s while it shows.
 let pulseTimer = null;
@@ -90,13 +162,17 @@ function headEl(item) {
   const dot = document.createElement('div');
   dot.className = 'dot';
   el.appendChild(dot);
+  // The pin badge and the caption chip are for the pointer (a button holds no controls of
+  // its own for a reader): the head's name carries the pinned state, the menu is the disc's.
   const pin = document.createElement('div');
   pin.className = 'pin';
   pin.innerHTML = PIN_SVG;
   pin.title = 'Pin';
+  pin.setAttribute('aria-hidden', 'true');
   el.appendChild(pin);
   const caption = document.createElement('div');
   caption.className = 'caption';
+  caption.setAttribute('aria-hidden', 'true');
   el.appendChild(caption);
   // The badge pins or unpins; while the cursor is on it the chip says which.
   pin.addEventListener('click', (e) => {
@@ -131,7 +207,10 @@ function updateHead(el, item) {
     el.querySelector('.caption').textContent = item.name;
   }
   el.querySelector('.pin').title = item.pinned ? 'Unpin' : 'Pin';
-  el.setAttribute('aria-label', item.unread ? `${item.name}, unread` : item.name);
+  el.setAttribute(
+    'aria-label',
+    item.name + (item.unread ? ', unread' : '') + (item.pinned ? ', pinned' : ''),
+  );
   const face = el.firstChild;
   if (item.avatar) {
     if (face.tagName !== 'IMG') {
@@ -162,22 +241,12 @@ function inboxEl() {
     '<svg viewBox="0 0 22 22" aria-hidden="true"><path d="M3 12l2.2-6.5A1 1 0 0 1 6.2 5h9.6a1 1 0 0 1 1 .5L19 12v4.5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M3 12h4.5l1 2h5l1-2H19"/></svg>';
   const caption = document.createElement('div');
   caption.className = 'caption';
+  caption.setAttribute('aria-hidden', 'true');
   const label = document.createElement('span');
   label.textContent = 'Inbox';
   const hiddenCount = document.createElement('span');
   hiddenCount.className = 'hidden-count';
-  // The app's menu — the same one as a right-click on the disc — one click from the stack.
-  const more = document.createElement('span');
-  more.className = 'more';
-  more.textContent = '···';
-  more.title = 'Menu';
-  more.setAttribute('role', 'button');
-  more.setAttribute('aria-label', 'Menu');
-  more.addEventListener('click', (e) => {
-    e.stopPropagation();
-    window.bubbleApi.contextMenu();
-  });
-  caption.append(label, hiddenCount, more);
+  caption.append(label, hiddenCount);
   el.appendChild(caption);
   el.addEventListener('click', () => window.bubbleApi.openInbox());
   return el;
@@ -247,9 +316,10 @@ window.bubbleApi.onFan((data) => {
   const els = data.items.map((item) =>
     existing.has(item.href) ? updateHead(existing.get(item.href), item) : headEl(item),
   );
-  for (const el of els) el.classList.remove('first-pinned');
-  const firstPinned = els.find((el) => el.classList.contains('pinned'));
-  if (firstPinned && firstPinned !== els[0]) firstPinned.classList.add('first-pinned');
+  // Pinned heads come first; a hairline parts them from the recent ones that follow.
+  for (const el of els) el.classList.remove('first-recent');
+  const firstRecent = els.find((el) => !el.classList.contains('pinned'));
+  if (firstRecent && firstRecent !== els[0]) firstRecent.classList.add('first-recent');
   // Rows the screen had no room for: the inbox chip says how many.
   inbox.querySelector('.hidden-count').textContent = data.hidden ? ` · +${data.hidden} more` : '';
   els.push(inbox);
@@ -278,6 +348,7 @@ window.bubbleApi.onOpened(clearBusy);
 // ---- "A message landed" ----------------------------------------------------------------------
 const landedInput = document.getElementById('landed-input');
 const landedReply = document.getElementById('landed-reply');
+const landedMark = document.getElementById('landed-mark');
 let landedTimer;
 let landedHref = null;
 let sending = false; // one reply in flight at a time; ↩ is inert meanwhile
@@ -312,11 +383,16 @@ window.bubbleApi.onLanded((item) => {
   if (replying() || sending) return; // don't yank a reply out from under the user
   landedHref = item.href || null;
   fillAvatar(landedAv, item);
+  // Which platform the message is from, on the avatar (shown only with two platforms on).
+  if (otherPlatform && marks[item.platform]) landedMark.src = markSrc(marks[item.platform]);
+  else landedMark.removeAttribute('src');
+  landedAv.appendChild(landedMark);
   landedName.textContent = item.name;
   landedSub.textContent = item.preview || 'New message';
   body.classList.remove('sent', 'failed');
   body.classList.toggle('notice', !landedHref);
   landedInput.placeholder = 'Reply to ' + item.name;
+  landedInput.setAttribute('aria-label', 'Reply to ' + item.name);
   body.classList.add('landed');
   fold(item.hold || 4000);
 });
@@ -414,7 +490,9 @@ window.bubbleApi.onSettings(setSettings);
 // Whether Messenger is reachable and whether anyone is signed in: the mark dims and a chip
 // beside the disc says which (on hover — or, signed out, until you sign in).
 const statusEl = document.getElementById('status');
+let lastStatus = { connection: 'online', signedOut: false };
 function setStatus(st) {
+  lastStatus = st;
   const words = { offline: 'Offline', reconnecting: 'Reconnecting…' };
   body.classList.toggle('offline', st.connection === 'offline');
   body.classList.toggle('reconnecting', st.connection === 'reconnecting');
@@ -429,7 +507,7 @@ window.bubbleApi.state().then((st) => {
   if (!st) return;
   if (st.settings) setSettings(st.settings);
   if (st.layout) setLayout(st.layout);
-  setBadge(st.badge || 0);
+  if (st.platform) setPlatform(st.platform);
   setActive(st.active || null);
   if (st.status) setStatus(st.status);
 });

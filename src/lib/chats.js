@@ -21,7 +21,9 @@ const unchanged = (state) => ({ state, landed: null, changed: false, displayChan
 // A new read of the list. `rows` is null when the list could not be trusted (scrolled), and an
 // empty list is not trusted over a non-empty one either: it is what a page mid-reload says.
 // `landed` is the chat that just turned unread with someone else's message — never the user's
-// own ("You: …", a thread Messenger bolds for another reason), never while the panel shows.
+// own (Messenger's "You: …", Instagram's "You sent …", a thread bolded for another reason),
+// never while the panel shows.
+const OWN_MESSAGE = /^You\b/;
 function reduceRecent(state, rows, { visible }) {
   if (!rows) return unchanged(state);
   // An empty list is never a reading: a page mid-load pushes one before its rows render. (So
@@ -34,7 +36,7 @@ function reduceRecent(state, rows, { visible }) {
     state.seeded && !visible
       ? rows.find((r, i) => {
           const old = before.get(r.href);
-          if (!r.unread || /^You:/.test(r.preview)) return false;
+          if (!r.unread || OWN_MESSAGE.test(r.preview)) return false;
           return old ? !old.unread || old.preview !== r.preview : i === 0;
         }) || null
       : null;
@@ -61,6 +63,25 @@ function refreshPins(pins, recent) {
   return { pins: changed ? next : pins, changed };
 }
 
+// A disc click with unread messages opens the newest received one: across the platforms, the
+// chat whose message landed last and is still unread (someone else's); before anything has
+// landed, the focused platform's top unread chat. `accounts`: id -> { recent, landed }.
+function pickUnread({ focused, accounts }) {
+  const isUnread = (recent, href) => {
+    const r = recent.find((x) => x.href === href);
+    return Boolean(r && r.unread && !OWN_MESSAGE.test(r.preview));
+  };
+  let best = null;
+  for (const [platform, a] of Object.entries(accounts)) {
+    if (!a.landed || !isUnread(a.recent, a.landed.href)) continue;
+    if (!best || a.landed.at > best.at) best = { platform, href: a.landed.href, at: a.landed.at };
+  }
+  if (best) return { platform: best.platform, href: best.href };
+  const own = accounts[focused];
+  const top = own && own.recent.find((r) => r.unread && !OWN_MESSAGE.test(r.preview));
+  return top ? { platform: focused, href: top.href } : null;
+}
+
 const openChat = (state, href) => ({ ...state, activeHref: href, lastChat: null });
 
 // Putting a chat away: remembered for reopening, and no longer the open one.
@@ -75,4 +96,12 @@ const discClick = (state, now, seconds) =>
     ? { action: 'reopen', href: state.lastChat.href }
     : { action: 'stack' };
 
-module.exports = { initialState, reduceRecent, refreshPins, openChat, closeChat, discClick };
+module.exports = {
+  initialState,
+  reduceRecent,
+  refreshPins,
+  openChat,
+  closeChat,
+  discClick,
+  pickUnread,
+};

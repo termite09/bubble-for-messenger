@@ -6,9 +6,10 @@ colors:
   raised-graphite: "#2c2c2e"
   avatar-slate: "#3a3a3c"
   paper: "#f5f5f7"
-  ash: "#8e8e93"
+  ash: "#98989d"
   hairline: "rgba(255,255,255,.12)"
   hairline-active: "rgba(255,255,255,.28)"
+  hairline-focus: "rgba(255,255,255,.45)"
   system-blue: "#0a84ff"
   white: "#ffffff"
 typography:
@@ -38,7 +39,15 @@ typography:
     fontWeight: 600
     lineHeight: "18px"
 rounded:
+  mini: "4px"
+  dot: "6px"
+  spinner: "5px"
+  pin: "8px"
+  control: "8px"
   pill: "9px"
+  chip: "10px"
+  satellite: "12px"
+  field: "13px"
   banner: "14px"
   avatar: "16px"
   sheet: "16px"
@@ -139,9 +148,10 @@ A near-monochrome graphite palette with one semantic accent; the only saturated 
 - **Raised Graphite** (`{colors.raised-graphite}`): hover fill for a banner. The only tonal step above the ground.
 - **Avatar Slate** (`{colors.avatar-slate}`): fill behind a missing avatar, holding a single white initial.
 - **Paper** (`{colors.paper}`): primary text, the ✕ stroke, and the armed dismiss target's fill.
-- **Ash** (`{colors.ash}`): the preview line and the time stamp; everything that is secondary.
+- **Ash** (`{colors.ash}`): the preview line and the time stamp; everything that is secondary. Tuned against Raised Graphite, not only Graphite (4.85:1 and 5.9:1), because the row under the cursor or the keyboard is always the raised one.
 - **Hairline** (`{colors.hairline}`): the 1px rule on every card and on the panel frame.
 - **Active Hairline** (`{colors.hairline-active}`): the same rule brightened on the banner whose conversation is open, which also sits on Raised Graphite.
+- **Focus Hairline** (`{colors.hairline-focus}`): the same rule under keyboard focus, and only there; 3:1 or better on Raised Graphite. Focus is a rule, never a ring.
 - **White** (`{colors.white}`): text on the blue count pill and the initial inside Avatar Slate.
 
 ### Named Rules
@@ -150,6 +160,10 @@ A near-monochrome graphite palette with one semantic accent; the only saturated 
 **The No Red Rule.** There is no destructive colour. The dismiss target arms by inverting Graphite and Paper, not by turning red.
 
 **The Mark Is The Colour Rule.** At rest the only chroma on screen is the Messenger icon raster (24px). The system supplies no gradient, tint, or vibrancy of its own.
+
+**The One File Rule.** Every value above is written once, in `src/renderer/tokens.css`; the pages link it and `lib/tokens.js` reads it for the CSS the app writes into messenger.com. The sandboxed panel preload carries copies, held to the file by a test.
+
+**The Count Pill Exception.** White on System Blue is 3.65:1, under AA for its 11px digits. Kept on purpose (September 2026): it is the system's own badge convention and the pill shows at most two characters; the satellite's blue-on-graphite count is 4.7:1.
 
 ## Typography
 
@@ -167,7 +181,9 @@ A near-monochrome graphite palette with one semantic accent; the only saturated 
 - **Initial** (600, 13px, White): a single uppercase letter inside Avatar Slate when no avatar image exists.
 
 ### Named Rules
-**The Thirteen Ceiling Rule.** No text the app itself sets is larger than 13px. Hierarchy comes from 600 versus 400 and Paper versus Ash.
+**The Thirteen Ceiling Rule.** No text the app itself sets is larger than 13px (the initial in a head, at 15px, is a glyph, not a line of text). Hierarchy comes from 600 versus 400 and Paper versus Ash.
+
+**The Drawn Icon Rule.** Every icon is an inline SVG in one vocabulary — the ✕, the inbox tray, the pin, the reply arrow — stroked round at 1.6–2px or filled in `currentColor`. No unicode glyph stands in for one.
 
 **The One Line Rule, with one exception.** Every text run in a card is `white-space: nowrap` with an ellipsis, and cards do not grow to fit text — except the landed banner's message, which wraps to at most six lines (then an ellipsis) so a message can be read without opening the chat; the banner grows away from the screen edge.
 
@@ -198,12 +214,12 @@ Depth is a hybrid of one shadow and one hairline. Every card carries the same li
 
 ## Shapes
 
-Everything is a rounded rectangle from the same family, and the radius follows the height. The 44px disc, the 44px heads and the 44px landed banner use 22px (a full circle or pill); the 18px count pill uses 9px; the 32px avatar is a 16px circle; the 12px dot is a 6px circle; the 56px dismiss target is a 28px circle; the 420-wide sheet has the system's own rounded-window radius (about 10px) — it is an opaque window, not a clipped page. Borders are always 1px, always the hairline, always inside the box (`box-sizing: border-box`), so a card's outer dimension is the stated one.
+Everything is a rounded rectangle from the same family, and the radius follows the height. The 44px disc, the 44px heads and the 44px landed banner use 22px (a full circle or pill); the 18px count pill uses 9px; the 32px avatar is a 16px circle; the 12px dot is a 6px circle; the 16px pin badge is an 8px circle; the 20px caption chip uses 10px; the 24px satellite uses 12px; the 26px reply field uses 13px; the 56px dismiss target is a 28px circle; the 420-wide sheet has the system's own rounded-window radius (about 10px) — it is an opaque window, not a clipped page. The one rectangle that is not a pill is the 26px control (a segmented choice, the "Open" button in Settings) at 8px, and the 14px platform mini-mark at 4px. Borders are always 1px, always the hairline, always inside the box (`box-sizing: border-box`), so a card's outer dimension is the stated one.
 
 The landed banner is shape as motion: a 252×44 pill whose `clip-path` starts as `inset(0 0 0 208px round 22px)` (exactly the disc's own circle at the screen edge) and opens to `inset(0 round 22px)`. One element, no layout, the disc simply lengthens.
 
 ### Named Rules
-**The Radius Follows Height Rule.** Pills (disc, landed banner, count, avatar, dot, target) are radius = height / 2. Cards that hold two lines (banner, settings card) use 14px or 16px; the sheet takes the system's window radius. Nothing is square-cornered.
+**The Radius Follows Height Rule.** Pills (disc, landed banner, count, avatar, dot, pin, chip, satellite, field, target) are radius = height / 2. Controls that sit in a row (segments, the Open button) use 8px; cards that hold two lines (banner, settings card) use 14px or 16px; the sheet takes the system's window radius. Nothing is square-cornered.
 
 ## Components
 
@@ -213,6 +229,20 @@ The resting state: a graphite card cut to a circle with the Messenger mark insid
 - **Content:** the icon raster at 24px, no tint applied.
 - **Count pill:** absolutely positioned 8px past the right edge and 6px above the top; System Blue, White 600 11px on an 18px line, min-width 18px, 0 5px padding, 9px radius. Shows the unread total, "9+" above nine, hidden at zero and hidden while a landed banner is showing.
 - **States:** no hover treatment; left-drag moves it, right-click opens the context menu.
+
+### Satellite
+The other platform, hung off the disc's foot: where "Instagram has 2 unread while Messenger
+is in focus" is read.
+- **Shape:** a pill 24px tall, 12px radius, Graphite, hairline, Lift, overhanging the disc's
+  bottom-left by 10px and 8px (mirroring the count pill top-right). Scales with the disc: the
+  page is zoomed by the size setting.
+- **Content:** the other platform's mark at 16px and, above zero, its count in System Blue
+  600 12px (`9+` cap).
+- **States:** shown while its count is above zero; otherwise at 60% opacity, mark only, while
+  the disc is hovered. Hovering it brightens it and puts "Switch to <platform>" in the status
+  chip. Hidden while a landed banner shows. Click switches focus; the press never drags.
+- **Mark swap:** on a switch the disc's mark fades out over 200ms, is swapped, and fades in
+  (no fade under Reduce Motion).
 
 ### Head
 A conversation as a disc: the contact's photo filling a 44px circle, one per recent chat. The
@@ -231,19 +261,23 @@ The last row: the one paper disc in the column, so it never reads as another con
 - **States:** hover brightens the hairline and shows an "Inbox" caption on a Graphite chip beside it, on the side away from the screen edge; participates in the same `--p` deploy as the rows above it.
 
 ### Pinned head
-A head the user pinned (right-click → Pin): the same disc, with a 16px Paper pin badge at its foot (bottom-left, opposite the unread dot). The first pinned head carries a hairline in the gap above it, parting the pinned from the recent.
+A head the user pinned (right-click → Pin): the same disc, with a 16px Paper pin badge at its foot (bottom-left, opposite the unread dot). Pinned heads lead the stack; the first recent head after them carries a hairline in the gap above it, parting the two.
+
+### Panel pin
+The pin badge, in the panel: a 28px Graphite disc (hairline, Lift) with the pin glyph in Ash, Paper with a Graphite glyph when the chat is pinned. It rides the inbox row under the pointer, at the foot of the row's picture on the left (clear of the row's own controls on the right). One click pins or unpins; an open chat is pinned from its head in the stack. Drawn by the app, not the site; the same on both platforms.
 
 ### Landed banner
 "A message landed": the disc lengthens into a banner for four seconds, then folds back.
 - **Shape:** 252 wide, 44px tall for a one-line message and taller for a longer one (the message wraps to at most six lines), 22px radius, same material; hung from or standing on the disc's row (−1px, so its hairline coincides with the disc's) on the side away from the screen edge; padding 5px 14px 5px 5px so the avatar sits where the mark was.
-- **Content:** a grid — 32px avatar spanning two rows; name (Title 600), the literal "now" (Label Ash) and the ↩ on the first row; the message (Body Ash, "New message" when none) across the second.
+- **Content:** a grid — 32px avatar spanning two rows, held to the disc's own row (the foot when the banner hangs from the disc, the top when it stands on it) so on a long message it still sits where the mark was; name (Title 600), the literal "now" (Label Ash) and the drawn reply arrow on the first row; the message (Body Ash, "New message" when none) across the second. The banner is a polite live region, so a reader hears the message land.
 - **Motion:** `clip-path` from the disc's circle to the full pill over 220ms on the ease-out-quint curve; opacity 0→1 over 120ms linear. Hides the count pill while visible. Auto-folds after 4000ms; hovering holds it, and it folds 1500ms after the cursor leaves.
 - **Click:** opens that conversation (the press never starts a disc drag). Hover steps the fill to Raised Graphite.
+- **Platform:** with two platforms on, the avatar wears a 14px mini-mark of the message's platform at its bottom-right, ringed 2px in Graphite, so a banner from the platform not in focus reads as such before it is clicked.
 
 ### Stack
 Up to five recent heads, up to five pinned ones, and the Inbox head, opened as one motion.
 - **Container:** a flex column, 8px gap, `--p: 0` at rest and `--p: 1` when `body.open`; `--p` is a registered `@property` (`<number>`, inherits) so the browser interpolates it over 220ms on the ease-out-quint curve.
-- **Order:** newest at the top, pinned chats after the recent ones, the Inbox head at the bottom, on either side of the disc.
+- **Order:** pinned chats first, then the recent ones newest first, and the Inbox head, on either side of the disc.
 - **Fold offsets:** with the stack above the disc, the bottom row is 1 pitch away and the top row 6; below the disc the order inverts. At `--p: 0` every row sits under the disc at opacity 0.
 - **Close:** removing `open` runs the same curve in reverse; the window shrinks after the fold has played.
 

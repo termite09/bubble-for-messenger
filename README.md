@@ -28,7 +28,15 @@ Terminal with:
 xattr -d com.apple.quarantine /Applications/Bubble.app
 ```
 
-Update later with `brew upgrade --cask bubble-for-messenger`; uninstall with
+Update later with:
+
+```bash
+brew upgrade --cask termite09/tap/bubble-for-messenger
+```
+
+(`brew update` alone only refreshes Homebrew's catalogue; `brew upgrade` is what installs
+newer versions — of every cask, not just this one. Use the full `termite09/tap/…` name: on a
+tap that isn't trusted yet, the short name upgrades nothing, silently.) Uninstall with
 `brew uninstall --cask bubble-for-messenger` (add `--zap` to remove your login and settings too).
 
 **By hand:**
@@ -56,24 +64,33 @@ if you want your login gone too, `~/Library/Application Support/Bubble for Messe
 - **Reply right there** — click the message text (or the ↩) and a reply field opens. Type,
   press Enter, and it's sent without opening the panel — a tick confirms it; Esc cancels. The
   bubble only takes the keyboard while that field is open.
-- **Click the bubble** to deploy a stack of your five most recent chats as round heads, newest
-  at the top (a blue dot means unread), plus a paper *Inbox* head for the full inbox. Pick one
-  and that conversation opens in a compact sheet beside the stack; the open chat wears a white
-  ring, and the others stay one click away. Click anywhere else, or the bubble, to put it all
-  away. Messenger stays loaded in the background, so messages keep arriving.
+- **Click the bubble** while something is unread and the newest received message opens right
+  away (on whichever platform it arrived), with the stack beside it. Otherwise the click
+  deploys a stack of your five most recent chats as round heads, newest at the top (a blue
+  dot means unread), plus a paper *Inbox* head for the full inbox. Pick one and that
+  conversation (or the inbox) opens in a sheet beside the stack; the open chat wears a white
+  ring, and the others stay one click away. Click anywhere else, or the bubble, to put it all away.
+  Messenger stays loaded in the background, so messages keep arriving.
 - **Hover a head** for its name; the pin badge that appears pins or unpins it (right-click →
-  *Pin* works too). Up to five pinned chats sit next to the Inbox head, under a hairline,
-  whether or not they're recent. The Inbox head's chip carries *···* for the app's menu.
+  *Pin* works too). Up to five pinned chats per platform sit at the top of the stack, above a
+  hairline, whether or not they're recent. To pin someone who isn't among the recent five,
+  open the Inbox: a pin appears on any chat row you hover.
 - **The disc says when something's wrong** — its mark dims when Messenger is unreachable
   (hover for *Offline* / *Reconnecting…*) and shows *Sign in* when nobody is signed in.
 - **Straight back** — after closing a chat, clicking the bubble within the next 30 seconds (a
   setting) reopens that chat, stack and all, instead of just the stack.
 - **Drag to dismiss** — drag the bubble onto the ✕ target that appears at the bottom of the
   screen and hold it there a moment (a ring fills) to quit the app.
-- **Right-click the bubble** (or click *···* on the Inbox chip) for *Open Messenger*, *Reload
+- **Right-click the bubble** for *Open Messenger*, *Reload
   Messenger*, *Update to…* when a newer version exists, *Settings…*, *Reset Bubble Position*,
   *Report a Problem…* and *Quit*.
 - **First launch** — the login page opens by itself and the disc introduces itself.
+- **Instagram too** (a setting, off by default) — Instagram's inbox loads beside Messenger's
+  and the disc carries one at a time: its chats in the stack, its count in blue. The other
+  platform hangs off the disc's foot as a small satellite with its mark and unread count; click
+  it (or right-click → *Switch to…*) to swap.
+  Messages land from both — the banner's avatar wears the platform's mark — and clicking a
+  banner switches to that platform and opens the chat; replying from it doesn't switch.
 - Persistent login, native notifications, dark mode, and links opening in your default browser
   all carry over from the original app.
 
@@ -87,6 +104,9 @@ Right-click the bubble → **Settings…** (or Cmd+,). Every switch applies at o
   only allows that for a window that stays on one desktop, so while off the bubble doesn't follow
   you to other desktops (Spaces) either.
 - **Start at login.**
+- **Instagram messages** — also keep Instagram's inbox loaded; the disc switches between the
+  two. Turning it on opens Instagram's login beside the disc. It costs a second web page in the
+  background (a few hundred MB), which is why it's a switch.
 - **Check for updates** — once a day the app asks GitHub for the latest release; a newer one
   appears in the bubble's menu as *Update to X…*, which opens the release page. Nothing is
   downloaded on its own.
@@ -97,8 +117,8 @@ Right-click the bubble → **Settings…** (or Cmd+,). Every switch applies at o
   screen sharing or public places.
 - **Reply from the banner** — the ↩ (or click the message text); off if the bubble should never
   take the keyboard.
-- **macOS notifications from Messenger** — Messenger's own Notification Center banners, in
-  addition to the bubble.
+- **macOS notifications from Messenger** — Messenger's (and Instagram's) own Notification
+  Center banners, in addition to the bubble.
 - **Unread count** — Off, Steady, or Pulsing (the count breathes slowly while anything is unread).
 - **New-message sound** — this is Messenger's own switch (Preferences → Notification sounds);
   the *Open* button takes you there. Messenger keeps it per profile, so it starts off in Bubble
@@ -113,6 +133,8 @@ Right-click the bubble → **Settings…** (or Cmd+,). Every switch applies at o
 - **Block Facebook telemetry** — cancels Facebook's logging beacons at the network layer; nothing
   Messenger needs to work is touched. On by default.
 
+Every switch applies to both platforms.
+
 ## Keyboard shortcuts
 
 These are app-menu shortcuts: they work whenever a Bubble window (the panel or Settings) is
@@ -121,7 +143,7 @@ focused. The Conversations menu shows the five chats by name.
 | Shortcut | Action |
 |----------|--------|
 | `Cmd + N` | New message (opens the inbox) |
-| `Cmd + 1-5` | Open one of your five most recent chats (1 = most recent) |
+| `Cmd + 1-5` | Open one of the focused platform's five most recent chats (1 = most recent) |
 
 ## Build from source
 
@@ -165,17 +187,20 @@ still published; only the cask bump is skipped.
 ```
 .github/        the release workflow and the script that bumps the Homebrew cask
 src/main/       Electron main process
-  main.js         app lifecycle, settings, cookie persistence, menu, wiring
+  main.js         app lifecycle, settings, cookie persistence, menu, the platforms and which is in focus
+  account.js      one platform, live: its panel, chat state, unread, status, and the reads that keep them fresh
   bubble.js       the disc window: drag, edge-snap, click, the stack, the landed banner, the shield
-  panel.js        the Messenger panel: placement beside the stack, card frame, compact/full mode
+  panel.js        a site's panel: placement beside the stack, card frame, compact/full mode, liveness
   dismiss.js      the ✕ drop target shown while dragging
   settings-window.js  the Settings… window
   scrape.js       scripts run inside messenger.com: recent chats, open a thread, frame, compact CSS
-  avatars.js      profile pictures fetched through the Messenger session as data URLs
+  scrape-instagram.js  the same for instagram.com's mobile web app (chats opened by name)
+  avatars.js      profile pictures fetched through the session, downscaled, as data URLs
 src/renderer/   the pages inside the bubble, shield, dismiss and settings windows, and their preloads
-src/lib/        pure helpers (layout, unread parsing, link policy, settings, refresh, reply, telemetry), covered by test/
+  tokens.css      the palette, written once; every page links it and lib/tokens.js reads it
+src/lib/        pure helpers (sites, layout, unread parsing, link policy, settings, refresh, reply, telemetry, tokens), covered by test/
 test/           node --test unit tests
-assets/         app icon
+assets/         the app icon and the Instagram mark
 docs/           design specs and plans
 PRODUCT.md, DESIGN.md   product context and the design system the UI follows
 ```
@@ -211,8 +236,20 @@ trust a downloaded binary, build it yourself from source.
 **Does it start at login?** Right-click the bubble → Settings… → **Start at login**.
 
 **Messenger is in another language and some things don't work.** The app finds Messenger's
-controls by their English labels (Back, New message, Preferences…). Set Messenger's language
-to English; everything else is language-independent.
+(and Instagram's) controls by their English labels (Back, New message, Preferences, Send…).
+Set the site's language to English; everything else is language-independent.
+
+**Instagram shows its phone layout in the panel.** On purpose: Instagram's desktop site folds
+its thread list to an avatar rail at the panel's width, so the panel asks for the mobile web
+app, which is the one with a readable inbox.
+
+**`brew upgrade` never offers Bubble, or `brew update` "does nothing".** `brew update` only
+refreshes Homebrew's catalogue; `brew upgrade` installs newer versions. If `brew upgrade`
+still never lists Bubble, the tap isn't trusted (installs from before Homebrew 6 have no
+trust entry, and Homebrew then quietly loads the copy it already has): run
+`brew trust termite09/tap` once, or upgrade by the full name
+`brew upgrade --cask termite09/tap/bubble-for-messenger`, which trusts it as it goes. The
+bubble's *Update to X…* menu item shows the command when Bubble was installed by Homebrew.
 
 **Something went wrong — how do I report it?** Right-click the bubble → **Report a Problem…**
 opens the issue page and shows the log file (`~/Library/Application Support/Bubble for

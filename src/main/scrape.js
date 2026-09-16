@@ -2,9 +2,12 @@
 // and text — aria-label "Back", "New message", the account gear's "Settings, help and more",
 // the "Preferences" menu item, the "You: " prefix of one's own messages, and the short time
 // stamps ("2m", "Yesterday"). Another language leaves those paths as no-ops.
-const { normalizeRows } = require('../lib/recent');
+const { normalizeRows, platformOfHref } = require('../lib/recent');
+const { nameFromTitle } = require('../lib/unread');
 const { ROW_READER_SOURCE } = require('../lib/rows');
+const { THREAD_CARD_SOURCE } = require('../lib/fit');
 const { decideReply, REPLY_BUDGET_MS, REPLY_POLL_MS } = require('../lib/reply');
+const tokens = require('../lib/tokens');
 
 // Runs inside messenger.com: the chat-list reader from lib/rows.
 const RECENT_CHATS_SCRIPT = ROW_READER_SOURCE;
@@ -36,6 +39,31 @@ async function readRecentChats(wc) {
   } catch (e) {
     return [];
   }
+}
+
+// The chat the panel is showing — for the stack, so a chat reached by searching the inbox
+// gets a head there: the thread path from the address, the name from the title, the picture
+// from the thread's header (best effort). Null on the inbox, off the site, or without a name.
+async function readShowing(wc) {
+  if (!onMessenger(wc)) return null;
+  // A navigation reports before the thread view has drawn; give it a moment to.
+  if (!(await waitForThread(wc, 2500))) return null;
+  const raw = await run(
+    wc,
+    `(() => {
+    const img = document.querySelector('[role="main"] img');
+    return { href: location.pathname, title: document.title, avatarUrl: img ? img.src : null };
+  })()`,
+  ).catch(() => null);
+  if (!raw || platformOfHref(raw.href) !== 'messenger') return null;
+  const name = nameFromTitle(raw.title);
+  if (!name) return null;
+  return {
+    // The list's rows carry the trailing slash; the address may not.
+    href: raw.href.replace(/\/?$/, '/'),
+    name,
+    avatarUrl: typeof raw.avatarUrl === 'string' ? raw.avatarUrl : null,
+  };
 }
 
 // Find the conversation's list row and return the viewport point to click, or null if no row is
@@ -203,18 +231,21 @@ async function openThread(wc, href) {
 // what the user would press — rather than a Send button, whose label is localised and shares
 // its wording with "Send a like" / "Send a voice clip".
 const COMPOSER = '[role="main"] [contenteditable="true"][role="textbox"]';
-const FIND_COMPOSER = `[...document.querySelectorAll(${JSON.stringify(COMPOSER)})].find((el) => {
+// The page-side halves for a composer found by `selector` (Instagram's mobile page has no
+// [role="main"], so it brings its own). `href` is a validated thread path.
+function makeReplyActions(selector) {
+  const FIND_COMPOSER = `[...document.querySelectorAll(${JSON.stringify(selector)})].find((el) => {
   const r = el.getBoundingClientRect();
   if (r.height <= 0 || getComputedStyle(el).visibility === 'hidden') return false;
   const hit = document.elementFromPoint(Math.round(r.left + r.width / 2), Math.round(r.top + r.height / 2));
   return !!hit && (hit === el || el.contains(hit));
 }) || null`;
-const replyActions = {
-  // What the loop needs to know this instant. `href` is a validated thread path.
-  snapshot: (wc, href, text) =>
-    run(
-      wc,
-      `(() => {
+  const actions = {
+    // What the loop needs to know this instant.
+    snapshot: (wc, href, text) =>
+      run(
+        wc,
+        `(() => {
     const box = ${FIND_COMPOSER};
     const content = box ? (box.textContent || '') : '';
     const want = ${JSON.stringify(href)}.replace(/\\/$/, '');
@@ -226,40 +257,43 @@ const replyActions = {
       sendAvailable: !!box && document.activeElement === box,
     };
   })()`,
-    ).catch(() => null),
-  // Messenger's editor ignores execCommand('insertText') and synthetic paste; only trusted
-  // input reaches it. So: focus the composer in the page, then commit the text the way an
-  // input method does (insertText) — one event for the whole reply, emoji included — and, if
-  // the editor did not take it, type it as key events, one per character.
-  insert: async (wc, text, href) => {
-    const focused = await run(
-      wc,
-      `(() => {
+      ).catch(() => null),
+    // Messenger's editor ignores execCommand('insertText') and synthetic paste; only trusted
+    // input reaches it. So: focus the composer in the page, then commit the text the way an
+    // input method does (insertText) — one event for the whole reply, emoji included — and, if
+    // the editor did not take it, type it as key events, one per character.
+    insert: async (wc, text, href) => {
+      const focused = await run(
+        wc,
+        `(() => {
       const box = ${FIND_COMPOSER};
       if (!box) return false;
       box.focus();
       return document.activeElement === box;
     })()`,
-      { userGesture: true },
-    ).catch(() => false);
-    if (!focused) return false;
-    if (typeof wc.insertText === 'function') {
-      await wc.insertText(text).catch(() => {});
-      await delay(REPLY_POLL_MS);
-      const after = href ? await replyActions.snapshot(wc, href, text) : null;
-      // The editor took it, or the check could not tell: the delivery loop decides. Only a
-      // clear "not there" falls back to typing — anything else could double the text.
-      if (!after || after.draftMatches) return true;
-    }
-    for (const ch of text) wc.sendInputEvent({ type: 'char', keyCode: ch });
-    return true;
-  },
-  send: async (wc) => {
-    wc.sendInputEvent({ type: 'keyDown', keyCode: 'Enter' });
-    wc.sendInputEvent({ type: 'keyUp', keyCode: 'Enter' });
-    return true;
-  },
-};
+        { userGesture: true },
+      ).catch(() => false);
+      if (!focused) return false;
+      if (typeof wc.insertText === 'function') {
+        await wc.insertText(text).catch(() => {});
+        await delay(REPLY_POLL_MS);
+        const after = href ? await actions.snapshot(wc, href, text) : null;
+        // The editor took it, or the check could not tell: the delivery loop decides. Only a
+        // clear "not there" falls back to typing — anything else could double the text.
+        if (!after || after.draftMatches) return true;
+      }
+      for (const ch of text) wc.sendInputEvent({ type: 'char', keyCode: ch });
+      return true;
+    },
+    send: async (wc) => {
+      wc.sendInputEvent({ type: 'keyDown', keyCode: 'Enter' });
+      wc.sendInputEvent({ type: 'keyUp', keyCode: 'Enter' });
+      return true;
+    },
+  };
+  return actions;
+}
+const replyActions = makeReplyActions(COMPOSER);
 
 // Put `text` in the thread's composer and send it, polling the page into the reply state
 // machine until it reports success or failure. Assumes the page is already being put on the
@@ -318,30 +352,12 @@ const COMPACT_CSS = [
   '*{scrollbar-width:none!important}',
 ].join('');
 
-// The thread itself is a rounded card inset 16px from the left and capped 32px short of the
-// viewport. Its only handle is a bag of atomic classes, so find it by shape (the largest
-// opaque box inside [role=main]) and write a rule for that exact class combination. Runs
-// again on every compact apply, so a Messenger deploy that renames classes self-heals.
+// The thread card, flush and full-height: lib/fit finds it and writes the rule. Runs again on
+// every compact apply, so a Messenger deploy that renames classes self-heals.
 function fitThread(wc) {
-  return run(
-    wc,
-    `(() => {
-    const m = document.querySelector('[role="main"]');
-    if (!m) return '';
-    let card = null, best = 0;
-    for (const el of m.querySelectorAll('div')) {
-      const r = el.getBoundingClientRect();
-      if (r.width < 300 || r.height < 300 || r.width * r.height <= best) continue;
-      if (getComputedStyle(el).backgroundColor === 'rgba(0, 0, 0, 0)') continue;
-      card = el; best = r.width * r.height;
-    }
-    if (!card || !card.classList.length) return '';
-    return '.' + [...card.classList].map((c) => CSS.escape(c)).join('.') +
-      '{margin:0!important;border-radius:0!important;height:100vh!important;max-height:100vh!important}';
-  })()`,
-  )
+  return run(wc, THREAD_CARD_SOURCE)
     .catch(() => '')
-    .then((css) => setStyle(wc, 'mb-fit', css));
+    .then((css) => setStyle(wc, 'mb-fit', typeof css === 'string' ? css : ''));
 }
 
 // Set the text of a persistent <style id> in the page (created on first use, toggled after).
@@ -373,7 +389,9 @@ const FRAME_CSS = [
   '#mb-frame{position:fixed;inset:0;z-index:2147483647;pointer-events:none;box-sizing:border-box;border-radius:' +
     RADIUS +
     'px;' +
-    'border:1px solid var(--mb-hairline,rgba(255,255,255,.12))}',
+    'border:1px solid var(--mb-hairline,' +
+    tokens.rule +
+    ')}',
   // Overlay scrollbars would otherwise ride the sheet's edge over the hairline.
   '::-webkit-scrollbar,::-webkit-scrollbar-thumb{display:none!important;width:0!important;background:transparent!important}',
 ].join('');
@@ -402,7 +420,7 @@ function setTheme(wc, dark) {
     `(() => {
     const c = document.documentElement.classList;
     // The frame's hairline: white on the dark wash, black on the light one.
-    document.documentElement.style.setProperty('--mb-hairline', ${dark ? "'rgba(255,255,255,.12)'" : "'rgba(0,0,0,.12)'"});
+    document.documentElement.style.setProperty('--mb-hairline', ${JSON.stringify(dark ? tokens.rule : 'rgba(0, 0, 0, 0.12)')});
     c.remove('${remove}');
     c.add('${add}');
   })()`,
@@ -444,7 +462,13 @@ function openInbox(wc) {
 
 module.exports = {
   run,
+  reload,
+  delay,
+  waitUntil,
+  setStyle,
+  makeReplyActions,
   readRecentChats,
+  readShowing,
   openThread,
   openInbox,
   openPreferences,
