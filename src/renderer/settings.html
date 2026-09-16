@@ -162,8 +162,15 @@
         padding: 6px 16px;
         box-sizing: border-box;
       }
-      /* The divider starts at the text edge; the row itself spans the card so its tone step reads whole. */
-      .row + .row::before {
+      /* The divider starts at the text edge; the row itself spans the card so its tone step reads whole.
+       The sibling combinator matches DOM structure, not rendered visibility, so a row a platform
+       has no use for (data-needs, hidden) is skipped explicitly: :not([hidden]) on both sides keeps
+       a hidden row from drawing a stray rule above the row that is now visually first, and the
+       second selector reaches past exactly one hidden row so two rows either side of it (Glass,
+       on a platform without vibrancy) still get the rule between them. Nothing here is hidden on
+       darwin, so both selectors together render exactly as the single one used to. */
+      .row:not([hidden]) + .row:not([hidden])::before,
+      .row:not([hidden]) + .row[hidden] + .row:not([hidden])::before {
         content: '';
         position: absolute;
         left: 16px;
