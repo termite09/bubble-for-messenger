@@ -185,12 +185,22 @@ function createPlatform(site) {
     },
     onShown: () => {
       syncActive();
-      if (bubble) bubble.opened();
+      if (bubble) {
+        bubble.opened();
+        bubble.setPanelFocused(true);
+      }
+      syncSound();
     },
-    // The panel put itself away (the user went elsewhere): its open chat is remembered by the
-    // account; the ring comes off its head.
+    // The panel put itself away (the user went elsewhere): the stack folds with it, its open
+    // chat is remembered by the account, and the ring comes off its head.
     onBlurred: () => {
+      if (bubble) bubble.collapse();
       if (site.id === focused) syncActive();
+      syncSound();
+    },
+    onHidden: () => {
+      if (bubble) bubble.setPanelFocused(false);
+      syncSound();
     },
     // The panel's own pin button on a row of the inbox.
     onPin: (row) => togglePin(row.href, row),
@@ -236,6 +246,17 @@ function removeInstagram() {
 
 async function showStack(animate = true) {
   bubble.expand(await current().stackItems(), animate);
+  syncSound();
+}
+
+// Messenger (and Instagram) play their own sound when a message arrives. While the stack is
+// up or a panel is showing the user is looking at Bubble and sees the message land, so the
+// pages are muted; the sound is for when Bubble is put away. (Both pages: a message on the
+// platform out of focus would otherwise sound while the other one is open.)
+function syncSound() {
+  if (!bubble) return;
+  const quiet = bubble.isExpanded() || Object.values(accounts).some((a) => a.panel.isVisible());
+  eachAccount((a) => a.panel.setMuted(quiet));
 }
 
 function setPins(pins) {
@@ -368,8 +389,6 @@ function openSettings() {
   if (settingsWindow && bubble) settingsWindow.open(bubble.getBounds());
 }
 
-const ISSUES_URL = 'https://github.com/termite09/bubble-for-messenger/issues/new';
-
 function bubbleContextMenu() {
   const update = updates.latest();
   const other = otherPlatform();
@@ -397,14 +416,6 @@ function bubbleContextMenu() {
       : []),
     { label: 'Settings…', click: openSettings },
     { label: 'Reset Bubble Position', click: () => bubble.resetPosition() },
-    // The issue page, and the log beside it in Finder so it can be attached.
-    {
-      label: 'Report a Problem…',
-      click: () => {
-        shell.openExternal(ISSUES_URL);
-        shell.showItemInFolder(log.path);
-      },
-    },
     { type: 'separator' },
     { label: 'Quit', click: () => app.quit() },
   ]).popup({ window: bubble.win });
@@ -568,6 +579,7 @@ app.whenReady().then(() => {
       current().close();
       syncActive();
       current().hide();
+      syncSound();
     },
     onContextMenu: bubbleContextMenu,
     onHeadMenu: headMenu,

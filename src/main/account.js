@@ -20,6 +20,7 @@ function createAccount({
   onStatus = () => {},
   onShown = () => {},
   onBlurred = () => {},
+  onHidden = () => {},
   onPin = () => {},
   createPanel = createRealPanel,
   fetchAvatar = fetchRealAvatar,
@@ -56,6 +57,7 @@ function createAccount({
       park();
       onBlurred();
     },
+    onHidden,
     onNavigated: () => refreshShowing(),
     // The panel's pin button on an inbox row: that row as the page read it (a handle of
     // this site's, a name). Main keeps the pins.

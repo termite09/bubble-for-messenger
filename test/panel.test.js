@@ -99,6 +99,24 @@ test('closing hides the panel, except when the app is quitting; blur hides and r
   assert.equal(panel.isVisible(), false);
 });
 
+// A showing panel that goes away says so, once, however it went; a staged one (opacity 0,
+// never shown to the user) does not.
+test('a panel that was showing reports when it is hidden; a staged one does not', () => {
+  const hidden = [];
+  electron.shell.openExternal = async () => {};
+  const panel = createPanel({ onUnread() {}, onHidden: () => hidden.push(1) });
+  const win = electron.windows[electron.windows.length - 1];
+  panel.showAt({ x: 100, y: 100, width: 44, height: 44 });
+  assert.equal(win.visible, true);
+  win.emit('blur');
+  assert.deepEqual(hidden, [1]);
+  panel.hide(); // already hidden: nothing to report
+  assert.deepEqual(hidden, [1]);
+  panel.showAt({ x: 100, y: 100, width: 44, height: 44 });
+  panel.hide();
+  assert.deepEqual(hidden, [1, 1]);
+});
+
 // Chromium's network error page fires did-finish-load too; it must not count as a load, or
 // the retry a failed load is owed would be forgotten.
 test("a failed load stays a failed load through the error page's did-finish-load", () => {

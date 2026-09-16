@@ -27,6 +27,9 @@ function makeStub() {
     setZoomFactor(z) {
       this.zoom = z;
     }
+    setAudioMuted(m) {
+      this.muted = m;
+    }
     getZoomFactor() {
       return this.zoom;
     }
@@ -147,8 +150,12 @@ function makeStub() {
       this.focusable = on;
     }
     setOpacity() {}
-    setBackgroundColor() {
+    setBackgroundColor(c) {
       if (this.destroyed) throw new TypeError('Object has been destroyed');
+      this.background = c;
+    }
+    setVibrancy(v) {
+      this.vibrancy = v;
     }
     close() {
       this.emit('close', { preventDefault() {} });
@@ -181,6 +188,7 @@ function makeStub() {
   const nativeTheme = Object.assign(new EventEmitter(), {
     themeSource: 'system',
     shouldUseDarkColors: true,
+    prefersReducedTransparency: false,
   });
   const powerMonitor = new EventEmitter();
   const session = {

@@ -8,8 +8,9 @@
     />
     <link rel="stylesheet" href="tokens.css" />
     <style>
-      /* One more card from the same stack. The window is transparent; the card draws its own
-       silhouette (16px sheet radius, hairline) and macOS casts the shadow, as for the panel.
+      /* One more card from the same stack. The window is opaque with the system's own rounded
+       corners (as the panel is), so the card fills it; frosted, the window paints the system's
+       material beneath and the card is a tint over it. A hairline sits just inside the edge.
        Keyboard focus is the hairline too, never a ring — at --rule-focus, which holds 3:1 on
        the raised row the focused control always sits on. */
       html,
@@ -33,8 +34,7 @@
         position: absolute;
         inset: 0;
         background: var(--card);
-        border: 1px solid var(--rule);
-        border-radius: 16px;
+        box-shadow: inset 0 0 0 1px var(--rule);
         box-sizing: border-box;
         display: flex;
         flex-direction: column;
@@ -393,6 +393,15 @@
           ></label>
           <label class="row"
             ><div class="text">
+              <div class="name">Glass</div>
+              <div class="sub">
+                The disc, heads and banner let the wallpaper through; this card is frosted.
+              </div>
+            </div>
+            <span class="switch"><input type="checkbox" data-key="glass" /><span></span></span
+          ></label>
+          <label class="row"
+            ><div class="text">
               <div class="name">Check for updates</div>
               <div class="sub">
                 Once a day, from GitHub. A newer version shows in the bubble’s menu.
@@ -478,7 +487,7 @@
           <div class="row">
             <div class="text">
               <div class="name">Appearance</div>
-              <div class="sub">Of the Messenger panel. System follows macOS.</div>
+              <div class="sub">Of the panel and the bubble's own cards. System follows macOS.</div>
             </div>
             <div class="segments" role="radiogroup" aria-label="Appearance">
               <label><input type="radio" name="theme" value="system" /><span>System</span></label>

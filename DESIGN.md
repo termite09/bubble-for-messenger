@@ -12,6 +12,13 @@ colors:
   hairline-focus: "rgba(255,255,255,.45)"
   system-blue: "#0a84ff"
   white: "#ffffff"
+  paper-raised: "#e8e8ed"
+  slate-light: "#c7c7cc"
+  ash-light: "#636366"
+  hairline-light: "rgba(0,0,0,.12)"
+  hairline-light-active: "rgba(0,0,0,.28)"
+  hairline-light-focus: "rgba(0,0,0,.45)"
+  system-blue-light: "#007aff"
 typography:
   title:
     fontFamily: "-apple-system, system-ui, sans-serif"
@@ -162,6 +169,10 @@ A near-monochrome graphite palette with one semantic accent; the only saturated 
 **The Mark Is The Colour Rule.** At rest the only chroma on screen is the Messenger icon raster (24px). The system supplies no gradient, tint, or vibrancy of its own.
 
 **The One File Rule.** Every value above is written once, in `src/renderer/tokens.css`; the pages link it and `lib/tokens.js` reads it for the CSS the app writes into messenger.com. The sandboxed panel preload carries copies, held to the file by a test.
+
+**The Two Appearances Rule.** The palette above is the dark appearance. The app's own chrome follows the Appearance setting (System by default), and in the light appearance the roles swap the way a Notification Center banner does: Paper (`#f5f5f7`) is the card, `#e8e8ed` the raised tone, `#c7c7cc` the slate, Graphite the ink, `#636366` the ash (4.9:1 on raised), the hairlines black at the same alphas, the shadow at 18%, and the system's light blue `#007aff` for unread. What the app draws inside messenger.com (the frame's hairline, the pin badge) stays graphite.
+
+**Glass (under trial, September 2026).** By the Glass setting the bubble layer's cards are the same colours at 90% over the wallpaper, and the settings card is the system's frosted popover material under a 60% tint with the system's own window corners. Reduce Transparency makes both opaque again. A real per-card blur is not available to the bubble layer (one window, many cards), so this is a tint, not Liquid Glass; whether it stays is the user's call after living with it.
 
 **The Count Pill Exception.** White on System Blue is 3.65:1, under AA for its 11px digits. Kept on purpose (September 2026): it is the system's own badge convention and the pill shows at most two characters; the satellite's blue-on-graphite count is 4.7:1.
 

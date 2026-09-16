@@ -96,6 +96,10 @@ function createBubble({
   const bounds = () => ({ x: anchor.x, y: anchor.y, width: SIZE, height: SIZE });
   const area = () => screen.getDisplayMatching(bounds()).workArea;
   let expanded = false;
+  // A focused panel is showing: it hears a click elsewhere itself (it blurs, and the stack
+  // folds with it), so the shield stays out of the way and the click reaches the app it was
+  // meant for. Only a stack with no panel needs the shield.
+  let panelFocused = false;
   let animGen = 0; // guards the deferred collapse shrink against a rapid re-expand
   let fanCount = 0; // rows currently in the fan (incl. the inbox entry)
   let replying = false; // the landed banner has grown its reply row (keyboard focus is lent)
@@ -197,7 +201,7 @@ function createBubble({
       fanCount = items.length + fixed;
       l = applyBounds();
     }
-    shield.show(screen.getDisplayMatching(bounds()).bounds);
+    if (!panelFocused) shield.show(screen.getDisplayMatching(bounds()).bounds);
     // 'in' plays the deploy; 'update' just swaps the contents (used by the periodic refresh).
     send(CHANNELS.BUBBLE_FAN, {
       animate: animate ? 'in' : 'update',
@@ -324,6 +328,11 @@ function createBubble({
     expand,
     collapse,
     isExpanded: () => expanded,
+    setPanelFocused(on) {
+      panelFocused = on;
+      if (on) shield.hide();
+      else if (expanded) shield.show(screen.getDisplayMatching(bounds()).bounds);
+    },
     // Which platform the disc shows, with its count, and the other one for the satellite.
     setPlatform: (state) => {
       lastPlatform = state;

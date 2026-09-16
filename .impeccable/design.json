@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-16T03:58:09Z",
+  "generatedAt": "2026-09-16T10:24:28Z",
   "title": "Design System: Bubble for Messenger",
   "extensions": {
     "colorMeta": {
@@ -152,6 +152,111 @@
           "rgba(255,255,255,.45)",
           "rgba(255,255,255,.7)",
           "rgba(255,255,255,.95)"
+        ]
+      },
+      "paper-raised": {
+        "role": "neutral",
+        "displayName": "Paper Raised",
+        "canonical": "#e8e8ed",
+        "tonalRamp": [
+          "oklch(15% 0.004 286)",
+          "oklch(22% 0.004 286)",
+          "oklch(30% 0.004 286)",
+          "oklch(42% 0.004 286)",
+          "oklch(55% 0.004 286)",
+          "oklch(68% 0.004 286)",
+          "oklch(82% 0.004 286)",
+          "oklch(95% 0.004 286)"
+        ]
+      },
+      "slate-light": {
+        "role": "neutral",
+        "displayName": "Slate (light)",
+        "canonical": "#c7c7cc",
+        "tonalRamp": [
+          "oklch(15% 0.004 286)",
+          "oklch(22% 0.004 286)",
+          "oklch(30% 0.004 286)",
+          "oklch(42% 0.004 286)",
+          "oklch(55% 0.004 286)",
+          "oklch(68% 0.004 286)",
+          "oklch(82% 0.004 286)",
+          "oklch(95% 0.004 286)"
+        ]
+      },
+      "ash-light": {
+        "role": "neutral",
+        "displayName": "Ash (light)",
+        "canonical": "#636366",
+        "tonalRamp": [
+          "oklch(15% 0.004 286)",
+          "oklch(22% 0.004 286)",
+          "oklch(30% 0.004 286)",
+          "oklch(42% 0.004 286)",
+          "oklch(55% 0.004 286)",
+          "oklch(68% 0.004 286)",
+          "oklch(82% 0.004 286)",
+          "oklch(95% 0.004 286)"
+        ]
+      },
+      "hairline-light": {
+        "role": "neutral",
+        "displayName": "Hairline (light)",
+        "canonical": "rgba(0,0,0,.12)",
+        "tonalRamp": [
+          "oklch(15% 0.004 286)",
+          "oklch(22% 0.004 286)",
+          "oklch(30% 0.004 286)",
+          "oklch(42% 0.004 286)",
+          "oklch(55% 0.004 286)",
+          "oklch(68% 0.004 286)",
+          "oklch(82% 0.004 286)",
+          "oklch(95% 0.004 286)"
+        ]
+      },
+      "hairline-light-active": {
+        "role": "neutral",
+        "displayName": "Active Hairline (light)",
+        "canonical": "rgba(0,0,0,.28)",
+        "tonalRamp": [
+          "oklch(15% 0.004 286)",
+          "oklch(22% 0.004 286)",
+          "oklch(30% 0.004 286)",
+          "oklch(42% 0.004 286)",
+          "oklch(55% 0.004 286)",
+          "oklch(68% 0.004 286)",
+          "oklch(82% 0.004 286)",
+          "oklch(95% 0.004 286)"
+        ]
+      },
+      "hairline-light-focus": {
+        "role": "neutral",
+        "displayName": "Focus Hairline (light)",
+        "canonical": "rgba(0,0,0,.45)",
+        "tonalRamp": [
+          "oklch(15% 0.004 286)",
+          "oklch(22% 0.004 286)",
+          "oklch(30% 0.004 286)",
+          "oklch(42% 0.004 286)",
+          "oklch(55% 0.004 286)",
+          "oklch(68% 0.004 286)",
+          "oklch(82% 0.004 286)",
+          "oklch(95% 0.004 286)"
+        ]
+      },
+      "system-blue-light": {
+        "role": "primary",
+        "displayName": "System Blue (light)",
+        "canonical": "#007aff",
+        "tonalRamp": [
+          "oklch(15% 0.06 255)",
+          "oklch(26% 0.10 255)",
+          "oklch(38% 0.15 255)",
+          "oklch(50% 0.19 255)",
+          "oklch(62% 0.21 255)",
+          "oklch(73% 0.15 255)",
+          "oklch(84% 0.09 255)",
+          "oklch(95% 0.03 255)"
         ]
       }
     },
@@ -319,6 +424,16 @@
         "section": "colors"
       },
       {
+        "name": "The Two Appearances Rule",
+        "body": "The palette above is the dark appearance. The app's own chrome follows the Appearance setting (System by default), and in the light appearance the roles swap the way a Notification Center banner does: Paper (`#f5f5f7`) is the card, `#e8e8ed` the raised tone, `#c7c7cc` the slate, Graphite the ink, `#636366` the ash (4.9:1 on raised), the hairlines black at the same alphas, the shadow at 18%, and the system's light blue `#007aff` for unread. What the app draws inside messenger.com (the frame's hairline, the pin badge) stays graphite.",
+        "section": "colors"
+      },
+      {
+        "name": "Glass (under trial, September 2026)",
+        "body": "By the Glass setting the bubble layer's cards are the same colours at 90% over the wallpaper, and the settings card is the system's frosted popover material under a 60% tint with the system's own window corners. Reduce Transparency makes both opaque again. A real per-card blur is not available to the bubble layer (one window, many cards), so this is a tint, not Liquid Glass; whether it stays is the user's call after living with it.",
+        "section": "colors"
+      },
+      {
         "name": "The Count Pill Exception",
         "body": "White on System Blue is 3.65:1, under AA for its 11px digits. Kept on purpose (September 2026): it is the system's own badge convention and the pill shows at most two characters; the satellite's blue-on-graphite count is 4.7:1.",
         "section": "colors"
@@ -330,7 +445,7 @@
       },
       {
         "name": "The Drawn Icon Rule",
-        "body": "Every icon is an inline SVG in one vocabulary — the ✕, the inbox tray, the pin, the reply arrow, the menu dots — stroked round at 1.6–2px or filled in `currentColor`. No unicode glyph stands in for one.",
+        "body": "Every icon is an inline SVG in one vocabulary — the ✕, the inbox tray, the pin, the reply arrow — stroked round at 1.6–2px or filled in `currentColor`. No unicode glyph stands in for one.",
         "section": "typography"
       },
       {

@@ -50,7 +50,8 @@ const noLog = { debug() {}, info() {}, warn() {}, error() {} };
 // One panel per site (lib/sites; Messenger by default): a hidden window on the site's inbox.
 // `onShown` fires once the panel is actually visible to the user (not merely staged at opacity
 // 0), so the bubble can dock the open chat's avatar beside it at the right moment. `onBlurred`
-// fires when the panel put itself away because it lost focus (the user went elsewhere).
+// fires when the panel put itself away because it lost focus (the user went elsewhere);
+// `onHidden` whenever a showing panel goes away, for whatever reason.
 function createPanel({
   site = MESSENGER,
   onUnread,
@@ -58,6 +59,7 @@ function createPanel({
   onStatus = () => {},
   onShown = () => {},
   onBlurred = () => {},
+  onHidden = () => {},
   onNavigated = () => {},
   onPin = () => {},
   overFullscreen = true,
@@ -89,8 +91,16 @@ function createPanel({
     webPreferences: { backgroundThrottling: PANEL_THROTTLE, v8CacheOptions: 'bypassHeatCheck' },
   });
 
-  win.on('blur', () => {
+  // Put away, and say so if it was showing (a staged panel at opacity 0 is not "showing").
+  let showing = false;
+  function hide() {
     win.hide();
+    if (!showing) return;
+    showing = false;
+    onHidden();
+  }
+  win.on('blur', () => {
+    hide();
     onBlurred();
   });
   // The chat list's rows, pushed by the preload whenever they change; and the pin button.
@@ -108,7 +118,7 @@ function createPanel({
   win.on('close', (event) => {
     if (!quitting) {
       event.preventDefault();
-      win.hide();
+      hide();
     }
   });
   let crashes = 0;
@@ -303,6 +313,7 @@ function createPanel({
     win.setIgnoreMouseEvents(false);
     win.show();
     win.focus();
+    showing = true;
     onShown();
   }
 
@@ -380,8 +391,10 @@ function createPanel({
       place(bubbleBounds);
       reveal();
     },
-    hide() {
-      win.hide();
+    hide,
+    // The page's own sounds (a message arriving), off while the user is looking at Bubble.
+    setMuted: (on) => {
+      if (!win.isDestroyed()) win.webContents.setAudioMuted(on);
     },
     follow(bubbleBounds) {
       if (win.isVisible()) place(bubbleBounds);

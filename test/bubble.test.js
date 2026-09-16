@@ -90,6 +90,23 @@ test('expand grows the window for the rows, tells the page, shows the shield; a 
   assert.equal(win.getBounds().height, before.height);
 });
 
+// With a focused panel showing, the panel hears a click elsewhere itself (it blurs), so the
+// shield steps aside and the click reaches the app it was meant for.
+test('a focused panel takes the shield down; the shield is back once the panel is gone', () => {
+  const { bubble } = makeBubble();
+  bubble.expand([{ href: '/t/1/', name: 'A' }]);
+  const shield = electron.windows.filter((w) => w.loaded && w.loaded.endsWith('shield.html')).pop();
+  assert.equal(shield.visible, true);
+  bubble.setPanelFocused(true);
+  assert.equal(shield.visible, false);
+  bubble.expand([{ href: '/t/1/', name: 'A' }], false); // a refresh while the panel shows
+  assert.equal(shield.visible, false);
+  bubble.setPanelFocused(false);
+  assert.equal(shield.visible, true);
+  bubble.collapse(true);
+  assert.equal(shield.visible, false);
+});
+
 test("the banner's reported room grows the window above the disc near the bottom; nonsense is ignored", () => {
   const { win } = makeBubble();
   const before = win.getBounds();

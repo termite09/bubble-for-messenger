@@ -26,6 +26,10 @@
   once a chat held a tall message block — a photo, a video — that block won and every block
   sharing its classes was stretched to the panel's height. The card is now the box that holds
   the composer, and the rule is only written when it names that one element.
+- With a chat open, a click on another app closed the chat but did not bring that app
+  forward: the invisible shield under the stack took the click. While a chat is showing the
+  sheet itself hears the click-away (it loses focus and the stack folds with it), and the
+  shield only covers the screen for a stack with no chat open.
 
 ### Changed
 - Pinned chats sit at the top of the stack, above a hairline; the recent ones follow.
@@ -41,6 +45,17 @@
 - The Inbox chip no longer carries "···"; the app's menu is the disc's right-click.
 - Opening the Inbox keeps the stack up, like opening a chat: the inbox sheet sits beside the
   column and the heads stay one click away. Cmd+N and *Open Messenger* do the same.
+- Messenger's and Instagram's new-message sound only plays while Bubble is put away. With
+  the stack up or a chat showing the message is on screen, so both pages are muted.
+- *Report a Problem…* is gone from the menu; the README says where the log is.
+- The bubble's own cards follow the Appearance setting (System by default): paper cards with
+  graphite text on a light Mac, graphite on a dark one. The panel's hairline and pin badge
+  are unchanged.
+- **Glass** (Settings → Bubble, on, a trial): the disc, heads and banner let the wallpaper
+  through a little — a tint, the way macOS's Tinted Liquid Glass reads — and the Settings
+  card is the system's frosted material with the system's own rounded corners. Off for
+  solid cards; *Reduce transparency* in macOS does the same.
+
 - For VoiceOver: the disc is named with its platform and unread count, a landed message is
   announced, the reply field is named, and a head's name carries "pinned".
 - The palette is written once (`src/renderer/tokens.css`); the app's pages, the panel's

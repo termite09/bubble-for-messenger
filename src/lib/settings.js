@@ -17,7 +17,8 @@ const DEFAULTS = Object.freeze({
   quickReply: true, // the ↩ on the banner
   notifications: true, // Messenger's own macOS notifications
   badge: 'steady', // unread count on the disc: off, steady, or pulsing
-  theme: 'system', // panel appearance
+  theme: 'system', // appearance: the panel's site and the app's own cards
+  glass: true, // the cards let the wallpaper through; the settings card is frosted
   spellcheck: true,
   blockTelemetry: true,
   reopenLast: 30, // seconds; 0 is off

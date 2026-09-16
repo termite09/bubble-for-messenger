@@ -1,17 +1,33 @@
-const { screen } = require('electron');
+const { screen, nativeTheme } = require('electron');
 const { CHANNELS } = require('../lib/ipc');
 const { createFloatingWindow, ipcFor } = require('./floating-window');
 const { joinAllSpaces } = require('./workspaces');
 const WIDTH = 360;
+// The card's ground when it is not frosted: the palette's card colour for the appearance.
+const GROUND = { dark: '#1c1c1e', light: '#f5f5f7' };
 const HEIGHT = 480; // the tallest pane; the page asks for the exact height of the one it shows
 const MIN_HEIGHT = 200;
 const MAX_HEIGHT = 900;
 
 // The settings card. One window, made on first open and hidden after; it takes focus like a
-// normal window (it has controls to click) but floats with the rest of the app.
+// normal window (it has controls to click) but floats with the rest of the app. Opaque, with
+// the system's own rounded corners (as the panel is); by the Glass setting it paints the
+// system's frosted material beneath the page — the one card of the app that can, being a
+// window on its own — unless the user asked macOS to reduce transparency.
 function createSettingsWindow({ getSettings, setSetting, subscribe, onOpenMessengerPreferences }) {
   let win = null;
   let overFullscreen = true;
+
+  const frosted = () => Boolean(getSettings().glass) && !nativeTheme.prefersReducedTransparency;
+  function applyMaterial(w) {
+    if (frosted()) {
+      w.setBackgroundColor('#00000000');
+      w.setVibrancy('popover');
+    } else {
+      w.setVibrancy(null);
+      w.setBackgroundColor(nativeTheme.shouldUseDarkColors ? GROUND.dark : GROUND.light);
+    }
+  }
 
   function ensure() {
     if (win) return win;
@@ -20,12 +36,21 @@ function createSettingsWindow({ getSettings, setSetting, subscribe, onOpenMessen
       width: WIDTH,
       height: HEIGHT,
       overFullscreen,
+      transparent: false,
       hasShadow: true,
+      roundedCorners: true,
+      visualEffectState: 'active',
       page: 'settings.html',
       preload: 'settings-preload.js',
       webPreferences: { webgl: false },
     });
+    applyMaterial(win);
+    const onTheme = () => {
+      if (win) applyMaterial(win);
+    };
+    nativeTheme.on('updated', onTheme);
     win.on('closed', () => {
+      nativeTheme.removeListener('updated', onTheme);
       win = null;
     });
     wire(win);
@@ -48,7 +73,9 @@ function createSettingsWindow({ getSettings, setSetting, subscribe, onOpenMessen
     ipc.on(CHANNELS.SETTINGS_OPEN_MESSENGER_PREFERENCES, () => onOpenMessengerPreferences());
   }
   subscribe((s) => {
-    if (win) win.webContents.send(CHANNELS.SETTINGS_CHANGED, s);
+    if (!win) return;
+    win.webContents.send(CHANNELS.SETTINGS_CHANGED, s);
+    applyMaterial(win);
   });
 
   return {

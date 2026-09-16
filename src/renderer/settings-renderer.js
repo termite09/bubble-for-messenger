@@ -1,6 +1,9 @@
 // The page is a view of main's settings: every control sends its change, and the page
 // re-renders from whatever main saved — so it never shows a value main refused.
 function render(s) {
+  // The glass material, on this card too (its window paints the frosted ground beneath).
+  document.documentElement.toggleAttribute('data-glass', Boolean(s.glass));
+  document.documentElement.toggleAttribute('data-frosted', Boolean(s.glass));
   for (const input of document.querySelectorAll('input[type="checkbox"][data-key]'))
     input.checked = Boolean(s[input.dataset.key]);
   // A segmented control is a radio group named after its setting.

@@ -22,6 +22,7 @@ test('defaults are what the spec says', () => {
     notifications: true,
     badge: 'steady',
     theme: 'system',
+    glass: true,
     spellcheck: true,
     blockTelemetry: true,
     reopenLast: 30,

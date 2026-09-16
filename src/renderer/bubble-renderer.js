@@ -483,6 +483,7 @@ window.bubbleApi.onReplyResult(replyResult);
 function setSettings(s) {
   body.classList.toggle('no-reply', !s.quickReply);
   body.classList.toggle('pulse', s.badge === 'pulse');
+  document.documentElement.toggleAttribute('data-glass', Boolean(s.glass));
   pulse();
 }
 window.bubbleApi.onSettings(setSettings);

@@ -69,7 +69,8 @@ if you want your login gone too, `~/Library/Application Support/Bubble for Messe
   deploys a stack of your five most recent chats as round heads, newest at the top (a blue
   dot means unread), plus a paper *Inbox* head for the full inbox. Pick one and that
   conversation (or the inbox) opens in a sheet beside the stack; the open chat wears a white
-  ring, and the others stay one click away. Click anywhere else, or the bubble, to put it all away.
+  ring, and the others stay one click away. Click anywhere else, or the bubble, to put it all
+  away — a click on another app also brings that app forward, as it should.
   Messenger stays loaded in the background, so messages keep arriving.
 - **Hover a head** for its name; the pin badge that appears pins or unpins it (right-click →
   *Pin* works too). Up to five pinned chats per platform sit at the top of the stack, above a
@@ -82,8 +83,8 @@ if you want your login gone too, `~/Library/Application Support/Bubble for Messe
 - **Drag to dismiss** — drag the bubble onto the ✕ target that appears at the bottom of the
   screen and hold it there a moment (a ring fills) to quit the app.
 - **Right-click the bubble** for *Open Messenger*, *Reload
-  Messenger*, *Update to…* when a newer version exists, *Settings…*, *Reset Bubble Position*,
-  *Report a Problem…* and *Quit*.
+  Messenger*, *Update to…* when a newer version exists, *Settings…*, *Reset Bubble Position*
+  and *Quit*.
 - **First launch** — the login page opens by itself and the disc introduces itself.
 - **Instagram too** (a setting, off by default) — Instagram's inbox loads beside Messenger's
   and the disc carries one at a time: its chats in the stack, its count in blue. The other
@@ -107,6 +108,9 @@ Right-click the bubble → **Settings…** (or Cmd+,). Every switch applies at o
 - **Instagram messages** — also keep Instagram's inbox loaded; the disc switches between the
   two. Turning it on opens Instagram's login beside the disc. It costs a second web page in the
   background (a few hundred MB), which is why it's a switch.
+- **Glass** — the disc, heads and banner let the wallpaper through a little, and the Settings
+  card is frosted like the system's own menus. Off gives solid cards; macOS's *Reduce
+  transparency* does the same.
 - **Check for updates** — once a day the app asks GitHub for the latest release; a newer one
   appears in the bubble's menu as *Update to X…*, which opens the release page. Nothing is
   downloaded on its own.
@@ -122,11 +126,13 @@ Right-click the bubble → **Settings…** (or Cmd+,). Every switch applies at o
 - **Unread count** — Off, Steady, or Pulsing (the count breathes slowly while anything is unread).
 - **New-message sound** — this is Messenger's own switch (Preferences → Notification sounds);
   the *Open* button takes you there. Messenger keeps it per profile, so it starts off in Bubble
-  even if it's on in your browser.
+  even if it's on in your browser. It only sounds while Bubble is put away: with the stack up
+  or a chat open you can see the message land, so both platforms are quiet.
 
 **Panel**
-- **Appearance** (system / light / dark) for the Messenger panel, whatever Messenger's own theme
-  preference says.
+- **Appearance** (system / light / dark) for the Messenger panel — whatever Messenger's own
+  theme preference says — and for the bubble's own cards: paper on a light Mac, graphite on a
+  dark one, the way Notification Center's banners go.
 - **Spell check** in the panel.
 - **Reopen the last chat** — Off / 15 s / 30 s / 1 min / 5 min: how long after clicking away
   a bubble click goes straight back to that chat.
@@ -251,10 +257,9 @@ trust entry, and Homebrew then quietly loads the copy it already has): run
 `brew upgrade --cask termite09/tap/bubble-for-messenger`, which trusts it as it goes. The
 bubble's *Update to X…* menu item shows the command when Bubble was installed by Homebrew.
 
-**Something went wrong — how do I report it?** Right-click the bubble → **Report a Problem…**
-opens the issue page and shows the log file (`~/Library/Application Support/Bubble for
-Messenger/logs/main.log`) so you can attach it. The log never contains names, messages or
-cookies.
+**Something went wrong — how do I report it?** Open an issue on GitHub and attach the log file
+(`~/Library/Application Support/Bubble for Messenger/logs/main.log`). The log never contains
+names, messages or cookies.
 
 ## License
 
