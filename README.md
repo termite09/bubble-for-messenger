@@ -1,8 +1,9 @@
 # Bubble for Messenger
 
-Facebook Messenger as a floating chat head on macOS: a small always-on-top bubble that opens
-your recent chats and a compact Messenger panel beside it. No dock icon, no browser tab.
-Instagram messages too, if you switch them on.
+Facebook Messenger — and Instagram messages — as a floating chat head on macOS: a small
+always-on-top bubble that opens your recent chats and a compact panel beside it. No dock icon,
+no browser tab. Messenger is always there; Instagram is a switch in Settings, and the bubble
+carries one platform at a time with the other's unread count riding along on it.
 
 <img src="assets/icon.png" width="128" alt="Bubble for Messenger">
 
