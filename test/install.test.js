@@ -5,25 +5,25 @@ const { capabilities } = require('../src/lib/platform');
 
 // Homebrew copies a cask's app into /Applications but keeps its record in the Caskroom, under
 // the Apple-silicon or the Intel prefix. That folder is the sign of a Homebrew install.
-test("installedByHomebrew looks for the cask's Caskroom folder under either prefix", () => {
+test('installedByHomebrew looks for the cask’s Caskroom folder under either prefix', () => {
   const seen = [];
   const exists = (p) => {
     seen.push(p);
     return p === '/usr/local/Caskroom/bubble-for-messenger';
   };
-  assert.equal(installedByHomebrew(exists), true);
+  assert.equal(installedByHomebrew(exists, capabilities('darwin')), true);
   assert.deepEqual(seen, [
     '/opt/homebrew/Caskroom/bubble-for-messenger',
     '/usr/local/Caskroom/bubble-for-messenger',
   ]);
   assert.equal(
-    installedByHomebrew(() => false),
+    installedByHomebrew(() => false, capabilities('darwin')),
     false,
   );
   assert.equal(
     installedByHomebrew(() => {
       throw new Error('no');
-    }),
+    }, capabilities('darwin')),
     false,
   );
 });

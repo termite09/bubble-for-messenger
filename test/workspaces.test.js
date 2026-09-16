@@ -10,8 +10,8 @@ const { capabilities } = require('../src/lib/platform');
 test('on: all Spaces and over full-screen; off: one desktop; never transforms the process', () => {
   const calls = [];
   const win = { setVisibleOnAllWorkspaces: (...args) => calls.push(args) };
-  joinAllSpaces(win, true);
-  joinAllSpaces(win, false);
+  joinAllSpaces(win, true, capabilities('darwin'));
+  joinAllSpaces(win, false, capabilities('darwin'));
   assert.deepEqual(calls, [
     [true, { visibleOnFullScreen: true, skipTransformProcessType: true }],
     [false, { visibleOnFullScreen: false, skipTransformProcessType: true }],

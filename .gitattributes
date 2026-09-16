@@ -1,0 +1,3 @@
+# Sources are checked out with LF everywhere: tests read source files and match on '\n',
+# and prettier enforces LF line endings. (Windows runners default to autocrlf otherwise.)
+* text=auto eol=lf

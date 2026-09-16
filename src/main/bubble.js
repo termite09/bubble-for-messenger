@@ -7,6 +7,7 @@ const { isThreadHref } = require('../lib/recent');
 const { validReply } = require('../lib/reply');
 const { BUBBLE_SIZES } = require('../lib/settings');
 const { siteOf } = require('../lib/sites');
+const { CAPS } = require('../lib/platform');
 const { joinAllSpaces } = require('./workspaces');
 const { createFloatingWindow, ipcFor } = require('./floating-window');
 const { createShield } = require('./shield');
@@ -43,6 +44,7 @@ function createBubble({
   dismiss,
   overFullscreen = true,
   size = BASE,
+  caps = CAPS,
 }) {
   let SIZE = size; // the disc, on screen
   let scale = SIZE / BASE; // page zoom: the page is drawn for a BASE-px disc
@@ -63,6 +65,7 @@ function createBubble({
     page: 'bubble.html',
     preload: 'bubble-preload.js',
     webPreferences: { zoomFactor: scale, webgl: false },
+    caps,
   });
   win.setIgnoreMouseEvents(true, { forward: true });
   win.once('ready-to-show', () => {
@@ -359,7 +362,7 @@ function createBubble({
     replyResult: (ok) => send(CHANNELS.BUBBLE_REPLY_RESULT, Boolean(ok)),
     // Whether the disc (and the shield beneath an open stack) float over full-screen apps.
     setOverFullscreen: (on) => {
-      joinAllSpaces(win, on);
+      joinAllSpaces(win, on, caps);
       shield.setOverFullscreen(on);
     },
     setSettings: (s) => {

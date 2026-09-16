@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const electron = require('./helpers/electron-stub').install();
 const { createSettingsWindow } = require('../src/main/settings-window');
+const { capabilities } = require('../src/lib/platform');
 
 // The card is frosted (the system's material under a tinted page) by the Glass setting, and
 // opaque in the palette's ground otherwise — or whenever macOS is asked to reduce transparency.
@@ -15,6 +16,7 @@ test('the settings card is frosted by the Glass setting, opaque otherwise', () =
       listener = fn;
     },
     onOpenMessengerPreferences() {},
+    caps: capabilities('darwin'),
   });
   sw.open({ x: 0, y: 0, width: 44, height: 44 });
   const win = electron.windows[electron.windows.length - 1];
@@ -41,7 +43,6 @@ test('the settings card is frosted by the Glass setting, opaque otherwise', () =
   electron.nativeTheme.shouldUseDarkColors = true;
 });
 
-const { capabilities } = require('../src/lib/platform');
 const { CHANNELS } = require('../src/lib/ipc');
 const { from } = require('./helpers/electron-stub');
 

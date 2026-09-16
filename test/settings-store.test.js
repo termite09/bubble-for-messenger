@@ -19,7 +19,8 @@ test('a missing file means defaults and "did not exist"; a saved file comes back
   assert.deepEqual(store.get(), { ...DEFAULTS, bubble: null, pins: [] });
   store.set('theme', 'dark');
   assert.equal(JSON.parse(fs.readFileSync(file, 'utf8')).theme, 'dark');
-  assert.equal(fs.statSync(file).mode & 0o777, 0o600);
+  // The file is the user's alone. Windows has no POSIX mode to read back.
+  if (process.platform !== 'win32') assert.equal(fs.statSync(file).mode & 0o777, 0o600);
   const again = createSettingsStore({ file, normalize: normalizeSettings });
   assert.equal(again.existed, true);
   assert.equal(again.get().theme, 'dark');

@@ -5,6 +5,7 @@ const { from } = require('./helpers/electron-stub');
 const { createBubble } = require('../src/main/bubble');
 const { CHANNELS } = require('../src/lib/ipc');
 const { PAD, FAN_ITEM } = require('../src/lib/layout');
+const { capabilities } = require('../src/lib/platform');
 
 const makeBubble = (overrides = {}) => {
   const calls = { click: 0, close: [], moved: [], dismiss: 0 };
@@ -20,6 +21,7 @@ const makeBubble = (overrides = {}) => {
     onReply() {},
     onDismiss: () => calls.dismiss++,
     dismiss: null,
+    caps: capabilities('darwin'),
     ...overrides,
   });
   const win = electron.windows[electron.windows.length - 1];
