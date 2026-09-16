@@ -1,7 +1,7 @@
 # Bubble for Messenger
 
-Facebook Messenger — and Instagram messages — as a floating chat head on macOS — and, in beta,
-Windows 11: a small always-on-top bubble that opens your recent chats and a compact panel
+Facebook Messenger — and Instagram messages — as a floating chat head on macOS (and, in beta,
+Windows 11): a small always-on-top bubble that opens your recent chats and a compact panel
 beside it. No dock icon, no browser tab. Messenger is always there; Instagram is a switch in
 Settings, and the bubble carries one platform at a time with the other's unread count riding
 along on it.
@@ -194,7 +194,8 @@ sharing (or corrupting) its login data.
 
 Releases are built by GitHub Actions when a `v*` tag is pushed; nothing is built by hand.
 
-1. Bump `version` in `package.json` and add the entry to `CHANGELOG.md`; commit to `main`.
+1. Bump `version` in `package.json` and add the entry to `CHANGELOG.md`, renaming the
+   changelog's `## Unreleased` heading to the version; commit to `main`.
 2. Tag and push:
 
    ```bash
@@ -203,7 +204,8 @@ Releases are built by GitHub Actions when a `v*` tag is pushed; nothing is built
    ```
 
 The workflow ([release.yml](.github/workflows/release.yml)) refuses a tag that doesn't match
-`package.json`, runs the tests, builds the arm64 DMG and zip, creates the GitHub release with
+`package.json`, runs the tests, builds the arm64 DMG and zip on macOS and the Windows installer
+and portable exe, creates the GitHub release with
 the changelog's top section as its notes, and updates the cask in
 [termite09/homebrew-tap](https://github.com/termite09/homebrew-tap) with the new version and
 checksum. The tap step needs a `HOMEBREW_TAP_TOKEN` repository secret: a fine-grained personal

@@ -32,7 +32,7 @@ bubble's right-click menu is the app's menu there, as the menu bar is on macOS.
 | Window levels: `screen-saver` (bubble, dismiss target) above `floating` (panel, shield, settings) | Every topmost window is one tier; the most recently shown is on top | `floating-window.js` |
 | `setVisibleOnAllWorkspaces` joins every Space, incl. full-screen ones | No Spaces; topmost windows show over borderless-fullscreen apps and under exclusive-fullscreen ones, whatever we do | `workspaces.js` |
 | `setVibrancy('popover')` under the settings card | No vibrancy API (Win 11 has `backgroundMaterial`; not used — the look stays as it is) | `settings-window.js` |
-| `roundedCorners: true` on the opaque panel and settings window | Not an option; Win 11 rounds frameless windows itself | `panel.js`, `settings-window.js` |
+| `roundedCorners: true` on the opaque panel and settings window | Cross-platform in Electron 44 (default `true`; on Windows 11 it is what rounds a frameless window) — passed through unchanged | `panel.js`, `settings-window.js` |
 | `app.dock.hide()` | No Dock (`app.dock` is undefined; already guarded) | `main.js` |
 | Homebrew cask detection and upgrade command | No Homebrew; the update item opens the release page | `lib/install.js`, `main.js` |
 | App menu with `about`, `hide`, `hideOthers`, `unhide`; DevTools on `Cmd+Option+I` | Those roles are macOS-only; DevTools convention is `Ctrl+Shift+I` | `main.js createMenu` |
@@ -50,20 +50,20 @@ capabilities(platform) → {
   windowLevels,          // darwin: NSWindow levels; else one topmost tier
   spaces,                // darwin: joinAllSpaces does something; else a no-op
   vibrancy,              // darwin: setVibrancy exists; else the opaque ground colour
-  roundedCornersOption,  // darwin: the BrowserWindow option exists; else omitted
   dock,                  // darwin
   homebrew,              // darwin
 }
 ```
 
-All six are `platform === 'darwin'`; the point of the module is that call sites ask about
+All five are `platform === 'darwin'`; the point of the module is that call sites ask about
 the capability, so Linux later is a matter of changing answers here. `CAPS =
 capabilities(process.platform)` is the export main-process code uses.
 
 ## Window layer
 
 **Stacking without levels.** When `!CAPS.windowLevels`, `createFloatingWindow` records each
-window with its requested level. On any recorded window's `show` event, every *visible*
+window with its requested level. On any recorded window's `show` event — and, a tick later,
+its `focus` event: activation raises a window on Windows too — every *visible*
 recorded window of a higher level is `moveTop()`-ed, lowest of those first, so the order
 ends up bubble/dismiss above panel/shield/settings — what the levels give macOS. Records
 drop on `closed`. No call site changes: showing the shield or panel re-raises the bubble by
@@ -78,7 +78,8 @@ main for the capabilities once, through the existing settings IPC).
 colour; `visualEffectState` is only passed when it means something; the *Glass* row is hidden
 like the Spaces row.
 
-**Rounded corners.** `roundedCorners: true` is passed only when `CAPS.roundedCornersOption`.
+**Rounded corners.** Cross-platform since Electron 44, so `roundedCorners: true` flows through
+unchanged everywhere, unlike `visualEffectState` above.
 
 ## Menus and shortcuts
 
@@ -104,7 +105,8 @@ macOS. The settings card's close key checks `metaKey || ctrlKey`.
   name the files it expects.
 - Profile: `%APPDATA%\Bubble for Messenger` (the same `getPath('appData')` join).
 - Start at login: `setLoginItemSettings` writes the Run registry key, pointing at the
-  installed exe or, for the portable build, wherever it is run from.
+  installed exe or, for the portable build, the exe the user kept: the launcher unpacks to
+  `%TEMP%` and names the real file in `PORTABLE_EXECUTABLE_FILE`.
 
 ## CI and release
 

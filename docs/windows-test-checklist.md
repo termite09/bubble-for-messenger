@@ -19,16 +19,21 @@ Setup: install or run the exe; SmartScreen → More info → Run anyway; sign in
 4. **Drag, snap, dismiss.** Drag the disc; it follows the mouse and snaps to the nearest
    screen edge on release. While dragging, a ✕ target appears at the bottom centre; dropping
    the disc on it quits.
-5. **Stacking.** Open the stack, then a chat: the disc stays above the panel; the panel stays
-   above the shield over the desktop; nothing from Bubble hides behind another Bubble window.
+5. **Stacking.** Open the stack, then a chat: the disc stays above the panel, and hovering a
+   head shows its name chip *over* the panel. On first launch the welcome banner shows over
+   the login page, not behind it.
 6. **Two monitors, different scaling** (if you have them). Drag the bubble across; it keeps
    its size and the stack opens beside it on either display.
 7. **Settings.** Right-click → Settings…: the card has no *Show over full-screen apps* row and
    no *Glass* row; the other switches work; `Esc` and `Ctrl+W` close it; the card has rounded
-   corners on Windows 11.
+   corners on Windows 11. Right-click the disc: the menu opens and closes again on a click
+   elsewhere.
 8. **Start at login.** Switch it on, sign out and in: Bubble is running.
 9. **Update.** Right-click: *Update to X…* (if there is a newer release) opens the release
    page in the browser.
 10. **Full-screen video.** Play a YouTube video full-screen in the browser: the bubble stays
     visible over it (borderless full-screen). That is expected; there is no setting for it on
     Windows.
+11. **Quick reply.** With *Quick reply* on (Settings → Notifications), reply from a landed
+    banner: while the reply field is open, does a Bubble button appear on the taskbar? Note
+    yes/no.

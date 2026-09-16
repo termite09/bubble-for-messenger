@@ -27,6 +27,7 @@ jobs:
             target: --mac
             name: mac
           - os: windows-latest
+            # x64 explicitly: the artifact names below carry the arch (package.json artifactName).
             target: --win --x64
             name: windows
     runs-on: ${{ matrix.os }}

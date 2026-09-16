@@ -4,7 +4,7 @@
   "engines": {
     "node": ">=22"
   },
-  "description": "Facebook Messenger as a floating chat head for macOS",
+  "description": "Facebook Messenger as a floating chat head for macOS and Windows",
   "homepage": "https://github.com/termite09/bubble-for-messenger",
   "repository": {
     "type": "git",
