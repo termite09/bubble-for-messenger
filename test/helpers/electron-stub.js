@@ -5,6 +5,7 @@ const { EventEmitter } = require('node:events');
 
 function makeStub() {
   const windows = [];
+  const raised = [];
   const ipcMain = new EventEmitter();
   ipcMain.handlers = new Map();
   ipcMain.handle = (channel, fn) => ipcMain.handlers.set(channel, fn);
@@ -126,9 +127,15 @@ function makeStub() {
     }
     show() {
       this.visible = true;
+      this.emit('show');
     }
     showInactive() {
       this.visible = true;
+      this.emit('show');
+    }
+    moveTop() {
+      this.raised = (this.raised || 0) + 1;
+      raised.push(this);
     }
     hide() {
       this.visible = false;
@@ -219,6 +226,7 @@ function makeStub() {
     shell,
     net,
     windows,
+    raised,
   };
 }
 
