@@ -4,6 +4,9 @@ name: Release
 # the GitHub release, and bumps the Homebrew cask. Ordinary pushes to main do not
 # rebuild, so a published version's DMG (and its checksum) never changes.
 # `workflow_dispatch` with dry_run builds and checksums without publishing anything.
+# Two jobs: 'build' runs on macOS and Windows and uploads what each made as a workflow
+# artifact — the dry run stops there, and those artifacts are what a tester downloads;
+# 'publish' collects both, checksums everything and makes the release.
 on:
   push:
     tags: ['v*']
@@ -15,10 +18,21 @@ on:
         default: true
 
 jobs:
-  release:
-    runs-on: macos-latest
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            target: --mac
+            name: mac
+          - os: windows-latest
+            target: --win --x64
+            name: windows
+    runs-on: ${{ matrix.os }}
     permissions:
-      contents: write
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
 
     steps:
       - name: Check out app repo
@@ -34,6 +48,7 @@ jobs:
 
       - name: Read app version
         id: version
+        shell: bash
         env:
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' }}
         run: |
@@ -51,27 +66,70 @@ jobs:
       - name: Run tests
         run: npm test
 
-      - name: Build macOS app
-        # electron-builder auto-publishes when it detects CI; the upload step
-        # below handles the release itself.
-        run: npm run build -- --publish never
+      - name: Build
+        # electron-builder auto-publishes when it detects CI; the publish job
+        # handles the release itself.
+        run: npm run build -- ${{ matrix.target }} --publish never
+
+      - name: Keep only the installable files
+        shell: bash
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          mkdir -p out
+          case "${{ matrix.name }}" in
+            mac)     cp "dist/Bubble-${VERSION}-arm64.dmg" "dist/Bubble-${VERSION}-arm64-mac.zip" out/ ;;
+            windows) cp "dist/Bubble-${VERSION}-x64-setup.exe" "dist/Bubble-${VERSION}-x64-portable.exe" out/ ;;
+          esac
+          ls -l out
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ matrix.name }}
+          path: out/
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    if: ${{ github.event_name != 'workflow_dispatch' || !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out app repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: dist
+          merge-multiple: true
 
       - name: Checksum the artifacts
         id: sums
         run: |
-          VERSION="${{ steps.version.outputs.version }}"
+          VERSION="${{ needs.build.outputs.version }}"
           cd dist
-          shasum -a 256 "Bubble-${VERSION}-arm64.dmg" "Bubble-${VERSION}-arm64-mac.zip" | tee SHA256SUMS
+          sha256sum "Bubble-${VERSION}-arm64.dmg" "Bubble-${VERSION}-arm64-mac.zip" \
+            "Bubble-${VERSION}-x64-setup.exe" "Bubble-${VERSION}-x64-portable.exe" | tee SHA256SUMS
           echo "dmg=dist/Bubble-${VERSION}-arm64.dmg" >> "$GITHUB_OUTPUT"
 
       - name: Upload release assets
-        if: ${{ github.event_name != 'workflow_dispatch' || !inputs.dry_run }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          VERSION="${{ steps.version.outputs.version }}"
+          VERSION="${{ needs.build.outputs.version }}"
           TAG="v${VERSION}"
-          ASSETS=("dist/Bubble-${VERSION}-arm64.dmg" "dist/Bubble-${VERSION}-arm64-mac.zip" "dist/SHA256SUMS")
+          ASSETS=(
+            "dist/Bubble-${VERSION}-arm64.dmg"
+            "dist/Bubble-${VERSION}-arm64-mac.zip"
+            "dist/Bubble-${VERSION}-x64-setup.exe"
+            "dist/Bubble-${VERSION}-x64-portable.exe"
+            "dist/SHA256SUMS"
+          )
 
           # Release notes: the changelog's top section (this version), not the whole file.
           awk '/^## /{ if (seen) exit; seen = 1; next } seen' CHANGELOG.md > release-notes.md
@@ -89,7 +147,7 @@ jobs:
         run: echo "enabled=${{ secrets.HOMEBREW_TAP_TOKEN != '' }}" >> "$GITHUB_OUTPUT"
 
       - name: Update Homebrew tap cask
-        if: ${{ steps.tap.outputs.enabled == 'true' && (github.event_name != 'workflow_dispatch' || !inputs.dry_run) }}
+        if: ${{ steps.tap.outputs.enabled == 'true' }}
         env:
           HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-        run: bash .github/scripts/update-homebrew-tap.sh "${{ steps.version.outputs.version }}" "${{ steps.sums.outputs.dmg }}"
+        run: bash .github/scripts/update-homebrew-tap.sh "${{ needs.build.outputs.version }}" "${{ steps.sums.outputs.dmg }}"
