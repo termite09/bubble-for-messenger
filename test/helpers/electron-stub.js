@@ -140,7 +140,9 @@ function makeStub() {
     hide() {
       this.visible = false;
     }
-    focus() {}
+    focus() {
+      if (this.visible && this.focusable) this.emit('focus');
+    }
     isVisible() {
       return this.visible;
     }

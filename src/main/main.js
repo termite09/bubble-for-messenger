@@ -118,8 +118,15 @@ function applySettings(prev) {
     eachAccount((a) => a.panel.setOverFullscreen(settings.overFullscreen));
   }
   // Under `npm start` this would register Electron.app itself as the login item.
-  if (changed('startAtLogin') && app.isPackaged)
-    app.setLoginItemSettings({ openAtLogin: settings.startAtLogin });
+  // electron-builder's portable exe unpacks itself to %TEMP% and runs from there; the file the
+  // user kept is named by PORTABLE_EXECUTABLE_FILE (set by that launcher alone).
+  if (changed('startAtLogin') && app.isPackaged) {
+    const portable = process.env.PORTABLE_EXECUTABLE_FILE;
+    app.setLoginItemSettings({
+      openAtLogin: settings.startAtLogin,
+      ...(portable ? { path: portable } : {}),
+    });
+  }
   if (changed('badge')) pushDisc();
   if ((changed('quickReply') || changed('badge') || changed('bubbleSize')) && bubble)
     bubble.setSettings(rendererSettings());

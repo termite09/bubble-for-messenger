@@ -67,9 +67,10 @@ function showTab(name) {
 
 // A row for something the platform has no equivalent of (Spaces, vibrancy) is not shown. The
 // rows are settled before the first pane is measured, so the card opens at the right height.
+// No answer at all keeps them: a row too many beats a row missing.
 function hideUnsupported(caps) {
   for (const row of document.querySelectorAll('[data-needs]'))
-    row.hidden = !(caps && caps[row.dataset.needs]);
+    row.hidden = caps ? !caps[row.dataset.needs] : false;
 }
 
 window.settingsApi.onSettings(render);

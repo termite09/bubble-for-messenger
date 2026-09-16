@@ -7,7 +7,6 @@ function capabilities(platform) {
     windowLevels: darwin, // NSWindow levels; elsewhere every topmost window is one tier
     spaces: darwin, // setVisibleOnAllWorkspaces means something
     vibrancy: darwin, // setVibrancy exists; elsewhere the card is opaque
-    roundedCornersOption: darwin, // the BrowserWindow option; Windows 11 rounds on its own
     dock: darwin,
     homebrew: darwin,
   });

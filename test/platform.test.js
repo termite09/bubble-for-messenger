@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const { capabilities, CAPS } = require('../src/lib/platform');
 
-const ALL = ['windowLevels', 'spaces', 'vibrancy', 'roundedCornersOption', 'dock', 'homebrew'];
+const ALL = ['windowLevels', 'spaces', 'vibrancy', 'dock', 'homebrew'];
 
 // macOS has everything the app leans on the OS for; Windows has none of it (topmost windows
 // are one tier, no Spaces, no vibrancy, corners come from Windows 11 itself, no Dock, no

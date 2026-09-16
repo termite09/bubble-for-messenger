@@ -30,6 +30,25 @@ test('without window levels, showing a floating window raises the visible screen
   shield.hide();
   shield.showInactive();
   assert.deepEqual(electron.raised, [dismiss]); // the closed bubble is forgotten
+  dismiss.destroy();
+  shield.destroy();
+});
+
+// Activation also raises a window on Windows (a focus() after show(), or a click in it), so
+// the higher levels are put back over it once that has settled.
+test('without window levels, focusing a floating window re-raises the screen-saver ones', async () => {
+  electron.raised.length = 0;
+  const bubble = createFloatingWindow({ level: 'screen-saver', page: 'bubble.html', caps: win32 });
+  const panel = createFloatingWindow({ level: 'floating', page: 'panel.html', caps: win32 });
+  bubble.showInactive();
+  panel.show();
+  panel.focus();
+  electron.raised.length = 0; // what show() raised is covered above; this is the focus path
+  panel.focus();
+  await new Promise((r) => setImmediate(r));
+  assert.deepEqual(electron.raised, [bubble]);
+  bubble.destroy();
+  panel.destroy();
 });
 
 test('with window levels, nothing is raised by hand', () => {
@@ -42,9 +61,10 @@ test('with window levels, nothing is raised by hand', () => {
   assert.equal(bubble.level, 'screen-saver'); // setAlwaysOnTop(true, level), as before
 });
 
-// The two BrowserWindow options that only macOS knows are dropped elsewhere, not passed as
-// no-ops that a future Electron might start rejecting.
-test('roundedCorners and visualEffectState are passed only where they exist', () => {
+// visualEffectState is the one BrowserWindow option only macOS knows, so it is dropped
+// elsewhere rather than passed as a no-op a future Electron might start rejecting.
+// roundedCorners is a plain option since Electron 44 and flows through on every platform.
+test('visualEffectState is passed only where it exists; roundedCorners always', () => {
   const onMac = createFloatingWindow({
     page: 'settings.html',
     roundedCorners: true,
@@ -59,7 +79,7 @@ test('roundedCorners and visualEffectState are passed only where they exist', ()
     visualEffectState: 'active',
     caps: win32,
   });
-  assert.equal('roundedCorners' in onWin.opts, false);
+  assert.equal(onWin.opts.roundedCorners, true);
   assert.equal('visualEffectState' in onWin.opts, false);
   assert.equal('caps' in onWin.opts, false); // never forwarded to BrowserWindow
 });

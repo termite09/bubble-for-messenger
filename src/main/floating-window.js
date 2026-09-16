@@ -7,15 +7,30 @@ const { raiseOrder } = require('../lib/stacking');
 const RENDERER = path.join(__dirname, '..', 'renderer');
 
 // Without window levels (Windows: one topmost tier, last shown on top) the level order is
-// kept by hand: every window is recorded with its level, and when one shows, the visible
-// windows of higher levels are raised over it again (lib/stacking says which, in what order).
+// kept by hand: every window is recorded with its level, and when one shows or takes focus,
+// the visible windows of higher levels are raised over it again (lib/stacking says which, in
+// what order).
 const stacked = [];
 function keepAbove(win, level) {
   const entry = { level, win };
   stacked.push(entry);
-  win.on('show', () => {
+  const raise = () => {
     const others = stacked.map((e) => ({ level: e.level, visible: e.win.isVisible(), win: e.win }));
     for (const e of raiseOrder(level, others)) e.win.moveTop();
+  };
+  win.on('show', raise);
+  // Activation raises a window to the top of the topmost band as well (a click in the panel,
+  // or focus() after show()); let that settle, then put the higher levels back over it. A
+  // burst of focus events before the tick fires (show() then focus(), or repeated clicks)
+  // schedules one settle, not one per event.
+  let settling = false;
+  win.on('focus', () => {
+    if (settling) return;
+    settling = true;
+    setImmediate(() => {
+      settling = false;
+      if (!win.isDestroyed()) raise();
+    });
   });
   win.on('closed', () => {
     const i = stacked.indexOf(entry);
@@ -28,7 +43,9 @@ function keepAbove(win, level) {
 // that reaches main only through its preload's contextBridge. `page`/`preload` name files in
 // src/renderer; a window that loads a remote site passes `url` and no page, and may pass the
 // `userAgent` the site should see (set before the first load). `caps` is the platform's
-// capabilities (lib/platform); the options only macOS knows are dropped where it lacks them.
+// capabilities (lib/platform); `roundedCorners` is a plain BrowserWindow option since
+// Electron 44 and flows through `...rest` on every platform, but `visualEffectState` is
+// macOS-only and is dropped where it lacks the capability.
 function createFloatingWindow({
   level = 'floating',
   width,
@@ -43,7 +60,6 @@ function createFloatingWindow({
   focusable = true,
   transparent = true,
   hasShadow = !transparent,
-  roundedCorners,
   visualEffectState,
   webPreferences = {},
   caps = CAPS,
@@ -63,7 +79,6 @@ function createFloatingWindow({
     skipTaskbar: true,
     focusable,
     show: false,
-    ...(caps.roundedCornersOption && roundedCorners !== undefined ? { roundedCorners } : {}),
     ...(caps.vibrancy && visualEffectState !== undefined ? { visualEffectState } : {}),
     ...rest,
     webPreferences: {
