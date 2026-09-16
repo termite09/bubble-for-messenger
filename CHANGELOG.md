@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- **Windows (beta).** The same app on Windows 11: a per-user installer and a portable exe on
+  each release, unsigned like the macOS build (SmartScreen → More info → Run anyway, once).
+  No tray icon — the bubble's right-click menu is the menu — and no *Glass* or *over
+  full-screen apps* rows in Settings, which have no Windows equivalent. Shortcuts use Ctrl.
+  macOS is unchanged.
+
 ## v2.6.0 (2026-09-16) — Bubble for Messenger
 
 ### Added

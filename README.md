@@ -1,9 +1,10 @@
 # Bubble for Messenger
 
-Facebook Messenger — and Instagram messages — as a floating chat head on macOS: a small
-always-on-top bubble that opens your recent chats and a compact panel beside it. No dock icon,
-no browser tab. Messenger is always there; Instagram is a switch in Settings, and the bubble
-carries one platform at a time with the other's unread count riding along on it.
+Facebook Messenger — and Instagram messages — as a floating chat head on macOS — and, in beta,
+Windows 11: a small always-on-top bubble that opens your recent chats and a compact panel
+beside it. No dock icon, no browser tab. Messenger is always there; Instagram is a switch in
+Settings, and the bubble carries one platform at a time with the other's unread count riding
+along on it.
 
 <img src="assets/icon.png" width="128" alt="Bubble for Messenger">
 
@@ -56,6 +57,23 @@ tap that isn't trusted yet, the short name upgrades nothing, silently.) Uninstal
 To update, download the new DMG and replace the app. To uninstall, delete `Bubble.app` and,
 if you want your login gone too, `~/Library/Application Support/Bubble for Messenger`.
 
+### Windows (beta)
+
+Windows 11; Windows 10 runs it with square corners. Tested by hand, not by the author's own
+desk — if something is off, please open an issue with what you saw.
+
+1. Download `Bubble-<version>-x64-setup.exe` (installs for your user, no admin prompt) or
+   `Bubble-<version>-x64-portable.exe` (runs from wherever you put it) from
+   [Releases](https://github.com/termite09/bubble-for-messenger/releases).
+2. First launch only: the build is not signed, so SmartScreen says *Windows protected your PC*.
+   Click **More info → Run anyway**.
+3. A bubble appears at the bottom-right of your screen and the messenger.com login page opens
+   beside it. Sign in once; the login is kept.
+
+There is no tray icon: right-click the bubble for Settings, Update and Quit. The keyboard
+shortcuts below use Ctrl. To remove it: uninstall from *Settings → Apps* (or delete the
+portable exe) and, if you want your login gone too, `%APPDATA%\Bubble for Messenger`.
+
 ## How it works
 
 - **The bubble** — a small grey disc with the Messenger mark that floats over every app and every
@@ -99,8 +117,8 @@ if you want your login gone too, `~/Library/Application Support/Bubble for Messe
 
 ## Settings
 
-Right-click the bubble → **Settings…** (or Cmd+,). Every switch applies at once and is kept in
-`settings.json` next to the bubble's position.
+Right-click the bubble → **Settings…** (or Cmd+, / Ctrl+,). Every switch applies at once and is
+kept in `settings.json` next to the bubble's position.
 
 **Bubble**
 - **Show over full-screen apps** — off keeps the bubble off full-screen video and apps. macOS
@@ -145,13 +163,13 @@ Every switch applies to both platforms.
 
 ## Keyboard shortcuts
 
-These are app-menu shortcuts: they work whenever a Bubble window (the panel or Settings) is
-focused. The Conversations menu shows the five chats by name.
+These are app-menu shortcuts (Cmd on macOS, Ctrl on Windows): they work whenever a Bubble
+window (the panel or Settings) is focused. The Conversations menu shows the five chats by name.
 
 | Shortcut | Action |
 |----------|--------|
-| `Cmd + N` | New message (opens the inbox) |
-| `Cmd + 1-5` | Open one of the focused platform's five most recent chats (1 = most recent) |
+| `Cmd / Ctrl + N` | New message (opens the inbox) |
+| `Cmd / Ctrl + 1-5` | Open one of the focused platform's five most recent chats (1 = most recent) |
 
 ## Build from source
 
@@ -168,8 +186,9 @@ npm run build -- --mac   # Bubble.app and a DMG into dist/, for this Mac's archi
 npm run build -- --win   # on Windows: the installer and the portable exe
 ```
 
-The app keeps its own profile in `~/Library/Application Support/Bubble for Messenger`, so it
-can run alongside the original MessengerApp without sharing (or corrupting) its login data.
+The app keeps its own profile in `~/Library/Application Support/Bubble for Messenger` (Windows:
+`%APPDATA%\Bubble for Messenger`), so it can run alongside the original MessengerApp without
+sharing (or corrupting) its login data.
 
 ## Releasing
 
@@ -251,6 +270,9 @@ click again. With a chat open, the click closes everything *and* reaches the app
 not signed or notarized (that needs a paid Apple developer account). Right-click → Open on
 the first launch, or clear the quarantine flag as described under Install. If you'd rather not
 trust a downloaded binary, build it yourself from source.
+
+**Windows says "Windows protected your PC".** Same reason: the build is not code-signed.
+*More info → Run anyway*, once. Or build it yourself from source.
 
 **Does it start at login?** Right-click the bubble → Settings… → **Start at login**.
 
