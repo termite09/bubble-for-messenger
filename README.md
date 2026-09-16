@@ -164,7 +164,8 @@ npm install
 
 npm start        # run in development mode
 npm test         # unit tests for src/lib and the scrape/frame scripts
-npm run build    # build Bubble.app and a DMG into dist/ for this Mac's architecture
+npm run build -- --mac   # Bubble.app and a DMG into dist/, for this Mac's architecture
+npm run build -- --win   # on Windows: the installer and the portable exe
 ```
 
 The app keeps its own profile in `~/Library/Application Support/Bubble for Messenger`, so it
