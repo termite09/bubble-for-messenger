@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v2.7.0 (2026-09-16) — Bubble for Messenger
 
 ### Added
 - **Windows (beta).** The same app on Windows 11: a per-user installer and a portable exe on

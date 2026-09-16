@@ -10,6 +10,10 @@ along on it.
 
 ## Install
 
+Every release ships a macOS build and a Windows build; pick your platform below.
+
+### macOS
+
 Requires macOS 11 or later. Builds are for Apple Silicon (M1 and later); on an Intel Mac,
 build from source (below).
 
@@ -59,20 +63,50 @@ if you want your login gone too, `~/Library/Application Support/Bubble for Messe
 
 ### Windows (beta)
 
-Windows 11; Windows 10 runs it with square corners. Tested by hand, not by the author's own
-desk — if something is off, please open an issue with what you saw.
+Windows 11, 64-bit. Windows 10 runs it too, with square corners. The Windows build is new and
+tested by hand rather than on the author's own desk — if something is off, please
+[open an issue](https://github.com/termite09/bubble-for-messenger/issues) with what you saw.
 
-1. Download `Bubble-<version>-x64-setup.exe` (installs for your user, no admin prompt) or
-   `Bubble-<version>-x64-portable.exe` (runs from wherever you put it) from
-   [Releases](https://github.com/termite09/bubble-for-messenger/releases).
-2. First launch only: the build is not signed, so SmartScreen says *Windows protected your PC*.
-   Click **More info → Run anyway**.
-3. A bubble appears at the bottom-right of your screen and the messenger.com login page opens
-   beside it. Sign in once; the login is kept.
+There are two downloads on every [release](https://github.com/termite09/bubble-for-messenger/releases);
+either is fine:
 
-There is no tray icon: right-click the bubble for Settings, Update and Quit. The keyboard
-shortcuts below use Ctrl. To remove it: uninstall from *Settings → Apps* (or delete the
-portable exe) and, if you want your login gone too, `%APPDATA%\Bubble for Messenger`.
+| File | What it does |
+|------|--------------|
+| `Bubble-<version>-x64-setup.exe` | Installs Bubble for your user account only — no admin prompt — and adds it to the Start menu, the desktop and *Settings → Apps*. **Choose this one** unless you have a reason not to. |
+| `Bubble-<version>-x64-portable.exe` | A single file that runs from wherever you put it (a USB stick, a Downloads folder). Nothing is installed. |
+
+**Installer:**
+
+1. Download `Bubble-<version>-x64-setup.exe` and open it.
+2. Windows SmartScreen shows *Windows protected your PC*, because the build is not signed
+   with a code-signing certificate (that costs money; the source is open). Click
+   **More info**, then **Run anyway**. This happens once per download, not on every launch.
+3. The installer runs without asking anything and starts Bubble when it is done. A bubble
+   appears at the bottom-right of your screen and the messenger.com login page opens beside
+   it. Sign in once; the login is kept.
+
+**Portable:**
+
+1. Download `Bubble-<version>-x64-portable.exe` and move it wherever you want to keep it.
+2. Open it. SmartScreen: **More info → Run anyway** (once per download, as above).
+3. The first start takes a few seconds longer while it unpacks itself; then the bubble
+   appears and the login page opens beside it. Sign in once.
+
+**Using it on Windows.** Everything works as on macOS with `Ctrl` in place of `Cmd`
+(shortcuts below). There is no tray icon and no taskbar button — the bubble *is* the app:
+right-click it for Settings, Update, Reload and Quit, or drag it onto the ✕ target to quit.
+Two Settings switches that only mean something on macOS (*Show over full-screen apps*,
+*Glass*) are not shown. The bubble floats over borderless-full-screen apps (a YouTube video,
+most games in windowed-full-screen mode) and under exclusive-full-screen ones.
+
+**Updating.** Right-click the bubble → **Update to X…** opens the release page when a newer
+version exists (with *Check for updates* on in Settings; it is on by default). Download the
+new setup exe and run it — it replaces the old version and keeps your login and settings.
+For the portable exe, download the new file and delete the old one.
+
+**Uninstalling.** *Settings → Apps → Bubble → Uninstall* (or, for the portable build, delete
+the exe). Your login and settings live in `%APPDATA%\Bubble for Messenger`; delete that
+folder too if you want them gone.
 
 ## How it works
 
