@@ -10,7 +10,10 @@ const CASKROOMS = ['/opt/homebrew/Caskroom', '/usr/local/Caskroom'];
 const HOMEBREW_UPGRADE = `brew upgrade --cask termite09/tap/${CASK}`;
 const HOMEBREW_TRUST = 'brew trust termite09/tap';
 
-function installedByHomebrew(exists = require('fs').existsSync) {
+const { CAPS } = require('./platform');
+
+function installedByHomebrew(exists = require('fs').existsSync, caps = CAPS) {
+  if (!caps.homebrew) return false;
   try {
     return CASKROOMS.some((dir) => exists(`${dir}/${CASK}`));
   } catch (e) {
