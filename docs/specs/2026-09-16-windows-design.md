@@ -20,6 +20,10 @@ bubble's right-click menu is the app's menu there, as the menu bar is on macOS.
   so, and a checklist tells the tester what to look at.
 - **Unsigned**, like the macOS build. SmartScreen's "Windows protected your PC" gets the same
   documented click-through as Gatekeeper's.
+- **macOS is unchanged.** Every capability is true on darwin, so each branch resolves to
+  today's call; the stacking registry is never created there; the menu template, the Glass
+  and full-screen rows, the Homebrew path and the release files are the same. The tests
+  cover the darwin case of every branch explicitly.
 
 ## What differs from macOS (as read from the source, 16 Sept 2026)
 
@@ -128,10 +132,11 @@ macOS. The settings card's close key checks `metaKey || ctrlKey`.
 
 - `platform.test.js`: capabilities for `darwin`, `win32`, `linux`.
 - `raiseOrder` ordering: shown window's level vs. others, hidden windows skipped, order low
-  to high.
-- `workspaces.test.js`: the no-op case.
-- `settings-window.test.js`: no vibrancy → ground colour even with `glass` on.
-- `install.test.js`: not Homebrew when the capability is off.
+  to high; and that with `windowLevels` the factory records nothing.
+- `workspaces.test.js`: the no-op case, beside the existing darwin case.
+- `settings-window.test.js`: no vibrancy → ground colour even with `glass` on; with vibrancy
+  → `setVibrancy('popover')` as today.
+- `install.test.js`: not Homebrew when the capability is off; the Caskroom cases unchanged.
 - Existing tests unchanged; CI runs all of them on Windows too.
 
 ## Out of scope
