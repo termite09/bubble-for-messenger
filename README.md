@@ -2,6 +2,7 @@
 
 Facebook Messenger as a floating chat head on macOS: a small always-on-top bubble that opens
 your recent chats and a compact Messenger panel beside it. No dock icon, no browser tab.
+Instagram messages too, if you switch them on.
 
 <img src="assets/icon.png" width="128" alt="Bubble for Messenger">
 
@@ -48,8 +49,8 @@ tap that isn't trusted yet, the short name upgrades nothing, silently.) Uninstal
    will refuse a normal double-click. **Right-click `Bubble.app` → Open → Open**. (If macOS
    still says the app is damaged, run
    `xattr -d com.apple.quarantine /Applications/Bubble.app` once in Terminal.)
-4. A grey bubble appears at the bottom-right of your screen. Right-click it → **Open Messenger**
-   and sign in to messenger.com. You only do this once; the login is kept.
+4. A bubble appears at the bottom-right of your screen and the messenger.com login page opens
+   beside it. Sign in once; the login is kept.
 
 To update, download the new DMG and replace the app. To uninstall, delete `Bubble.app` and,
 if you want your login gone too, `~/Library/Application Support/Bubble for Messenger`.
@@ -214,11 +215,20 @@ PRODUCT.md, DESIGN.md   product context and the design system the UI follows
 ## Differences from the original
 
 Forked from [stefanminch/messenger-mac](https://github.com/stefanminch/messenger-mac), which
-wraps messenger.com in a normal Electron window.
+wraps messenger.com in a normal Electron window. This fork is a different app built on that
+start:
 
-- Runs as a bubble instead of a dock window (no dock icon).
-- Removed the daily usage ping to `counterapi.dev`, the GitHub update check, and the welcome window.
-- External links are only opened when they are real `http(s)` URLs on a non-messenger.com host.
+- A floating bubble instead of a dock window (no dock icon): the stack of recent and pinned
+  chats, the banner that unrolls when a message lands, replying from the banner, the ✕ drop
+  target, and the compact panel beside the stack.
+- Instagram as a second platform, one in focus at a time.
+- A settings card (over full-screen, size, appearance, glass, sounds, telemetry blocking…),
+  Cmd+1–5 for the recent chats, and an opt-in daily update check against GitHub Releases
+  (nothing is downloaded on its own). The original's daily usage ping to `counterapi.dev` and
+  its welcome window are gone.
+- Hardened: sandboxed renderers, navigation and redirects kept on Meta's hosts, links opened
+  outside only when they are real `http(s)` URLs elsewhere, session cookies limited to the
+  login ones, a strict CSP on the app's own pages, atomic 0600 settings.
 
 ## FAQ
 
@@ -231,8 +241,9 @@ messenger.com in the panel.
 **How do I quit?** Right-click the bubble → Quit, or drag it onto the ✕ target (there is no
 dock icon).
 
-**I clicked in another app while the chat heads were open and nothing happened.** The first
-click outside the heads only closes them (the same way a menu closes); click again.
+**I clicked in another app while the chat heads were open and nothing happened.** With no
+chat open, the first click outside the heads only closes them (the same way a menu closes);
+click again. With a chat open, the click closes everything *and* reaches the app you clicked.
 
 **Why does macOS say the app is damaged or from an unidentified developer?** The builds are
 not signed or notarized (that needs a paid Apple developer account). Right-click → Open on
@@ -263,8 +274,9 @@ names, messages or cookies.
 
 ## License
 
-MIT — see [LICENSE](LICENSE). Copyright the original author (Stefan Minch) for the upstream
-wrapper and Alexandros Christou for this fork.
+MIT — see [LICENSE](LICENSE). The upstream wrapper is MIT (declared in its `package.json`,
+copyright Stefan Minch); this fork keeps that notice and adds its own (copyright Alexandros
+Christou), as MIT requires. Anything you build on this must keep both.
 
 ## Disclaimer
 
