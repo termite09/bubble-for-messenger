@@ -178,8 +178,8 @@ Releases are built by GitHub Actions when a `v*` tag is pushed; nothing is built
 2. Tag and push:
 
    ```bash
-   git tag v2.5.0
-   git push origin main v2.5.0
+   git tag v2.6.0
+   git push origin main v2.6.0
    ```
 
 The workflow ([release.yml](.github/workflows/release.yml)) refuses a tag that doesn't match

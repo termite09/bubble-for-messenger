@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v2.6.0 (2026-09-16) — Bubble for Messenger
 
 ### Added
 - **Instagram messages** (Settings → Bubble, off by default): Instagram's inbox loads beside
