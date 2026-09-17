@@ -157,7 +157,7 @@ docs/           design specs and plans; PRODUCT.md and DESIGN.md hold the produc
 ```
 
 **Releasing.** Bump `version` in `package.json`, add the entry to `CHANGELOG.md`, commit to
-`main`, then tag and push (`git tag v2.7.1 && git push origin main v2.7.1`). GitHub Actions
+`main`, then tag and push (`git tag v3.0.0 && git push origin main v3.0.0`). GitHub Actions
 ([release.yml](.github/workflows/release.yml)) builds both platforms, publishes the release
 with the changelog's top section as its notes, and bumps the Homebrew cask. The cask step needs
 a `HOMEBREW_TAP_TOKEN` secret (a fine-grained token with *Contents: Read and write* on
