@@ -352,7 +352,10 @@ function createPanel({
     await scrape.setCompact(win.webContents, false);
     resize('full');
     place(bubbleBounds);
-    stage();
+    // A hidden window dispatches no input, and openInbox presses Messenger's Back control for
+    // real — so a hidden panel is rendered at opacity 0 for the press. One already on screen
+    // is left alone: staging it would blank it for the length of the press.
+    if (!win.isVisible()) stage();
     try {
       await scrape.openInbox(win.webContents);
     } finally {
