@@ -40,12 +40,17 @@ The question "are we violating the ToS?" and the question "will our users get ba
 In other words: the feature you cannot give up is not what puts your users' accounts at risk.
 Three things that are not load-bearing for any feature are.
 
-Credit where due — one major risk factor is already handled correctly. The app drives the page
-with Chromium-level trusted input (`wc.sendInputEvent`, `wc.insertText` in
-`src/main/scrape.js:156-290`), not JavaScript `dispatchEvent`. From messenger.com's perspective
-these carry `isTrusted: true` and are indistinguishable from a real mouse and keyboard. The
-comments at `scrape.js:261` and in `PRODUCT.md` show this was a deliberate choice. Most bots are
-caught on exactly this signal; this app is not exposed to it.
+Credit where due, **on the Messenger side only**. The Messenger path drives the page with
+Chromium-level trusted input (`wc.sendInputEvent`, `wc.insertText` in
+`src/main/scrape.js:156-290`), not JavaScript `dispatchEvent`. Those carry `isTrusted: true` and
+are indistinguishable from a real mouse and keyboard. The comments at `scrape.js:261` and in
+`PRODUCT.md` show this was deliberate.
+
+**The Instagram path does the opposite** and this credit does not extend to it.
+`src/main/scrape-instagram.js` opens chats, navigates back and *sends DMs* with JavaScript
+`.click()`, which is `isTrusted: false` unconditionally. That is the classic automation
+signature, on the platform that enforces hardest against it. See `COMPLIANCE-PLAN.md` §5.1 —
+this is the highest-priority fix in the repo.
 
 ---
 
