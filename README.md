@@ -1,342 +1,196 @@
 # Bubble for Messenger
 
-Facebook Messenger — and Instagram messages — as a floating chat head on macOS (and, in beta,
-Windows 11): a small always-on-top bubble that opens your recent chats and a compact panel
-beside it. No dock icon, no browser tab. Messenger is always there; Instagram is a switch in
-Settings, and the bubble carries one platform at a time with the other's unread count riding
-along on it.
+Facebook Messenger — and, optionally, Instagram messages — as a floating chat head for macOS,
+with a Windows 11 build in beta. A small always-on-top bubble shows your unread count, fans out
+your recent chats, and opens any of them in a compact panel beside it. No dock icon, no browser
+tab.
 
 <img src="assets/icon.png" width="128" alt="Bubble for Messenger">
 
-## Install
+An unofficial wrapper around messenger.com, not affiliated with Meta.
 
-Every release ships a macOS build and a Windows build; pick your platform below.
+## Install
 
 ### macOS
 
-Requires macOS 11 or later. Builds are for Apple Silicon (M1 and later); on an Intel Mac,
-build from source (below).
+macOS 11 or later, Apple Silicon. On an Intel Mac, build from source.
 
-**With Homebrew:**
+**Homebrew**
 
 ```bash
 brew install --cask termite09/tap/bubble-for-messenger
 ```
 
-Use the full `termite09/tap/…` name: since Homebrew 6, third-party taps must be trusted, and
-installing by full name trusts just this cask. (If Homebrew prints a notice about *other*
-untrusted taps on your machine, that is unrelated and can be ignored.)
+Use the full `termite09/tap/…` name: Homebrew 6 requires third-party taps to be trusted, and
+installing by full name trusts this cask. Update with
+`brew upgrade --cask termite09/tap/bubble-for-messenger`; uninstall with
+`brew uninstall --cask bubble-for-messenger` (`--zap` also removes your login and settings).
 
-Because the app is not signed with an Apple developer certificate, macOS will block the first
-launch. Right-click the app in Applications → Open → Open, or clear the quarantine flag once in
-Terminal with:
+**By hand**
+
+Download `Bubble-<version>-arm64.dmg` from
+[Releases](https://github.com/termite09/bubble-for-messenger/releases) and drag **Bubble** into
+Applications.
+
+The builds are not signed with an Apple developer certificate, so macOS blocks the first launch.
+Right-click `Bubble.app` → **Open** → **Open**, or run once:
 
 ```bash
 xattr -d com.apple.quarantine /Applications/Bubble.app
 ```
 
-Update later with:
-
-```bash
-brew upgrade --cask termite09/tap/bubble-for-messenger
-```
-
-(`brew update` alone only refreshes Homebrew's catalogue; `brew upgrade` is what installs
-newer versions — of every cask, not just this one. Use the full `termite09/tap/…` name: on a
-tap that isn't trusted yet, the short name upgrades nothing, silently.) Uninstall with
-`brew uninstall --cask bubble-for-messenger` (add `--zap` to remove your login and settings too).
-
-**By hand:**
-
-1. Download the latest `Bubble-<version>-arm64.dmg` from
-   [Releases](https://github.com/termite09/bubble-for-messenger/releases).
-2. Open the DMG and drag **Bubble** into **Applications**.
-3. First launch only: the app is not signed with an Apple developer certificate, so macOS
-   will refuse a normal double-click. **Right-click `Bubble.app` → Open → Open**. (If macOS
-   still says the app is damaged, run
-   `xattr -d com.apple.quarantine /Applications/Bubble.app` once in Terminal.)
-4. A bubble appears at the bottom-right of your screen and the messenger.com login page opens
-   beside it. Sign in once; the login is kept.
-
-To update, download the new DMG and replace the app. To uninstall, delete `Bubble.app` and,
-if you want your login gone too, `~/Library/Application Support/Bubble for Messenger`.
+On first launch a bubble appears at the bottom-right of the screen and the messenger.com login
+page opens beside it. Sign in once; the login is kept.
 
 ### Windows (beta)
 
-Windows 11, 64-bit. Windows 10 runs it too, with square corners. The Windows build is new and
-tested by hand rather than on the author's own desk — if something is off, please
-[open an issue](https://github.com/termite09/bubble-for-messenger/issues) with what you saw.
+Windows 11, 64-bit. Windows 10 works too, with square corners. Each
+[release](https://github.com/termite09/bubble-for-messenger/releases) has two downloads:
 
-There are two downloads on every [release](https://github.com/termite09/bubble-for-messenger/releases);
-either is fine:
+- `Bubble-<version>-x64-setup.exe` — installs for your user account, no admin prompt.
+  Recommended.
+- `Bubble-<version>-x64-portable.exe` — a single file that runs from wherever you put it.
 
-| File | What it does |
-|------|--------------|
-| `Bubble-<version>-x64-setup.exe` | Installs Bubble for your user account only — no admin prompt — and adds it to the Start menu, the desktop and *Settings → Apps*. **Choose this one** unless you have a reason not to. |
-| `Bubble-<version>-x64-portable.exe` | A single file that runs from wherever you put it (a USB stick, a Downloads folder). Nothing is installed. |
+The builds are not code-signed, so SmartScreen shows *Windows protected your PC* once per
+download: **More info → Run anyway**.
 
-**Installer:**
+There is no tray icon; the bubble's right-click menu is the menu, and shortcuts use `Ctrl`.
+The two macOS-only settings (*Show over full-screen apps*, *Glass*) are not shown. To update,
+run a newer setup exe over the old one. Uninstall from *Settings → Apps*; your login and
+settings live in `%APPDATA%\Bubble for Messenger`.
 
-1. Download `Bubble-<version>-x64-setup.exe` and open it.
-2. Windows SmartScreen shows *Windows protected your PC*, because the build is not signed
-   with a code-signing certificate (that costs money; the source is open). Click
-   **More info**, then **Run anyway**. This happens once per download, not on every launch.
-3. The installer runs without asking anything and starts Bubble when it is done. A bubble
-   appears at the bottom-right of your screen and the messenger.com login page opens beside
-   it. Sign in once; the login is kept.
-
-**Portable:**
-
-1. Download `Bubble-<version>-x64-portable.exe` and move it wherever you want to keep it.
-2. Open it. SmartScreen: **More info → Run anyway** (once per download, as above).
-3. The first start takes a few seconds longer while it unpacks itself; then the bubble
-   appears and the login page opens beside it. Sign in once.
-
-**Using it on Windows.** Everything works as on macOS with `Ctrl` in place of `Cmd`
-(shortcuts below). There is no tray icon and no taskbar button — the bubble *is* the app:
-right-click it for Settings, Update, Reload and Quit, or drag it onto the ✕ target to quit.
-Two Settings switches that only mean something on macOS (*Show over full-screen apps*,
-*Glass*) are not shown. The bubble floats over borderless-full-screen apps (a YouTube video,
-most games in windowed-full-screen mode) and under exclusive-full-screen ones.
-
-**Updating.** Right-click the bubble → **Update to X…** opens the release page when a newer
-version exists (with *Check for updates* on in Settings; it is on by default). Download the
-new setup exe and run it — it replaces the old version and keeps your login and settings.
-For the portable exe, download the new file and delete the old one.
-
-**Uninstalling.** *Settings → Apps → Bubble → Uninstall* (or, for the portable build, delete
-the exe). Your login and settings live in `%APPDATA%\Bubble for Messenger`; delete that
-folder too if you want them gone.
+The Windows build is tested by hand rather than on the author's own desk. If something is off,
+please [open an issue](https://github.com/termite09/bubble-for-messenger/issues).
 
 ## How it works
 
-- **The bubble** — a small grey disc with the Messenger mark that floats over every app and every
-  Space, full-screen apps included (both are settings). Drag it anywhere; when you let go it snaps
-  to the nearest side and its position is remembered. A blue count shows total unread.
-- **A message lands** — the disc unrolls into a banner (avatar, name, the whole message, up to
-  six lines) for four seconds, then folds back.
-- **Reply right there** — click the message text (or the ↩) and a reply field opens. Type,
-  press Enter, and it's sent without opening the panel — a tick confirms it; Esc cancels. The
-  bubble only takes the keyboard while that field is open.
-- **Click the bubble** while something is unread and the newest received message opens right
-  away (on whichever platform it arrived), with the stack beside it. Otherwise the click
-  deploys a stack of your five most recent chats as round heads, newest at the top (a blue
-  dot means unread), plus a paper *Inbox* head for the full inbox. Pick one and that
-  conversation (or the inbox) opens in a sheet beside the stack; the open chat wears a white
-  ring, and the others stay one click away. Click anywhere else, or the bubble, to put it all
-  away — a click on another app also brings that app forward, as it should.
-  Messenger stays loaded in the background, so messages keep arriving.
-- **Hover a head** for its name; the pin badge that appears pins or unpins it (right-click →
-  *Pin* works too). Up to five pinned chats per platform sit at the top of the stack, above a
-  hairline, whether or not they're recent. To pin someone who isn't among the recent five,
-  open the Inbox: a pin appears on any chat row you hover.
-- **The disc says when something's wrong** — its mark dims when Messenger is unreachable
-  (hover for *Offline* / *Reconnecting…*) and shows *Sign in* when nobody is signed in.
-- **Straight back** — after closing a chat, clicking the bubble within the next 30 seconds (a
-  setting) reopens that chat, stack and all, instead of just the stack.
-- **Drag to dismiss** — drag the bubble onto the ✕ target that appears at the bottom of the
-  screen and hold it there a moment (a ring fills) to quit the app.
-- **Right-click the bubble** for *Open Messenger*, *Reload
-  Messenger*, *Update to…* when a newer version exists, *Settings…*, *Reset Bubble Position*
-  and *Quit*.
-- **First launch** — the login page opens by itself and the disc introduces itself.
-- **Instagram too** (a setting, off by default) — Instagram's inbox loads beside Messenger's
-  and the disc carries one at a time: its chats in the stack, its count in blue. The other
-  platform hangs off the disc's foot as a small satellite with its mark and unread count; click
-  it (or right-click → *Switch to…*) to swap.
-  Messages land from both — the banner's avatar wears the platform's mark — and clicking a
-  banner switches to that platform and opens the chat; replying from it doesn't switch.
-- Persistent login, native notifications, dark mode, and links opening in your default browser
-  all carry over from the original app.
+- **The bubble** floats over every app and Space, full-screen apps included. Drag it anywhere;
+  it snaps to the nearest edge and remembers its place. A blue count shows total unread.
+- **A message lands:** the bubble unrolls into a banner — avatar, name, the message — for four
+  seconds. Click it to open the chat, or click the text (or ↩) to reply in place: Enter sends,
+  Esc cancels. The bubble only takes the keyboard while that field is open.
+- **Click the bubble** and your five most recent chats fan out as round heads (a blue dot means
+  unread), with an Inbox head last. Pick one and it opens in a compact panel beside the stack.
+  With something unread, a click opens the newest message directly. Click anywhere else to put
+  it all away.
+- **Hover a head** for its name; the pin badge pins it to the top of the stack (up to five per
+  platform). Chats can also be pinned from a row in the Inbox.
+- **Right-click the bubble** for *Open Messenger*, *Reload Messenger*, *Update to…* (when a
+  newer release exists), *Settings…*, *Reset Bubble Position* and *Quit* — or drag the bubble
+  onto the ✕ target at the bottom of the screen and hold it there to quit.
+- **Instagram** (a setting, off by default): Instagram's inbox loads beside Messenger's and the
+  bubble carries one platform at a time; the other rides at its foot as a small satellite with
+  its unread count. Click it to switch. Banners land from both.
+- The bubble's mark dims when Messenger is unreachable and shows *Sign in* when nobody is
+  signed in. Messenger stays loaded in the background, so messages keep arriving.
 
 ## Settings
 
-Right-click the bubble → **Settings…** (or Cmd+, / Ctrl+,). Every switch applies at once and is
-kept in `settings.json` next to the bubble's position.
+Right-click the bubble → **Settings…** (`Cmd+,` / `Ctrl+,`). Every change applies at once.
 
-**Bubble**
-- **Show over full-screen apps** — off keeps the bubble off full-screen video and apps. macOS
-  only allows that for a window that stays on one desktop, so while off the bubble doesn't follow
-  you to other desktops (Spaces) either.
-- **Start at login.**
-- **Instagram messages** — also keep Instagram's inbox loaded; the disc switches between the
-  two. Turning it on opens Instagram's login beside the disc. It costs a second web page in the
-  background (a few hundred MB), which is why it's a switch.
-- **Glass** — the disc, heads and banner let the wallpaper through a little, and the Settings
-  card is frosted like the system's own menus. Off gives solid cards; macOS's *Reduce
-  transparency* does the same.
-- **Check for updates** — once a day the app asks GitHub for the latest release; a newer one
-  appears in the bubble's menu as *Update to X…*, which opens the release page. Nothing is
-  downloaded on its own.
-- **Size** — Small / Medium / Large, for the disc, the chat heads and the banner.
+| Tab | Settings |
+|-----|----------|
+| **Bubble** | Show over full-screen apps · Start at login · Instagram messages · Glass · Check for updates · Size |
+| **Notifications** | Banner when a message lands · Show the message in the banner · Reply from the banner · macOS notifications from Messenger · Unread count (off / steady / pulsing) · New-message sound |
+| **Panel** | Appearance · Spell check · Reopen the last chat · Block Facebook telemetry |
 
-**Notifications**
-- **Banner when a message lands**, and whether it **shows the message** or only who wrote — for
-  screen sharing or public places.
-- **Reply from the banner** — the ↩ (or click the message text); off if the bubble should never
-  take the keyboard.
-- **macOS notifications from Messenger** — Messenger's (and Instagram's) own Notification
-  Center banners, in addition to the bubble.
-- **Unread count** — Off, Steady, or Pulsing (the count breathes slowly while anything is unread).
-- **New-message sound** — this is Messenger's own switch (Preferences → Notification sounds);
-  the *Open* button takes you there. Messenger keeps it per profile, so it starts off in Bubble
-  even if it's on in your browser. It only sounds while Bubble is put away: with the stack up
-  or a chat open you can see the message land, so both platforms are quiet.
+A few need a word:
 
-**Panel**
-- **Appearance** (system / light / dark) for the Messenger panel — whatever Messenger's own
-  theme preference says — and for the bubble's own cards: paper on a light Mac, graphite on a
-  dark one, the way Notification Center's banners go.
-- **Spell check** in the panel.
-- **Reopen the last chat** — Off / 15 s / 30 s / 1 min / 5 min: how long after clicking away
-  a bubble click goes straight back to that chat.
-- **Block Facebook telemetry** — cancels Facebook's logging beacons at the network layer; nothing
-  Messenger needs to work is touched. On by default.
+- *Show over full-screen apps* off also keeps the bubble on one desktop; macOS allows one or
+  the other.
+- *Instagram messages* keeps a second web page loaded in the background (a few hundred MB).
+- *Check for updates* asks GitHub once a day and shows a menu item; nothing is downloaded on
+  its own.
+- *New-message sound* is Messenger's own switch (Preferences → Notification sounds); the
+  **Open** button takes you there. It sounds only while the bubble is put away.
+- *Block Facebook telemetry* cancels Facebook's logging beacons and nothing Messenger needs.
+  On by default.
 
-Every switch applies to both platforms.
-
-## Keyboard shortcuts
-
-These are app-menu shortcuts (Cmd on macOS, Ctrl on Windows): they work whenever a Bubble
-window (the panel or Settings) is focused. The Conversations menu shows the five chats by name.
+## Keyboard
 
 | Shortcut | Action |
 |----------|--------|
-| `Cmd / Ctrl + N` | New message (opens the inbox) |
-| `Cmd / Ctrl + 1-5` | Open one of the focused platform's five most recent chats (1 = most recent) |
+| `Cmd/Ctrl + N` | New message |
+| `Cmd/Ctrl + 1–5` | Open one of the five most recent chats |
+| `Cmd/Ctrl + ,` | Settings |
+
+These work whenever a Bubble window (the panel or Settings) is focused. In Settings, `Tab`
+moves through the rows, `Space` flips a switch, `←` `→` choose within a control and move
+between tabs, and `Esc` closes.
 
 ## Build from source
 
-Prerequisites: Node.js 22+ and npm.
+Node.js 22 or later.
 
 ```bash
 git clone https://github.com/termite09/bubble-for-messenger.git
 cd bubble-for-messenger
 npm install
-
-npm start        # run in development mode
-npm test         # unit tests for src/lib and the scrape/frame scripts
-npm run build -- --mac   # Bubble.app and a DMG into dist/, for this Mac's architecture
-npm run build -- --win   # on Windows: the installer and the portable exe
+npm start                 # development
+npm test
+npm run build -- --mac    # Bubble.app and a DMG into dist/
+npm run build -- --win    # on Windows: the installer and the portable exe
 ```
 
-The app keeps its own profile in `~/Library/Application Support/Bubble for Messenger` (Windows:
-`%APPDATA%\Bubble for Messenger`), so it can run alongside the original MessengerApp without
-sharing (or corrupting) its login data.
+The app keeps its own profile (`~/Library/Application Support/Bubble for Messenger`;
+`%APPDATA%\Bubble for Messenger` on Windows), so it runs alongside other Messenger apps without
+touching their data.
 
-## Releasing
-
-Releases are built by GitHub Actions when a `v*` tag is pushed; nothing is built by hand.
-
-1. Bump `version` in `package.json` and add the entry to `CHANGELOG.md`, renaming the
-   changelog's `## Unreleased` heading to the version; commit to `main`.
-2. Tag and push:
-
-   ```bash
-   git tag v2.6.0
-   git push origin main v2.6.0
-   ```
-
-The workflow ([release.yml](.github/workflows/release.yml)) refuses a tag that doesn't match
-`package.json`, runs the tests, builds the arm64 DMG and zip on macOS and the Windows installer
-and portable exe, creates the GitHub release with
-the changelog's top section as its notes, and updates the cask in
-[termite09/homebrew-tap](https://github.com/termite09/homebrew-tap) with the new version and
-checksum. The tap step needs a `HOMEBREW_TAP_TOKEN` repository secret: a fine-grained personal
-access token with *Contents: Read and write* on `homebrew-tap` only. Without it the release is
-still published; only the cask bump is skipped.
-
-## Project layout
+**Layout**
 
 ```
-.github/        the release workflow and the script that bumps the Homebrew cask
-src/main/       Electron main process
-  main.js         app lifecycle, settings, cookie persistence, menu, the platforms and which is in focus
-  account.js      one platform, live: its panel, chat state, unread, status, and the reads that keep them fresh
-  bubble.js       the disc window: drag, edge-snap, click, the stack, the landed banner, the shield
-  panel.js        a site's panel: placement beside the stack, card frame, compact/full mode, liveness
-  dismiss.js      the ✕ drop target shown while dragging
-  settings-window.js  the Settings… window
-  scrape.js       scripts run inside messenger.com: recent chats, open a thread, frame, compact CSS
-  scrape-instagram.js  the same for instagram.com's mobile web app (chats opened by name)
-  avatars.js      profile pictures fetched through the session, downscaled, as data URLs
-src/renderer/   the pages inside the bubble, shield, dismiss and settings windows, and their preloads
-  tokens.css      the palette, written once; every page links it and lib/tokens.js reads it
-src/lib/        pure helpers (sites, layout, unread parsing, link policy, settings, refresh, reply, telemetry, tokens), covered by test/
+src/main/       Electron main process: app lifecycle, the bubble and panel windows,
+                the scripts run inside messenger.com and instagram.com
+src/renderer/   the pages inside the bubble, settings and dismiss windows; tokens.css is
+                the palette, written once
+src/lib/        pure helpers (layout, sites, unread, links, settings, reply…), covered by test/
 test/           node --test unit tests
-assets/         the app icon and the Instagram mark
-docs/           design specs and plans
-PRODUCT.md, DESIGN.md   product context and the design system the UI follows
+.github/        the release workflow and the Homebrew cask bump
+docs/           design specs and plans; PRODUCT.md and DESIGN.md hold the product context
+                and the design system the UI follows
 ```
 
-## Differences from the original
-
-Forked from [stefanminch/messenger-mac](https://github.com/stefanminch/messenger-mac), which
-wraps messenger.com in a normal Electron window. This fork is a different app built on that
-start:
-
-- A floating bubble instead of a dock window (no dock icon): the stack of recent and pinned
-  chats, the banner that unrolls when a message lands, replying from the banner, the ✕ drop
-  target, and the compact panel beside the stack.
-- Instagram as a second platform, one in focus at a time.
-- A settings card (over full-screen, size, appearance, glass, sounds, telemetry blocking…),
-  Cmd+1–5 for the recent chats, and an opt-in daily update check against GitHub Releases
-  (nothing is downloaded on its own). The original's daily usage ping to `counterapi.dev` and
-  its welcome window are gone.
-- Hardened: sandboxed renderers, navigation and redirects kept on Meta's hosts, links opened
-  outside only when they are real `http(s)` URLs elsewhere, session cookies limited to the
-  login ones, a strict CSP on the app's own pages, atomic 0600 settings.
+**Releasing.** Bump `version` in `package.json`, add the entry to `CHANGELOG.md`, commit to
+`main`, then tag and push (`git tag v2.7.1 && git push origin main v2.7.1`). GitHub Actions
+([release.yml](.github/workflows/release.yml)) builds both platforms, publishes the release
+with the changelog's top section as its notes, and bumps the Homebrew cask. The cask step needs
+a `HOMEBREW_TAP_TOKEN` secret (a fine-grained token with *Contents: Read and write* on
+`homebrew-tap`); without it the release still publishes and only the cask bump is skipped.
 
 ## FAQ
 
-**Is this the official Messenger app?** No — it's an unofficial wrapper around messenger.com,
-not affiliated with Meta/Facebook.
+**Does it support voice and video calls?** Everything messenger.com supports works; the panel
+*is* messenger.com.
 
-**Does it support voice/video calls?** Everything messenger.com supports works, since it *is*
-messenger.com in the panel.
+**Messenger is in another language and some things don't work.** The app finds Messenger's and
+Instagram's controls by their English labels. Set the site's language to English.
 
-**How do I quit?** Right-click the bubble → Quit, or drag it onto the ✕ target (there is no
-dock icon).
+**Instagram shows its phone layout.** By design: at the panel's width Instagram's desktop site
+collapses its inbox to an avatar rail, so the panel loads the mobile web app instead.
 
-**I clicked in another app while the chat heads were open and nothing happened.** With no
-chat open, the first click outside the heads only closes them (the same way a menu closes);
-click again. With a chat open, the click closes everything *and* reaches the app you clicked.
+**`brew upgrade` never offers Bubble.** The tap isn't trusted (installs from before Homebrew 6
+have no trust entry). Run `brew trust termite09/tap` once, or upgrade by the full cask name.
 
-**Why does macOS say the app is damaged or from an unidentified developer?** The builds are
-not signed or notarized (that needs a paid Apple developer account). Right-click → Open on
-the first launch, or clear the quarantine flag as described under Install. If you'd rather not
-trust a downloaded binary, build it yourself from source.
+**Does it work with VoiceOver?** Partly, by design. The bubble never takes the keyboard, so
+the stack is pointer-only — but everything under the pointer is named (the bubble's platform,
+count and connection; each head; the satellite), and a landing message is announced. Settings
+is fully keyboard-operable.
 
-**Windows says "Windows protected your PC".** Same reason: the build is not code-signed.
-*More info → Run anyway*, once. Or build it yourself from source.
+**Something went wrong.** Open an issue and attach the log:
+`~/Library/Application Support/Bubble for Messenger/logs/main.log`
+(`%APPDATA%\Bubble for Messenger\logs\main.log` on Windows). It never contains names, messages
+or cookies.
 
-**Does it start at login?** Right-click the bubble → Settings… → **Start at login**.
+## Credits and license
 
-**Messenger is in another language and some things don't work.** The app finds Messenger's
-(and Instagram's) controls by their English labels (Back, New message, Preferences, Send…).
-Set the site's language to English; everything else is language-independent.
+Forked from [stefanminch/messenger-mac](https://github.com/stefanminch/messenger-mac), which
+wraps messenger.com in a normal window. This fork replaced the window with the bubble, added
+Instagram, the settings card and the update check, hardened the app (sandboxed renderers,
+navigation kept on Meta's hosts, login-only cookies, a strict CSP), and removed the original's
+usage ping.
 
-**Instagram shows its phone layout in the panel.** On purpose: Instagram's desktop site folds
-its thread list to an avatar rail at the panel's width, so the panel asks for the mobile web
-app, which is the one with a readable inbox.
-
-**`brew upgrade` never offers Bubble, or `brew update` "does nothing".** `brew update` only
-refreshes Homebrew's catalogue; `brew upgrade` installs newer versions. If `brew upgrade`
-still never lists Bubble, the tap isn't trusted (installs from before Homebrew 6 have no
-trust entry, and Homebrew then quietly loads the copy it already has): run
-`brew trust termite09/tap` once, or upgrade by the full name
-`brew upgrade --cask termite09/tap/bubble-for-messenger`, which trusts it as it goes. The
-bubble's *Update to X…* menu item shows the command when Bubble was installed by Homebrew.
-
-**Something went wrong — how do I report it?** Open an issue on GitHub and attach the log file
-(`~/Library/Application Support/Bubble for Messenger/logs/main.log`). The log never contains
-names, messages or cookies.
-
-## License
-
-MIT — see [LICENSE](LICENSE). The upstream wrapper is MIT (declared in its `package.json`,
-copyright Stefan Minch); this fork keeps that notice and adds its own (copyright Alexandros
-Christou), as MIT requires. Anything you build on this must keep both.
+MIT — see [LICENSE](LICENSE). The upstream copyright notice (Stefan Minch) is kept alongside
+this fork's (Alexandros Christou); anything built on this must keep both.
 
 ## Disclaimer
 

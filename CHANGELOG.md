@@ -1,5 +1,29 @@
 # Changelog
 
+## v2.7.1 (2026-09-17) — Bubble for Messenger
+
+### Changed
+- A long chat name in the hover chip ends with an ellipsis at the column's edge instead of
+  running off the window; the *Offline* / *Sign in* chip is bounded the same way.
+- The pin badge on a head is drawn at 16px but takes the click from 24px.
+- Light appearance: the satellite's unread count is a deeper blue (`#0066cc`, 5:1 on paper;
+  the system's blue was 3.7:1). The count pill keeps the system's blue.
+- Glass: secondary text steps one tone brighter on dark (`#a5a5aa`) and darker on light
+  (`#58585c`), so it keeps 4.5:1 through a 90% card over a white or black wallpaper.
+  *Reduce transparency* restores the opaque values.
+- Every crossfade is on the 120 ms clock: the mark swap on a platform switch (was 200),
+  a clicked head's dim (was 160), the Settings tab switch (was 100).
+- The panel frame's light hairline is read from `tokens.css` like the dark one.
+
+### Accessibility
+- The disc's button is the face inside the card, and its name carries the platform, the
+  count and the connection ("Messenger, 3 unread, offline"). The satellite's name carries its
+  count. The satellite, the banner and its reply controls are no longer inside the button,
+  where a reader would have treated them as decoration.
+- Settings: the tabs are real tabs (Left/Right move and choose, Tab leaves the bar), each
+  panel is named by its tab, and each row's control is named by its label and described by
+  the line under it, so a reader hears the two apart.
+
 ## v2.7.0 (2026-09-16) — Bubble for Messenger
 
 ### Added
