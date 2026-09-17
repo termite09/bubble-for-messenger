@@ -33,6 +33,7 @@ function make({ site = MESSENGER, pins = [], landed = undefined, showing = null 
       return true;
     },
     openInbox: async () => asked.push(['inbox']),
+    newMessage: async () => asked.push(['new-message']),
     hide: () => asked.push(['hide']),
     destroy: () => asked.push(['destroy']),
     isLoading: () => false,
@@ -206,4 +207,12 @@ test('a navigation while the panel is hidden is not a chat the user is looking a
   await page().onNavigated('https://www.messenger.com/t/9/');
   assert.equal(account.chats().activeHref, null);
   assert.equal(events.changed, 0);
+});
+
+// Cmd+N reaches the page through the account and the panel; a broken delegation here would
+// only show up at runtime, since nothing else calls it.
+test('newMessage is passed through to the panel', async () => {
+  const { account, asked } = make();
+  await account.newMessage();
+  assert.deepEqual(asked, [['new-message']]);
 });
