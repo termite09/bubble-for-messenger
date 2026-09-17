@@ -479,7 +479,7 @@ app.enableSandbox();
 app.on('web-contents-created', (_event, wc) => {
   wc.setWindowOpenHandler(() => ({ action: 'deny' }));
   wc.on('will-navigate', (event, url) => {
-    const isPanel = Object.values(accounts).some((a) => wc === a.panel.win.webContents);
+    const isPanel = Boolean(account) && wc === account.panel.win.webContents;
     if (!isPanel && !url.startsWith('file://')) event.preventDefault();
   });
 });
@@ -584,9 +584,9 @@ app.whenReady().then(() => {
   // First run: nothing to show until the user signs in, so bring the inbox (the login page) up,
   // and let the disc introduce itself.
   if (!store.existed)
-    accounts.messenger.panel.win.webContents.once('did-finish-load', () =>
+    account.panel.win.webContents.once('did-finish-load', () =>
       setTimeout(() => {
-        accounts.messenger.openInbox(bubble.getBounds());
+        account.openInbox(bubble.getBounds());
         bubble.landed({
           href: null,
           name: 'Welcome to Bubble',

@@ -24,7 +24,7 @@ function make({ site = MESSENGER, pins = [], landed = undefined, showing = null 
   const panel = {
     site,
     win: {},
-    openThread: async (href, bounds) => {
+    openThread: async (href, _bounds) => {
       asked.push(['open', href]);
       return landed;
     },
