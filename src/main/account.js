@@ -183,6 +183,7 @@ function createAccount({
       chats = chatsLib.openChat(chats, null);
       return panel.openInbox(bounds);
     },
+    newMessage: () => panel.newMessage(),
     openPreferences(bounds) {
       chats = chatsLib.openChat(chats, null);
       return panel.openPreferences(bounds);

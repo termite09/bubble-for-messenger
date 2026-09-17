@@ -5,7 +5,6 @@ const { createBubble } = require('./bubble');
 const { createAccount } = require('./account');
 const { createDismissTarget } = require('./dismiss');
 const { createSettingsWindow } = require('./settings-window');
-const scrape = require('./scrape');
 const { LIMIT: RECENT_LIMIT, MAX_PINS, platformOfHref } = require('../lib/recent');
 const { MESSENGER, discState } = require('../lib/sites');
 const { pickUnread } = require('../lib/chats');
@@ -293,18 +292,8 @@ async function newMessage() {
   if (!bubble) return;
   const acct = current();
   await openInbox();
-  scrape
-    .run(
-      acct.panel.win.webContents,
-      `(() => {
-    const btn = document.querySelector('[aria-label="New message"]') ||
-                document.querySelector('[aria-label="Start a new message"]') ||
-                document.querySelector('[aria-label="Compose"]');
-    if (btn) btn.click();
-  })()`,
-      { userGesture: true },
-    )
-    .catch((err) => log.debug('panel script failed', { err }));
+  // The inbox is showing now, so the compose button takes a real press (see scrape.pressControl).
+  await acct.newMessage();
 }
 
 // Open a conversation beside the stack, bringing the stack up if it isn't already. The stack

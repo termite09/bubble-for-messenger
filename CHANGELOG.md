@@ -45,6 +45,16 @@ sources, is in [docs/COMPLIANCE.md](docs/COMPLIANCE.md) and
 - The README now says plainly, above the install instructions, that this app breaks Meta's
   Terms of Service and that an account can be restricted for it.
 
+### Fixed
+- **Messenger's own controls are now pressed with real input events.** Four synthetic
+  `.click()` calls survived on the Messenger side — the compose button (Cmd+N), the account
+  gear and the Preferences menu item, and Messenger's Back control. Each carried
+  `isTrusted: false`, which is the same signature Instagram was removed over; they were found
+  reviewing the finished 3.0.0 work rather than while planning it. All four now hit-test the
+  control and press it with Chromium input, as opening a thread and sending a reply already
+  did. The inbox is staged at opacity 0 for its press, because a hidden window dispatches no
+  input. A test now fails if any page script in `src/main/` calls `.click()` again.
+
 ### Kept, deliberately
 - **The panel still sends Electron's own user agent**, which names this app and Electron on
   every request. Substituting a browser's string is the most effective single anti-detection

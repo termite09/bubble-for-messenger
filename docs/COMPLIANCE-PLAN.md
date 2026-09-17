@@ -6,6 +6,52 @@ document is the remediation plan.
 
 ---
 
+## 0. Status at v3.0.0
+
+This document was written as a plan. Most of it has since been carried out, so read the items
+below as the record of what was decided and why, not as outstanding work.
+
+| Item | State |
+|---|---|
+| §5 Instagram — synthetic clicks, iPhone UA, park-on-hide | **Removed entirely.** The platform is gone, not patched. |
+| §6.1 Telemetry blocking on by default | **Done** — defaults to off; the switch stays. |
+| §6.2 Messenger's trusted input | **Kept, and extended.** See below. |
+| §7.1 Session cookie rewrite | **Done** — `c_user`/`xs` no longer rewritten; `datr`/`sb`/`fr` still persist. |
+| §7.2 Metronomic polling | **Done** — five minutes, jittered ±25%, self-rescheduling. |
+| §8.1 Messenger logo as the app icon | **Done** — replaced with an original mark. |
+| §8.2 Instagram glyph | **Done** — removed with the platform. |
+| §8.3 "Messenger" in the app name / appId / repo / cask | **Open, deliberately.** The judgement call in §8.3 stands; nothing has changed. |
+| §8.4 Disclaimer | **Strengthened** — the README now states the ToS position above the install steps. |
+| §3 / S1 The Electron user agent | **Unchanged, deliberately.** Still names this app and Electron on every request. |
+| §7.3 Notification-driven banners | **Not done.** Still the largest remaining reduction in collection surface. |
+| §2.2 Always-loaded background session | **Not addressed.** Inherent to the product. |
+| §2.3 Injected CSS and isolated-world scripts | **Not addressed.** Inherent to compact mode and to reading the list. |
+
+### One thing this plan missed, found in the v3.0.0 review
+
+§5.1 named synthetic `.click()` as an Instagram defect. It was not only Instagram's. Four of
+them survived on the **Messenger** side and were caught reviewing the finished work:
+
+- `newMessage` — the compose button, on Cmd+N
+- `openPreferences` — the account gear, then the Preferences menu item
+- `openInbox` — Messenger's Back control
+
+Every one carried `isTrusted: false`, the same signature the Instagram removal was justified
+by. All four now go through `scrape.pressControl`, which hit-tests the control and presses it
+with real Chromium input. `stageInbox` renders the panel at opacity 0 for the press, because a
+hidden window does not dispatch input — the same staging a thread open already used.
+
+Each of those presses stands for something the user actually did (a keystroke, a click on the
+Inbox head, the Open button in Settings), which is why this is §2's *honest* column and not its
+*evasion* one. `test/scrape.test.js` now fails if any page script in `src/main/` calls
+`.click()` again.
+
+**The lesson worth keeping:** the audit found the defect on the platform that had already been
+flagged and stopped looking. Reviewing the finished change, rather than the change you planned,
+is what caught the rest.
+
+---
+
 ## 1. The honest answer, before the plan
 
 **You asked whether accounts can still be locked or banned even after every fix here. Yes.

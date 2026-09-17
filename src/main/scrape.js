@@ -158,6 +158,38 @@ function click(wc, point) {
   wc.sendInputEvent({ type: 'mouseUp', x: point.x, y: point.y, button: 'left', clickCount: 1 });
 }
 
+// The viewport point at the centre of the element `findExpr` evaluates to, or null when there
+// is none, it is off screen, or something else is on top of it — in which case a click there
+// would land on the wrong thing. Every control this app presses goes through here and then
+// through click() above, so the page receives a real Chromium input event rather than an
+// element.click(), whose event carries isTrusted: false. Each of these presses stands for a
+// key or click the user actually made (Cmd+N, the Inbox head, the Open button in Settings),
+// so a real input event is the faithful account of it. See docs/COMPLIANCE-PLAN.md.
+function pointOf(wc, findExpr, { timeoutMs = 3000 } = {}) {
+  return run(
+    wc,
+    `(() => {
+    const el = (${findExpr});
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    if (r.width <= 0 || r.height <= 0 || r.top < 0 || r.bottom > innerHeight) return null;
+    const x = Math.round(r.left + r.width / 2);
+    const y = Math.round(r.top + r.height / 2);
+    const hit = document.elementFromPoint(x, y);
+    return hit && (hit === el || el.contains(hit)) ? { x, y } : null;
+  })()`,
+    { timeoutMs },
+  ).catch(() => null);
+}
+
+// Find the control, press it for real. False when it is not there to press.
+async function pressControl(wc, findExpr, opts) {
+  const point = await pointOf(wc, findExpr, opts);
+  if (!point) return false;
+  click(wc, point);
+  return true;
+}
+
 async function waitUntil(check, wc, timeout) {
   const start = Date.now();
   while (Date.now() - start < timeout) {
@@ -428,41 +460,36 @@ function setTheme(wc, dark) {
 
 // Messenger's Preferences dialog, where its own switches (notification sounds, dark mode) are:
 // the account gear at the top of the inbox, then the first item of its menu.
-function openPreferences(wc) {
-  return run(
-    wc,
-    `(async () => {
-    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-    const gear = [...document.querySelectorAll('[aria-label]')].find((e) => /Settings, help and more$/.test(e.getAttribute('aria-label')));
-    if (!gear) return false;
-    gear.click();
-    await wait(500);
-    const item = [...document.querySelectorAll('[role="menuitem"]')].find((e) => /^Preferences/.test(e.innerText));
-    if (!item) return false;
-    item.click();
-    return true;
-  })()`,
-    { userGesture: true, timeoutMs: 6000 },
-  ).catch(() => false);
+const GEAR = `[...document.querySelectorAll('[aria-label]')].find((e) => /Settings, help and more$/.test(e.getAttribute('aria-label')))`;
+const PREFERENCES_ITEM = `[...document.querySelectorAll('[role="menuitem"]')].find((e) => /^Preferences/.test(e.innerText))`;
+
+async function openPreferences(wc) {
+  if (!(await pressControl(wc, GEAR))) return false;
+  // The menu animates in; wait for the item to be pressable rather than for a fixed delay.
+  const ready = await waitUntil((w) => pointOf(w, PREFERENCES_ITEM).then(Boolean), wc, 3000);
+  if (!ready) return false;
+  return pressControl(wc, PREFERENCES_ITEM);
 }
 
 // Back to the chat list. In the narrow layout an open thread shows a Back button.
-function openInbox(wc) {
+async function openInbox(wc) {
   if (!onMessenger(wc)) return wc.loadURL('https://www.messenger.com/').catch(() => {});
-  return run(
-    wc,
-    `(() => {
-    const back = document.querySelector('[aria-label="Back"]');
-    if (back) back.click();
-  })()`,
-    { userGesture: true, timeoutMs: 3000 },
-  ).catch(() => {});
+  await pressControl(wc, `document.querySelector('[aria-label="Back"]')`);
 }
+
+// The compose button, at the top of the inbox view. Its label has moved between Messenger
+// versions, so all three spellings are tried.
+const COMPOSE = `document.querySelector('[aria-label="New message"]') ||
+                 document.querySelector('[aria-label="Start a new message"]') ||
+                 document.querySelector('[aria-label="Compose"]')`;
+const newMessage = (wc) => pressControl(wc, COMPOSE);
 
 module.exports = {
   run,
   reload,
   delay,
+  newMessage,
+  pressControl,
   waitUntil,
   setStyle,
   makeReplyActions,

@@ -344,12 +344,21 @@ function createPanel({
     }
   }
 
+  // Staged the same way a thread is: openInbox presses Messenger's own Back control with a
+  // real input event, which a hidden window does not dispatch, so the page is rendered at
+  // opacity 0 for the press and revealed after it.
   async function stageInbox(bubbleBounds) {
     compact = false;
     await scrape.setCompact(win.webContents, false);
     resize('full');
-    await scrape.openInbox(win.webContents);
-    api.showAt(bubbleBounds);
+    place(bubbleBounds);
+    stage();
+    try {
+      await scrape.openInbox(win.webContents);
+    } finally {
+      place(bubbleBounds);
+      reveal();
+    }
   }
 
   // The inbox with Messenger's Preferences dialog up (best effort: if its menu can't be found
@@ -410,6 +419,8 @@ function createPanel({
     session: () => win.webContents.session,
     openThread: (href, bubbleBounds) => enqueue(() => stageThread(href, bubbleBounds)),
     openInbox: (bubbleBounds) => enqueue(() => stageInbox(bubbleBounds)),
+    // The compose button, pressed for real on the inbox the caller has just brought up.
+    newMessage: () => enqueue(() => scrape.newMessage(win.webContents)),
     openPreferences: (bubbleBounds) => enqueue(() => stagePreferences(bubbleBounds)),
     // Serialised with opens; the queue swallows rejections into undefined, hence `=== true`.
     sendReply: (href, text) => enqueue(() => stageReply(href, text)).then((ok) => ok === true),

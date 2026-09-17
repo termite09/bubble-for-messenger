@@ -174,3 +174,69 @@ test('readShowing names the open thread from the title, or nothing on the inbox'
   );
   assert.equal(await readShowing(page('https://www.facebook.com/login/', null)), null);
 });
+
+const fs = require('node:fs');
+const path = require('node:path');
+const { newMessage, pressControl, openPreferences, openInbox } = require('../src/main/scrape');
+
+// A webContents that reports a pressable point for every control and records the input events
+// it is given, so a press can be told from an element.click().
+function pressable({ point = { x: 40, y: 30 }, url = 'https://www.messenger.com/t/1/' } = {}) {
+  const events = [];
+  return {
+    events,
+    getURL: () => url,
+    executeJavaScriptInIsolatedWorld: async () => point,
+    sendInputEvent: (e) => events.push(e),
+    loadURL: async () => {},
+  };
+}
+const kinds = (wc) => wc.events.map((e) => e.type);
+
+// The page must receive real Chromium input, not a synthetic element.click() — the latter
+// carries isTrusted: false, which is the signature Instagram was removed over.
+// See docs/COMPLIANCE-PLAN.md.
+test('a control is pressed with real input events, at the point the page reported', async () => {
+  const wc = pressable();
+  assert.equal(await pressControl(wc, `document.body`), true);
+  assert.deepEqual(kinds(wc), ['mouseMove', 'mouseDown', 'mouseUp']);
+  assert.equal(wc.events[1].x, 40);
+  assert.equal(wc.events[1].y, 30);
+});
+
+test('a control that is absent or covered is not pressed at all', async () => {
+  const wc = pressable({ point: null });
+  assert.equal(await pressControl(wc, `document.body`), false);
+  assert.deepEqual(kinds(wc), []);
+});
+
+test('compose, Back and Preferences all go through a real press', async () => {
+  const compose = pressable();
+  await newMessage(compose);
+  assert.deepEqual(kinds(compose), ['mouseMove', 'mouseDown', 'mouseUp']);
+
+  const back = pressable();
+  await openInbox(back);
+  assert.deepEqual(kinds(back), ['mouseMove', 'mouseDown', 'mouseUp']);
+
+  const prefs = pressable();
+  assert.equal(await openPreferences(prefs), true);
+  assert.deepEqual(kinds(prefs), [
+    'mouseMove',
+    'mouseDown',
+    'mouseUp', // the account gear
+    'mouseMove',
+    'mouseDown',
+    'mouseUp', // the Preferences item
+  ]);
+});
+
+// The guard that keeps this from regressing: no page-side script in the main process may call
+// .click(), on any control, however convenient.
+test('no page script presses a control with element.click()', () => {
+  const dir = path.join(__dirname, '..', 'src', 'main');
+  for (const file of fs.readdirSync(dir).filter((f) => f.endsWith('.js'))) {
+    const code = fs.readFileSync(path.join(dir, file), 'utf8').replace(/^\s*\/\/.*$/gm, ''); // comments may name what is forbidden
+    assert.equal(/\.click\(\)/.test(code), false, `${file} calls .click() in a page script`);
+  }
+});
