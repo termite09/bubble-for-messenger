@@ -1,9 +1,11 @@
 const body = document.body;
 const content = document.getElementById('content');
 const disc = document.getElementById('disc');
+const face = document.getElementById('disc-face');
 const mark = document.getElementById('mark');
 const count = document.getElementById('count');
 const other = document.getElementById('other');
+const statusEl = document.getElementById('status');
 const fan = document.getElementById('fan');
 const landed = document.getElementById('landed');
 const landedAv = document.getElementById('landed-av');
@@ -55,12 +57,23 @@ window.addEventListener('mouseleave', () => {
 
 const countText = (n) => (n > 9 ? '9+' : String(n));
 let platformLabel = 'Messenger';
+let badge = 0;
+let lastStatus = { connection: 'online', signedOut: false };
+// The pill and the status chip are hidden from readers; the face's own name says what they say.
+function describeFace() {
+  const parts = [platformLabel];
+  if (badge > 0) parts.push(countText(badge) + ' unread');
+  if (lastStatus.signedOut) parts.push('signed out');
+  else if (lastStatus.connection === 'offline') parts.push('offline');
+  else if (lastStatus.connection === 'reconnecting') parts.push('reconnecting');
+  face.setAttribute('aria-label', parts.join(', '));
+}
 function setBadge(n) {
+  badge = n;
   const text = countText(n);
   if (count.textContent !== text) count.textContent = text; // a repaint only when it changed
   count.classList.toggle('visible', n > 0);
-  // The pill is hidden from readers; the disc's own name says what it says.
-  disc.setAttribute('aria-label', n > 0 ? `${platformLabel}, ${text} unread` : platformLabel);
+  describeFace();
   pulse();
 }
 
@@ -80,13 +93,14 @@ function setMark(file) {
     mark.src = src;
     return;
   }
-  // Fade out, swap, fade in: the mark's own opacity transition, both ways.
+  // Fade out, swap, fade in: the mark's own opacity transition (120ms, the crossfade clock),
+  // both ways.
   clearTimeout(swapTimer);
   body.classList.add('swapping');
   swapTimer = setTimeout(() => {
     mark.src = src;
     body.classList.remove('swapping');
-  }, 200);
+  }, 120);
 }
 function setPlatform(state) {
   if (!state) return;
@@ -101,8 +115,13 @@ function setPlatform(state) {
   if (otherPlatform) {
     other.querySelector('img').src = markSrc(otherPlatform.mark);
     other.querySelector('.n').textContent = countText(otherPlatform.count);
-    other.setAttribute('aria-label', 'Switch to ' + otherPlatform.label);
     other.title = 'Switch to ' + otherPlatform.label;
+    // The count is drawn in the satellite; a reader hears it in the name.
+    other.setAttribute(
+      'aria-label',
+      other.title +
+        (otherPlatform.count > 0 ? ', ' + countText(otherPlatform.count) + ' unread' : ''),
+    );
   }
 }
 window.bubbleApi.onPlatform(setPlatform);
@@ -265,6 +284,7 @@ function setLayout(l) {
   pitch = l.pitch;
   content.style.left = (l.edge === 'right' ? l.contentX + l.base - l.banner : l.contentX) + 'px';
   content.style.width = l.banner + 'px';
+  body.style.setProperty('--banner', l.banner + 'px'); // the chips end where the column does
   // The column is anchored at the disc: bottom-aligned when growing up, top-aligned when down.
   if (l.direction === 'up') {
     content.style.top = '';
@@ -307,7 +327,8 @@ window.bubbleApi.onFan((data) => {
     return;
   }
   const wasOpen = body.classList.contains('open');
-  // items arrive newest-first and read top-down, pinned ones last; the inbox closes the list.
+  // items arrive pinned-first, then the recent ones newest-first, and read top-down; the inbox
+  // closes the list.
   // Existing heads are reused by href and reordered; only what changed is touched.
   const existing = new Map(
     [...fan.querySelectorAll('.head[data-href]')].map((el) => [el.dataset.href, el]),
@@ -489,9 +510,8 @@ function setSettings(s) {
 window.bubbleApi.onSettings(setSettings);
 
 // Whether Messenger is reachable and whether anyone is signed in: the mark dims and a chip
-// beside the disc says which (on hover — or, signed out, until you sign in).
-const statusEl = document.getElementById('status');
-let lastStatus = { connection: 'online', signedOut: false };
+// beside the disc says which (on hover — or, signed out, until you sign in); the face's name
+// says it to a reader.
 function setStatus(st) {
   lastStatus = st;
   const words = { offline: 'Offline', reconnecting: 'Reconnecting…' };
@@ -499,6 +519,7 @@ function setStatus(st) {
   body.classList.toggle('reconnecting', st.connection === 'reconnecting');
   body.classList.toggle('signed-out', Boolean(st.signedOut));
   statusEl.textContent = st.signedOut ? 'Sign in' : words[st.connection] || '';
+  describeFace();
 }
 window.bubbleApi.onStatus(setStatus);
 

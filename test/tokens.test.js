@@ -13,6 +13,10 @@ test('the palette is read from tokens.css', () => {
   assert.equal(tokens.rule, 'rgba(255, 255, 255, 0.12)');
   assert.match(tokens.lift, /^0 8px 24px/);
   assert.match(tokens.ease, /^cubic-bezier\(/);
+  // The light block: what the frame's hairline becomes on the light wash.
+  assert.equal(tokens.light.card, '#f5f5f7');
+  assert.equal(tokens.light.rule, 'rgba(0, 0, 0, 0.12)');
+  assert.equal(tokens.light.ease, undefined); // only what the light block changes
 });
 
 // The pages link the file and use its names rather than repeating values.

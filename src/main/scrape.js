@@ -420,7 +420,7 @@ function setTheme(wc, dark) {
     `(() => {
     const c = document.documentElement.classList;
     // The frame's hairline: white on the dark wash, black on the light one.
-    document.documentElement.style.setProperty('--mb-hairline', ${JSON.stringify(dark ? tokens.rule : 'rgba(0, 0, 0, 0.12)')});
+    document.documentElement.style.setProperty('--mb-hairline', ${JSON.stringify(dark ? tokens.rule : tokens.light.rule)});
     c.remove('${remove}');
     c.add('${add}');
   })()`,

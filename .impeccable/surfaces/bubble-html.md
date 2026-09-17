@@ -52,6 +52,11 @@ Rail (competitive challenger) after seeing rendered mockups.
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review,
 the verdict, DESIGN.md, and every shipping raster carrying its provenance.
 
+The face inside the disc is the button a reader meets (name: platform, count, connection);
+the satellite and the banner are its siblings, not its children. Chips beside the column
+(a head's name, "Inbox · +2 more", "Offline") end where the column does, with an ellipsis
+(17 Sep 2026).
+
 ## Unresolved
 - Sheet shadow relies on macOS's window shadow around the clipped panel; unverified in captures.
 - A light overlay-scrollbar tab was seen on the sheet's right edge right after a thread opened.

@@ -81,11 +81,23 @@
         justify-content: center;
         cursor: default;
       }
+      /* The face is the disc's button: the mark, and the name a reader hears (platform, count,
+         whether Messenger is reachable). The satellite, the banner and its reply controls are the
+         disc's siblings in the tree, not its children — a button's descendants are presentational
+         to a reader, so they must not be inside it. */
+      #disc-face {
+        position: absolute;
+        inset: 0;
+        border-radius: 22px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
       #mark {
         width: 24px;
         height: 24px;
         display: block;
-        transition: opacity 200ms linear;
+        transition: opacity 120ms linear;
       }
       /* Switching platform: the mark fades out, is swapped, and fades back in. */
       body.swapping #mark {
@@ -105,6 +117,11 @@
         white-space: nowrap;
         pointer-events: none;
         padding: 0 8px;
+        box-sizing: border-box;
+        /* A chip ends where the content column does (the main process sets --banner). */
+        max-width: calc(var(--banner, 250px) - 52px);
+        overflow: hidden;
+        text-overflow: ellipsis;
         border-radius: 10px;
         background: var(--card);
         border: 1px solid var(--rule);
@@ -159,7 +176,7 @@
       #other .n {
         display: none;
         padding-right: 3px;
-        color: var(--blue);
+        color: var(--blue-text);
         font:
           600 12px/22px -apple-system,
           system-ui,
@@ -375,6 +392,11 @@
         white-space: nowrap;
         pointer-events: none;
         padding: 0 8px;
+        box-sizing: border-box;
+        /* A long group name ends where the content column does, with an ellipsis. */
+        max-width: calc(var(--banner, 250px) - 52px);
+        overflow: hidden;
+        text-overflow: ellipsis;
         border-radius: 10px;
         background: var(--card);
         border: 1px solid var(--rule);
@@ -400,19 +422,20 @@
       body.edge-left .head .caption {
         left: 52px;
       }
-      /* An invisible bridge over the gap to the head, so the cursor can cross to the chip. */
-      .head .caption::before {
+      /* An invisible bridge over the gap to the chip, so the cursor can cross to it. It hangs
+         off the head (the chip clips its overflow), and only while the head is hovered. */
+      .head:hover::after {
         content: '';
         position: absolute;
         top: 0;
         bottom: 0;
         width: 10px;
       }
-      body.edge-right .head .caption::before {
-        right: -10px;
+      body.edge-right .head:hover::after {
+        right: 100%;
       }
-      body.edge-left .head .caption::before {
-        left: -10px;
+      body.edge-left .head:hover::after {
+        left: 100%;
       }
       .head:hover {
         border-color: var(--rule-active);
@@ -436,7 +459,7 @@
       }
       .head img,
       .head .initial {
-        transition: opacity 160ms linear;
+        transition: opacity 120ms linear;
       }
       .head.busy img,
       .head.busy .initial {
@@ -475,6 +498,12 @@
         justify-content: center;
         color: var(--card);
         cursor: default;
+      }
+      /* The badge is drawn at 16px; the pointer gets 24px of it. */
+      .pin::before {
+        content: '';
+        position: absolute;
+        inset: -4px;
       }
       .head:hover .pin {
         display: flex;
@@ -729,10 +758,14 @@
   <body class="up edge-right">
     <div id="content">
       <div id="fan"></div>
-      <!-- The disc's name carries the platform and the count (the pill is decoration to a
-           reader); the banner is a status region, so a landed message is announced. -->
-      <div id="disc" class="card" role="button" aria-label="Messenger">
-        <img id="mark" src="../../assets/icon.png" alt="" />
+      <!-- The disc is the card; the face inside it is the button, whose name carries the
+           platform, the count and the connection (the pill and the chip are decoration to a
+           reader). The satellite and the banner sit beside the face, not inside it; the banner
+           is a status region, so a landed message is announced. -->
+      <div id="disc" class="card">
+        <div id="disc-face" role="button" aria-label="Messenger">
+          <img id="mark" src="../../assets/icon.png" alt="" />
+        </div>
         <div id="count" aria-hidden="true"></div>
         <div id="status" aria-hidden="true"></div>
         <div id="other" class="card" role="button" aria-label="Switch platform">

@@ -7,7 +7,7 @@ function render(s) {
   for (const input of document.querySelectorAll('input[type="checkbox"][data-key]'))
     input.checked = Boolean(s[input.dataset.key]);
   // A segmented control is a radio group named after its setting.
-  for (const input of document.querySelectorAll('input[type="radio"]:not([name="tab"])'))
+  for (const input of document.querySelectorAll('input[type="radio"]'))
     input.checked = input.value === String(s[input.name]);
 }
 
@@ -15,7 +15,6 @@ document.addEventListener('change', (e) => {
   const input = e.target;
   if (input.type === 'checkbox' && input.dataset.key)
     window.settingsApi.set(input.dataset.key, input.checked);
-  else if (input.name === 'tab') showTab(input.value);
   // A radio's value is text; a numeric choice (seconds) goes back as the number it is.
   else if (input.type === 'radio')
     window.settingsApi.set(
@@ -36,10 +35,36 @@ window.addEventListener('keydown', (e) => {
   }
 });
 
+// A row names its control by its label and describes it by the ash line under it, so a reader
+// hears "Show over full-screen apps, switch, off — Off keeps it off full-screen video…" rather
+// than the two run together as one name. The ids are the setting's own.
+function describeRows() {
+  for (const row of document.querySelectorAll('.row')) {
+    const control =
+      row.querySelector('input[data-key]') ||
+      row.querySelector('[role="radiogroup"]') ||
+      row.querySelector('button');
+    const name = row.querySelector('.name');
+    const sub = row.querySelector('.sub');
+    if (!control || !name) continue;
+    const key = control.dataset.key || control.id || control.querySelector('input').name;
+    // A group already carries a fuller name of its own ("Bubble size", not "Size").
+    if (!control.hasAttribute('aria-label')) {
+      name.id = key + '-name';
+      control.setAttribute('aria-labelledby', name.id);
+    }
+    if (sub) {
+      sub.id = key + '-sub';
+      control.setAttribute('aria-describedby', sub.id);
+    }
+  }
+}
+
 // One pane in the flow at a time; the window is made as tall as that pane needs. (The card
 // fills the window, so its own height says nothing: the parts are measured instead.)
 // The rows fade out, the window takes its new height (macOS animates it), the new rows fade
 // in — so a switch reads as one motion rather than a jump.
+const tabs = [...document.querySelectorAll('[role="tab"]')];
 let first = true;
 function showTab(name) {
   const main = document.querySelector('main');
@@ -49,20 +74,40 @@ function showTab(name) {
       section.hidden = section.dataset.tab !== name;
       if (!section.hidden) shown = section;
     }
-    for (const tab of document.querySelectorAll('input[name="tab"]'))
-      tab.setAttribute('aria-selected', String(tab.value === name));
     const chrome =
       document.querySelector('header').offsetHeight + document.querySelector('nav').offsetHeight;
     window.settingsApi.resize(chrome + shown.offsetHeight + 8 + 2); // main's padding-bottom, the card's hairlines
     main.classList.remove('switching');
   };
+  // The chosen tab is the one in the Tab order; the arrows reach the others.
+  for (const tab of tabs) {
+    const on = tab.dataset.tab === name;
+    tab.setAttribute('aria-selected', String(on));
+    tab.tabIndex = on ? 0 : -1;
+  }
   if (first) {
     first = false;
     swap();
     return;
   }
   main.classList.add('switching');
-  setTimeout(swap, 100);
+  setTimeout(swap, 120); // the crossfade's length
+}
+for (const tab of tabs) {
+  tab.addEventListener('click', () => showTab(tab.dataset.tab));
+  // Left/Right (and Home/End) move focus along the tabs and choose the one they land on.
+  tab.addEventListener('keydown', (e) => {
+    const i = tabs.indexOf(tab);
+    let to;
+    if (e.key === 'ArrowRight') to = (i + 1) % tabs.length;
+    else if (e.key === 'ArrowLeft') to = (i - 1 + tabs.length) % tabs.length;
+    else if (e.key === 'Home') to = 0;
+    else if (e.key === 'End') to = tabs.length - 1;
+    else return;
+    e.preventDefault();
+    tabs[to].focus();
+    showTab(tabs[to].dataset.tab);
+  });
 }
 
 // A row for something the platform has no equivalent of (Spaces, vibrancy) is not shown. The
@@ -73,6 +118,7 @@ function hideUnsupported(caps) {
     row.hidden = caps ? !caps[row.dataset.needs] : false;
 }
 
+describeRows();
 window.settingsApi.onSettings(render);
 Promise.all([window.settingsApi.get(), window.settingsApi.capabilities()]).then(([s, caps]) => {
   hideUnsupported(caps);

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-16T10:24:28Z",
+  "generatedAt": "2026-09-17T02:31:29Z",
   "title": "Design System: Bubble for Messenger",
   "extensions": {
     "colorMeta": {
@@ -258,6 +258,51 @@
           "oklch(84% 0.09 255)",
           "oklch(95% 0.03 255)"
         ]
+      },
+      "system-blue-text-light": {
+        "role": "primary",
+        "displayName": "System Blue as text (light)",
+        "canonical": "#0066cc",
+        "tonalRamp": [
+          "oklch(15% 0.06 255)",
+          "oklch(26% 0.10 255)",
+          "oklch(38% 0.15 255)",
+          "oklch(50% 0.19 255)",
+          "oklch(62% 0.21 255)",
+          "oklch(73% 0.15 255)",
+          "oklch(84% 0.09 255)",
+          "oklch(95% 0.03 255)"
+        ]
+      },
+      "ash-glass": {
+        "role": "neutral",
+        "displayName": "Ash, lifted for Glass",
+        "canonical": "#a5a5aa",
+        "tonalRamp": [
+          "oklch(15% 0.007 286)",
+          "oklch(27% 0.007 286)",
+          "oklch(39% 0.007 286)",
+          "oklch(51% 0.007 286)",
+          "oklch(64% 0.007 286)",
+          "oklch(75% 0.007 286)",
+          "oklch(86% 0.007 286)",
+          "oklch(95% 0.007 286)"
+        ]
+      },
+      "ash-glass-light": {
+        "role": "neutral",
+        "displayName": "Ash, deepened for Glass (light)",
+        "canonical": "#58585c",
+        "tonalRamp": [
+          "oklch(15% 0.004 286)",
+          "oklch(22% 0.004 286)",
+          "oklch(30% 0.004 286)",
+          "oklch(42% 0.004 286)",
+          "oklch(55% 0.004 286)",
+          "oklch(68% 0.004 286)",
+          "oklch(82% 0.004 286)",
+          "oklch(95% 0.004 286)"
+        ]
       }
     },
     "typographyMeta": {
@@ -355,9 +400,9 @@
       "name": "Panel frame",
       "kind": "card",
       "refersTo": "panel-frame",
-      "description": "The conversation sheet's silhouette: messenger.com's own wash clipped to 16px with a 1px hairline on top. The content inside is Messenger's, never restyled; shown here as a placeholder.",
-      "html": "<div class=\"ds-stage\"><div class=\"ds-sheet\"><div class=\"ds-ground\"></div><div class=\"ds-sheet-body\"><div class=\"ds-sender\"><div class=\"ds-av\">I</div><div class=\"ds-sender-name\">Ioanna Varvatsi</div></div><div class=\"ds-placeholder\">messenger.com content (not part of this system)</div></div><div class=\"ds-frame\"></div></div></div>",
-      "css": ".ds-stage { padding: 32px; font: 13px/16px -apple-system, system-ui, sans-serif; color: #f5f5f7; -webkit-font-smoothing: antialiased; } .ds-sheet { position: relative; width: 420px; height: 280px; border-radius: 16px; overflow: hidden; } .ds-ground { position: absolute; inset: 0; background: #1a1a1a; } .ds-frame { position: absolute; inset: 0; border-radius: 16px; border: 1px solid rgba(255,255,255,.12); box-sizing: border-box; pointer-events: none; } .ds-sheet-body { position: relative; height: 100%; display: flex; flex-direction: column; } .ds-sender { display: flex; align-items: center; gap: 12px; padding: 16px; } .ds-sender-name { font-size: 15px; font-weight: 600; } .ds-av { width: 32px; height: 32px; border-radius: 16px; flex: none; background: #3a3a3c; display: flex; align-items: center; justify-content: center; font: 600 13px -apple-system, system-ui, sans-serif; color: #fff; } .ds-placeholder { flex: 1; display: flex; align-items: center; justify-content: center; color: #98989d; font-size: 12px; }"
+      "description": "The conversation sheet's silhouette: an opaque window in messenger.com's own wash with the system's rounded corners (about 10px) and a 1px hairline just inside the edge. The content inside is Messenger's, never restyled; shown here as a placeholder.",
+      "html": "<div class=\"ds-stage\"><div class=\"ds-sheet\"><div class=\"ds-sheet-body\"><div class=\"ds-sender\"><div class=\"ds-av\">I</div><div class=\"ds-sender-name\">Ioanna Varvatsi</div></div><div class=\"ds-placeholder\">messenger.com content (not part of this system)</div></div><div class=\"ds-frame\"></div></div></div>",
+      "css": ".ds-stage { padding: 32px; font: 13px/16px -apple-system, system-ui, sans-serif; color: #f5f5f7; -webkit-font-smoothing: antialiased; } .ds-sheet { position: relative; width: 420px; height: 280px; border-radius: 10px; overflow: hidden; background: #1a1a1a; box-shadow: 0 8px 24px rgba(0,0,0,.45); } .ds-frame { position: absolute; inset: 0; border-radius: 10px; border: 1px solid rgba(255,255,255,.12); box-sizing: border-box; pointer-events: none; } .ds-sheet-body { position: relative; height: 100%; display: flex; flex-direction: column; } .ds-sender { display: flex; align-items: center; gap: 12px; padding: 16px; } .ds-sender-name { font-size: 15px; font-weight: 600; } .ds-av { width: 32px; height: 32px; border-radius: 16px; flex: none; background: #3a3a3c; display: flex; align-items: center; justify-content: center; font: 600 13px -apple-system, system-ui, sans-serif; color: #fff; } .ds-placeholder { flex: 1; display: flex; align-items: center; justify-content: center; color: #98989d; font-size: 12px; }"
     },
     {
       "name": "Dismiss target",
@@ -371,7 +416,7 @@
       "name": "Satellite",
       "kind": "custom",
       "refersTo": "disc",
-      "description": "The other platform at the disc's foot: its mark and, above zero, its count in System Blue; dimmed and count-less on hover when it has none.",
+      "description": "The other platform at the disc's foot: its mark and, above zero, its count in the text blue (#0a84ff on graphite, #0066cc on paper); dimmed and count-less on hover when it has none.",
       "html": "<div class=\"ds-stage\"><div class=\"ds-disc\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"11\" fill=\"#98989d\"/><path d=\"M6.5 14.5l3.4-3.6 2.6 2 3.6-2.9-3.6 3.8-2.6-2z\" fill=\"#1c1c1e\"/></svg><div class=\"ds-count\">3</div><div class=\"ds-sat\"><svg viewBox=\"0 0 16 16\" aria-hidden=\"true\"><rect x=\"1.5\" y=\"1.5\" width=\"13\" height=\"13\" rx=\"4\" fill=\"none\" stroke=\"#f5f5f7\" stroke-width=\"1.4\"/><circle cx=\"8\" cy=\"8\" r=\"3\" fill=\"none\" stroke=\"#f5f5f7\" stroke-width=\"1.4\"/><circle cx=\"11.6\" cy=\"4.4\" r=\".9\" fill=\"#f5f5f7\"/></svg><span>2</span></div></div></div>",
       "css": ".ds-stage{--ds-card:#1c1c1e;--ds-raised:#2c2c2e;--ds-ink:#f5f5f7;--ds-dim:#98989d;--ds-rule:rgba(255,255,255,.12);--ds-rule-active:rgba(255,255,255,.28);--ds-rule-focus:rgba(255,255,255,.45);--ds-blue:#0a84ff;--ds-lift:0 8px 24px rgba(0,0,0,.45);--ds-ease:cubic-bezier(.22,1,.36,1);padding:32px}.ds-disc{position:relative;width:44px;height:44px;border-radius:22px;background:var(--ds-card);border:1px solid var(--ds-rule);box-shadow:var(--ds-lift);box-sizing:border-box;display:flex;align-items:center;justify-content:center}.ds-disc>svg{width:24px;height:24px;display:block}.ds-count{position:absolute;right:-8px;top:-6px;min-width:18px;height:18px;padding:0 5px;box-sizing:border-box;border-radius:9px;background:var(--ds-blue);color:#fff;font:600 11px/18px -apple-system,system-ui,sans-serif;text-align:center}.ds-sat{position:absolute;left:-10px;bottom:-8px;height:24px;padding:0 3px;box-sizing:border-box;border-radius:12px;background:var(--ds-card);border:1px solid var(--ds-rule);box-shadow:var(--ds-lift);display:flex;align-items:center;gap:3px;transition:border-color 120ms linear}.ds-sat:hover{border-color:var(--ds-rule-active)}.ds-sat svg{width:16px;height:16px;display:block}.ds-sat span{padding-right:3px;color:var(--ds-blue);font:600 12px/22px -apple-system,system-ui,sans-serif}"
     },
@@ -390,6 +435,14 @@
       "description": "A three-way (or five-way, on its own line) choice: hairline segments, the chosen one holding the raised tone; focus is an inset focus rule, never a ring.",
       "html": "<div class=\"ds-seg-stage\"><div class=\"ds-segments\" role=\"radiogroup\" aria-label=\"Appearance\"><label><input type=\"radio\" name=\"ds-theme\" checked /><span>System</span></label><label><input type=\"radio\" name=\"ds-theme\" /><span>Light</span></label><label><input type=\"radio\" name=\"ds-theme\" /><span>Dark</span></label></div></div>",
       "css": ".ds-seg-stage{--ds-card:#1c1c1e;--ds-raised:#2c2c2e;--ds-ink:#f5f5f7;--ds-dim:#98989d;--ds-rule:rgba(255,255,255,.12);--ds-rule-active:rgba(255,255,255,.28);--ds-rule-focus:rgba(255,255,255,.45);--ds-blue:#0a84ff;--ds-lift:0 8px 24px rgba(0,0,0,.45);--ds-ease:cubic-bezier(.22,1,.36,1);padding:24px;background:var(--ds-card);font:13px/16px -apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased}.ds-segments{display:inline-flex;border:1px solid var(--ds-rule);border-radius:8px;box-sizing:border-box;overflow:hidden}.ds-segments label{position:relative;cursor:default}.ds-segments input{position:absolute;inset:0;margin:0;opacity:0}.ds-segments span{display:block;padding:0 10px;font:500 12px/24px -apple-system,system-ui,sans-serif;color:var(--ds-dim);transition:background 120ms linear,color 120ms linear}.ds-segments label+label span{border-left:1px solid var(--ds-rule)}.ds-segments input:checked+span{background:var(--ds-raised);color:var(--ds-ink)}.ds-segments label:hover span{color:var(--ds-ink)}.ds-segments input:focus-visible+span{color:var(--ds-ink);box-shadow:inset 0 0 0 1px var(--ds-rule-focus)}"
+    },
+    {
+      "name": "Settings tabs",
+      "kind": "nav",
+      "refersTo": "head",
+      "description": "The three panes' switch: buttons in a tablist dressed as the segmented control. The chosen tab holds the raised tone; Left/Right move and choose; focus is the inset focus rule, never a ring.",
+      "html": "<div class=\"ds-tabs-stage\"><div class=\"ds-tabs\" role=\"tablist\" aria-label=\"Settings sections\"><button type=\"button\" role=\"tab\" aria-selected=\"true\" tabindex=\"0\">Bubble</button><button type=\"button\" role=\"tab\" aria-selected=\"false\" tabindex=\"-1\">Notifications</button><button type=\"button\" role=\"tab\" aria-selected=\"false\" tabindex=\"-1\">Panel</button></div></div>",
+      "css": ".ds-tabs-stage{--ds-card:#1c1c1e;--ds-raised:#2c2c2e;--ds-ink:#f5f5f7;--ds-dim:#98989d;--ds-rule:rgba(255,255,255,.12);--ds-rule-focus:rgba(255,255,255,.45);padding:24px;background:var(--ds-card);font:13px/16px -apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased}.ds-tabs{display:flex;width:328px;border:1px solid var(--ds-rule);border-radius:8px;box-sizing:border-box;overflow:hidden}.ds-tabs button{flex:1;margin:0;padding:0 10px;border:0;border-radius:0;background:transparent;color:var(--ds-dim);font:500 12px/24px -apple-system,system-ui,sans-serif;text-align:center;cursor:default;transition:background 120ms linear,color 120ms linear}.ds-tabs button+button{border-left:1px solid var(--ds-rule)}.ds-tabs button[aria-selected=\"true\"]{background:var(--ds-raised);color:var(--ds-ink)}.ds-tabs button:hover{color:var(--ds-ink)}.ds-tabs button:focus-visible{outline:0;color:var(--ds-ink);box-shadow:inset 0 0 0 1px var(--ds-rule-focus)}"
     }
   ],
   "narrative": {
@@ -420,22 +473,22 @@
       },
       {
         "name": "The One File Rule",
-        "body": "Every value above is written once, in `src/renderer/tokens.css`; the pages link it and `lib/tokens.js` reads it for the CSS the app writes into messenger.com. The sandboxed panel preload carries copies, held to the file by a test.",
+        "body": "Every value above is written once, in `src/renderer/tokens.css`; the pages link it and `lib/tokens.js` reads it (the dark block, and under `light` what the light block changes) for the CSS the app writes into messenger.com. The sandboxed panel preload carries copies, held to the file by a test.",
         "section": "colors"
       },
       {
         "name": "The Two Appearances Rule",
-        "body": "The palette above is the dark appearance. The app's own chrome follows the Appearance setting (System by default), and in the light appearance the roles swap the way a Notification Center banner does: Paper (`#f5f5f7`) is the card, `#e8e8ed` the raised tone, `#c7c7cc` the slate, Graphite the ink, `#636366` the ash (4.9:1 on raised), the hairlines black at the same alphas, the shadow at 18%, and the system's light blue `#007aff` for unread. What the app draws inside messenger.com (the frame's hairline, the pin badge) stays graphite.",
+        "body": "The palette above is the dark appearance. The app's own chrome follows the Appearance setting (System by default), and in the light appearance the roles swap the way a Notification Center banner does: Paper (`#f5f5f7`) is the card, `#e8e8ed` the raised tone, `#c7c7cc` the slate, Graphite the ink, `#636366` the ash (4.9:1 on raised), the hairlines black at the same alphas, the shadow at 18%, and the system's light blue `#007aff` for unread — as a fill; as text (the satellite's count) it is 3.7:1 on paper, so `#0066cc` (5.1:1) carries it. What the app draws inside messenger.com (the frame's hairline, the pin badge) stays graphite.",
         "section": "colors"
       },
       {
         "name": "Glass (under trial, September 2026)",
-        "body": "By the Glass setting the bubble layer's cards are the same colours at 90% over the wallpaper, and the settings card is the system's frosted popover material under a 60% tint with the system's own window corners. Reduce Transparency makes both opaque again. A real per-card blur is not available to the bubble layer (one window, many cards), so this is a tint, not Liquid Glass; whether it stays is the user's call after living with it.",
+        "body": "By the Glass setting the bubble layer's cards are the same colours at 90% over the wallpaper, and the settings card is the system's frosted popover material under a 60% tint with the system's own window corners. Ash steps up with it (`#a5a5aa` dark, `#58585c` light), because over a white wallpaper the 90% card is `#333334` and the opaque ash would be 4.4:1 there; the lifted ash holds 4.7:1 and better on every modelled ground. Reduce Transparency makes both opaque again, ash included. A real per-card blur is not available to the bubble layer (one window, many cards), so this is a tint, not Liquid Glass; whether it stays is the user's call after living with it.",
         "section": "colors"
       },
       {
         "name": "The Count Pill Exception",
-        "body": "White on System Blue is 3.65:1, under AA for its 11px digits. Kept on purpose (September 2026): it is the system's own badge convention and the pill shows at most two characters; the satellite's blue-on-graphite count is 4.7:1.",
+        "body": "White on System Blue is 3.65:1, under AA for its 11px digits. Kept on purpose (September 2026): it is the system's own badge convention and the pill shows at most two characters; the satellite's blue-on-graphite count is 4.7:1 (and on paper it is the text blue above, 5.1:1).",
         "section": "colors"
       },
       {
@@ -464,6 +517,11 @@
         "section": "layout"
       },
       {
+        "name": "The Column Is The Measure Rule",
+        "body": "A chip beside the column (a head's name, \"Inbox · +2 more\", \"Offline\") ends where the column does: `max-width: calc(var(--banner) - 52px)` with an ellipsis, `--banner` being the column width the main process reports. Nothing the page draws is wider than the column, so nothing is clipped by the window.",
+        "section": "layout"
+      },
+      {
         "name": "The One Shadow Rule",
         "body": "There is exactly one shadow value. Elevation is binary: a thing is a card (lifted, hairlined) or it is nothing.",
         "section": "elevation"
@@ -475,7 +533,7 @@
       },
       {
         "name": "The Radius Follows Height Rule",
-        "body": "Pills (disc, landed banner, count, avatar, dot, pin, chip, satellite, field, target) are radius = height / 2. Controls that sit in a row (segments, the Open button) use 8px; cards that hold two lines (banner, settings card) use 14px or 16px; the sheet takes the system's window radius. Nothing is square-cornered.",
+        "body": "Pills (disc, landed banner, count, avatar, dot, pin, chip, satellite, field, target) are radius = height / 2. Controls that sit in a row (segments, the tabs, the Open button) use 8px; the sheet and the settings card are opaque windows and take the system's window radius (about 10px). Nothing is square-cornered.",
         "section": "shapes"
       }
     ],
@@ -483,7 +541,7 @@
       "Do build every new surface from the one material: Graphite (`#1c1c1e`), a 1px `rgba(255,255,255,.12)` rule, and `0 8px 24px rgba(0,0,0,.45)`.",
       "Do use the single curve `cubic-bezier(.22, 1, .36, 1)` at 220ms for any spatial change, and 120ms linear only for a colour or opacity crossfade riding alongside it.",
       "Do derive grouped motion from one progress value (`--p`) rather than per-item delays.",
-      "Do keep radii tied to height: half the height for pills and circles, 16px for the sheet.",
+      "Do keep radii tied to height: half the height for pills and circles; the sheet and the settings card take the system's window radius.",
       "Do show state with tone and rule (Raised Graphite on hover; Raised Graphite plus the 28% hairline when active), not with transforms or new colours.",
       "Do leave messenger.com's own content alone inside the frame; the system owns the silhouette, not the page."
     ],
