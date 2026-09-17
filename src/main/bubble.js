@@ -6,7 +6,6 @@ const dragLib = require('../lib/drag');
 const { isThreadHref } = require('../lib/recent');
 const { validReply } = require('../lib/reply');
 const { BUBBLE_SIZES } = require('../lib/settings');
-const { siteOf } = require('../lib/sites');
 const { CAPS } = require('../lib/platform');
 const { joinAllSpaces } = require('./workspaces');
 const { createFloatingWindow, ipcFor } = require('./floating-window');
@@ -38,7 +37,6 @@ function createBubble({
   onPinToggle,
   onOpenChat,
   onOpenInbox,
-  onSwitch = () => {},
   onDismiss,
   onReply,
   dismiss,
@@ -74,7 +72,7 @@ function createBubble({
   });
   // What the page needs to know; a fresh document (startup, a reload) asks for it.
   let lastSettings = null;
-  let lastPlatform = null; // lib/sites discState: the mark, the count, the other platform
+  let lastPlatform = null; // lib/sites discState: the mark and the count
   let lastActive = null;
   let lastStatus = { connection: 'online', signedOut: false };
   win.webContents.on('did-finish-load', () => {
@@ -292,10 +290,6 @@ function createBubble({
     if (isThreadHref(href)) onOpenChat(href);
   });
   ipc.on(CHANNELS.BUBBLE_OPEN_INBOX, () => onOpenInbox());
-  // The satellite, or the other platform's head: bring that platform into focus.
-  ipc.on(CHANNELS.BUBBLE_SWITCH, (id) => {
-    if (siteOf(id)) onSwitch(id);
-  });
   // The window is mostly transparent padding; only pass clicks through when over a card.
   ipc.on(CHANNELS.BUBBLE_HIT, (over) => win.setIgnoreMouseEvents(!over, { forward: true }));
   // The window is non-focusable so it never takes the keyboard from the user's work. The reply
@@ -336,7 +330,7 @@ function createBubble({
       if (on) shield.hide();
       else if (expanded) shield.show(screen.getDisplayMatching(bounds()).bounds);
     },
-    // Which platform the disc shows, with its count, and the other one for the satellite.
+    // The mark the disc shows, with its count.
     setPlatform: (state) => {
       lastPlatform = state;
       send(CHANNELS.BUBBLE_PLATFORM, state);

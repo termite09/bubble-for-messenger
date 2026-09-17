@@ -4,7 +4,6 @@ const disc = document.getElementById('disc');
 const face = document.getElementById('disc-face');
 const mark = document.getElementById('mark');
 const count = document.getElementById('count');
-const other = document.getElementById('other');
 const statusEl = document.getElementById('status');
 const fan = document.getElementById('fan');
 const landed = document.getElementById('landed');
@@ -77,14 +76,10 @@ function setBadge(n) {
   pulse();
 }
 
-// ---- Platforms --------------------------------------------------------------------------------
-// { id, mark, badge, other } (lib/sites discState): the disc wears the focused platform's mark
-// and count; the other platform, if any, is the satellite at the disc's foot, and clicking it
-// brings it into focus.
+// ---- The mark ---------------------------------------------------------------------------------
+// { id, mark, badge } (lib/sites discState): the disc wears Messenger's mark and count.
 const markSrc = (file) => '../../assets/' + file;
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
-let otherPlatform = null;
-const marks = {}; // platform id -> mark file, from the platform push
 let swapTimer = null;
 function setMark(file) {
   const src = markSrc(file);
@@ -104,43 +99,11 @@ function setMark(file) {
 }
 function setPlatform(state) {
   if (!state) return;
-  marks[state.id] = state.mark;
-  if (state.other) marks[state.other.id] = state.other.mark;
   setMark(state.mark);
   platformLabel = state.label || platformLabel;
   setBadge(state.badge || 0);
-  otherPlatform = state.other || null;
-  body.classList.toggle('has-other', Boolean(otherPlatform));
-  body.classList.toggle('other-unread', Boolean(otherPlatform && otherPlatform.count > 0));
-  if (otherPlatform) {
-    other.querySelector('img').src = markSrc(otherPlatform.mark);
-    other.querySelector('.n').textContent = countText(otherPlatform.count);
-    other.title = 'Switch to ' + otherPlatform.label;
-    // The count is drawn in the satellite; a reader hears it in the name.
-    other.setAttribute(
-      'aria-label',
-      other.title +
-        (otherPlatform.count > 0 ? ', ' + countText(otherPlatform.count) + ' unread' : ''),
-    );
-  }
 }
 window.bubbleApi.onPlatform(setPlatform);
-// The satellite lives inside the disc: its press must not start a drag, and its release must
-// not count as a disc click. Hovering it says what it does in the status chip.
-other.addEventListener('mousedown', (e) => e.stopPropagation());
-other.addEventListener('click', (e) => {
-  e.stopPropagation();
-  if (otherPlatform) window.bubbleApi.switchPlatform(otherPlatform.id);
-});
-other.addEventListener('mouseenter', () => {
-  if (!otherPlatform) return;
-  statusEl.textContent = 'Switch to ' + otherPlatform.label;
-  body.classList.add('switching');
-});
-other.addEventListener('mouseleave', () => {
-  body.classList.remove('switching');
-  setStatus(lastStatus);
-});
 
 // The pulsing count (a setting): the pill dims and brightens every 1.2 s while it shows.
 let pulseTimer = null;
@@ -404,9 +367,7 @@ window.bubbleApi.onLanded((item) => {
   if (replying() || sending) return; // don't yank a reply out from under the user
   landedHref = item.href || null;
   fillAvatar(landedAv, item);
-  // Which platform the message is from, on the avatar (shown only with two platforms on).
-  if (otherPlatform && marks[item.platform]) landedMark.src = markSrc(marks[item.platform]);
-  else landedMark.removeAttribute('src');
+  landedMark.removeAttribute('src');
   landedAv.appendChild(landedMark);
   landedName.textContent = item.name;
   landedSub.textContent = item.preview || 'New message';

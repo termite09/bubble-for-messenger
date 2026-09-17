@@ -3,7 +3,7 @@ const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
 const { spanText, listAtTop } = require('../src/lib/recent');
-const { readRows, readRowsInstagram } = require('../src/lib/rows');
+const { readRows } = require('../src/lib/rows');
 
 const preload = fs.readFileSync(
   path.join(__dirname, '..', 'src', 'renderer', 'panel-preload.js'),
@@ -12,11 +12,14 @@ const preload = fs.readFileSync(
 
 // The preload runs sandboxed and cannot require the reader, so it carries a copy; the copy
 // must be the original, character for character.
-test('the panel preload carries both row readers verbatim and picks by host', () => {
-  for (const fn of [spanText, listAtTop, readRows, readRowsInstagram])
+test('the panel preload carries the row reader verbatim', () => {
+  for (const fn of [spanText, listAtTop, readRows])
     assert.ok(preload.includes(fn.toString()), `${fn.name} differs from lib`);
-  assert.match(preload, /location\.hostname/);
-  assert.match(preload, /\? readRowsInstagram : readRows/);
+});
+
+// Instagram was removed in v3.0.0: the preload reads Messenger's list and nothing else.
+test('the panel preload has no Instagram reader', () => {
+  assert.equal(/instagram/i.test(preload), false);
 });
 
 // Inert toward the page: it must never expose anything to messenger.com or evaluate strings.

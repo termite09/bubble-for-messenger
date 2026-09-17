@@ -1,13 +1,21 @@
 # Bubble for Messenger
 
-Facebook Messenger — and, optionally, Instagram messages — as a floating chat head for macOS,
-with a Windows 11 build in beta. A small always-on-top bubble shows your unread count, fans out
-your recent chats, and opens any of them in a compact panel beside it. No dock icon, no browser
-tab.
+Facebook Messenger as a floating chat head for macOS, with a Windows 11 build in beta. A small
+always-on-top bubble shows your unread count, fans out your recent chats, and opens any of them
+in a compact panel beside it. No dock icon, no browser tab.
 
 <img src="assets/icon.png" width="128" alt="Bubble for Messenger">
 
 An unofficial wrapper around messenger.com, not affiliated with Meta.
+
+> **Read this before installing.** Bubble reads messenger.com's page to build the bubble, the
+> chat heads and the banners. Meta's Terms of Service prohibit accessing their products by
+> automated means without permission — explicitly including while signed in to your own
+> account — so using this app breaks those terms, and Meta could restrict or disable an account
+> for it. No release of this app can change that. What the app does do is avoid the behaviour
+> most likely to get an account flagged; what it costs, and what risk is left, is written up in
+> [docs/COMPLIANCE-PLAN.md](docs/COMPLIANCE-PLAN.md). Enable two-factor authentication, and
+> decide with that in view.
 
 ## Install
 
@@ -73,14 +81,11 @@ please [open an issue](https://github.com/termite09/bubble-for-messenger/issues)
   unread), with an Inbox head last. Pick one and it opens in a compact panel beside the stack.
   With something unread, a click opens the newest message directly. Click anywhere else to put
   it all away.
-- **Hover a head** for its name; the pin badge pins it to the top of the stack (up to five per
-  platform). Chats can also be pinned from a row in the Inbox.
+- **Hover a head** for its name; the pin badge pins it to the top of the stack (up to five).
+  Chats can also be pinned from a row in the Inbox.
 - **Right-click the bubble** for *Open Messenger*, *Reload Messenger*, *Update to…* (when a
   newer release exists), *Settings…*, *Reset Bubble Position* and *Quit* — or drag the bubble
   onto the ✕ target at the bottom of the screen and hold it there to quit.
-- **Instagram** (a setting, off by default): Instagram's inbox loads beside Messenger's and the
-  bubble carries one platform at a time; the other rides at its foot as a small satellite with
-  its unread count. Click it to switch. Banners land from both.
 - The bubble's mark dims when Messenger is unreachable and shows *Sign in* when nobody is
   signed in. Messenger stays loaded in the background, so messages keep arriving.
 
@@ -90,7 +95,7 @@ Right-click the bubble → **Settings…** (`Cmd+,` / `Ctrl+,`). Every change ap
 
 | Tab | Settings |
 |-----|----------|
-| **Bubble** | Show over full-screen apps · Start at login · Instagram messages · Glass · Check for updates · Size |
+| **Bubble** | Show over full-screen apps · Start at login · Glass · Check for updates · Size |
 | **Notifications** | Banner when a message lands · Show the message in the banner · Reply from the banner · macOS notifications from Messenger · Unread count (off / steady / pulsing) · New-message sound |
 | **Panel** | Appearance · Spell check · Reopen the last chat · Block Facebook telemetry |
 
@@ -98,13 +103,14 @@ A few need a word:
 
 - *Show over full-screen apps* off also keeps the bubble on one desktop; macOS allows one or
   the other.
-- *Instagram messages* keeps a second web page loaded in the background (a few hundred MB).
 - *Check for updates* asks GitHub once a day and shows a menu item; nothing is downloaded on
   its own.
 - *New-message sound* is Messenger's own switch (Preferences → Notification sounds); the
   **Open** button takes you there. It sounds only while the bubble is put away.
 - *Block Facebook telemetry* cancels Facebook's logging beacons and nothing Messenger needs.
-  On by default.
+  **Off by default.** It is the part of this app that most clearly interferes with Messenger's
+  intended operation, and a session that messages all day while sending no client logs at all
+  does not look like any real browser. Turn it on knowing that.
 
 ## Keyboard
 
@@ -140,7 +146,7 @@ touching their data.
 
 ```
 src/main/       Electron main process: app lifecycle, the bubble and panel windows,
-                the scripts run inside messenger.com and instagram.com
+                the scripts run inside messenger.com
 src/renderer/   the pages inside the bubble, settings and dismiss windows; tokens.css is
                 the palette, written once
 src/lib/        pure helpers (layout, sites, unread, links, settings, reply…), covered by test/
@@ -162,11 +168,14 @@ a `HOMEBREW_TAP_TOKEN` secret (a fine-grained token with *Contents: Read and wri
 **Does it support voice and video calls?** Everything messenger.com supports works; the panel
 *is* messenger.com.
 
-**Messenger is in another language and some things don't work.** The app finds Messenger's and
-Instagram's controls by their English labels. Set the site's language to English.
+**Messenger is in another language and some things don't work.** The app finds Messenger's
+controls by their English labels. Set the site's language to English.
 
-**Instagram shows its phone layout.** By design: at the panel's width Instagram's desktop site
-collapses its inbox to an avatar rail, so the panel loads the mobile web app instead.
+**What happened to Instagram messages?** Removed in 3.0.0. Reaching Instagram's usable inbox
+needed a phone user agent sent from a desktop, and its inbox could only be driven with
+synthetic clicks — together, a session Instagram flags as automated. It was not fixable
+without making the app better at hiding rather than better behaved, so it is gone. See
+[docs/COMPLIANCE-PLAN.md](docs/COMPLIANCE-PLAN.md).
 
 **`brew upgrade` never offers Bubble.** The tap isn't trusted (installs from before Homebrew 6
 have no trust entry). Run `brew trust termite09/tap` once, or upgrade by the full cask name.
@@ -185,8 +194,8 @@ or cookies.
 
 Forked from [stefanminch/messenger-mac](https://github.com/stefanminch/messenger-mac), which
 wraps messenger.com in a normal window. This fork replaced the window with the bubble, added
-Instagram, the settings card and the update check, hardened the app (sandboxed renderers,
-navigation kept on Meta's hosts, login-only cookies, a strict CSP), and removed the original's
+the settings card and the update check, hardened the app (sandboxed renderers, navigation kept
+on Meta's hosts, device-cookie-only persistence, a strict CSP), and removed the original's
 usage ping.
 
 MIT — see [LICENSE](LICENSE). The upstream copyright notice (Stefan Minch) is kept alongside

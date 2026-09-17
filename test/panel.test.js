@@ -156,107 +156,42 @@ test('a failure mid-body does not swallow the next successful load', () => {
   assert.equal(panel.liveness().failLoadAt, null); // …and its finish counts as a load
 });
 
-const { INSTAGRAM } = require('../src/lib/sites');
+const { MESSENGER } = require('../src/lib/sites');
 
-const makeInstagramPanel = () => {
-  const opened = [];
-  electron.shell.openExternal = async (u) => {
-    opened.push(u);
-  };
-  const panel = createPanel({ site: INSTAGRAM, onUnread() {} });
-  const win = electron.windows[electron.windows.length - 1];
-  return { panel, win, opened };
-};
-
-// The Instagram panel loads Instagram's mobile web app (a phone user agent, set before the
-// load) at its inbox, painted in Instagram's own wash.
-test('an Instagram panel loads the inbox as a phone, in its own wash', () => {
-  const { win } = makeInstagramPanel();
-  assert.equal(win.loaded, INSTAGRAM.home);
-  assert.equal(win.webContents.userAgent, INSTAGRAM.userAgent);
-  assert.equal(win.opts.backgroundColor, '#0c1014'); // the stub's nativeTheme is dark
-  assert.ok(win.opts.webPreferences.preload.endsWith('panel-preload.js'));
-});
-
-test('the Instagram panel keeps instagram.com and its login, sends the rest out, and returns to the inbox', () => {
-  const { win, opened } = makeInstagramPanel();
-  assert.equal(nav(win, 'will-navigate', 'https://www.instagram.com/direct/t/1/'), false);
-  assert.equal(nav(win, 'will-navigate', 'https://www.instagram.com/accounts/login/'), false);
-  assert.equal(nav(win, 'will-navigate', 'https://www.facebook.com/login.php'), false);
-  assert.equal(nav(win, 'will-navigate', 'https://www.messenger.com/t/1/'), true);
-  assert.equal(
-    nav(win, 'will-redirect', 'https://l.instagram.com/?u=https%3A%2F%2Fexample.com%2Fa'),
-    true,
-  );
-  assert.deepEqual(opened, ['https://www.messenger.com/t/1/', 'https://example.com/a']);
-  // A landing off the site, or on a part of it that is not messaging, goes back to the inbox.
-  win.loaded = null;
-  win.webContents.emit('did-navigate', {}, 'https://evil.example/landed');
-  assert.equal(win.loaded, INSTAGRAM.home);
-  win.loaded = null;
-  win.webContents.emit('did-navigate', {}, 'https://www.instagram.com/explore/');
-  assert.equal(win.loaded, INSTAGRAM.home);
-  // Instagram navigates in-page (pushState): the feed behind its inbox header's Back is one.
-  win.loaded = null;
-  win.webContents.emit('did-navigate-in-page', {}, 'https://www.instagram.com/', true);
-  assert.equal(win.loaded, INSTAGRAM.home);
-  win.loaded = null;
-  win.webContents.emit('did-navigate-in-page', {}, 'https://www.instagram.com/direct/t/2/', true);
-  assert.equal(win.loaded, null);
+// The panel sends no substituted user agent: it is honestly an Electron client and says so.
+// Hiding that would be evasion, not compliance — see docs/COMPLIANCE-PLAN.md.
+test('the panel sends no user agent override, and paints the site wash', () => {
+  const { win } = makePanel();
+  assert.equal(win.webContents.userAgent, undefined);
+  assert.equal(win.opts.backgroundColor, '#1a1a1a'); // the stub's nativeTheme is dark
 });
 
 test('destroy() closes a panel for good, close-guard notwithstanding', () => {
-  const { panel, win } = makeInstagramPanel();
+  const { panel, win } = makePanel();
   panel.destroy();
   assert.equal(win.destroyed, true);
 });
 
-const { MESSENGER } = require('../src/lib/sites');
-
-// Two panels share one session, and a session keeps one webRequest listener per event: the
-// panels' liveness watches must share it, each hearing only its own site's traffic.
-test('two panels on one session each hear their own site’s sockets', () => {
+// A session keeps one webRequest listener per event, so the panel's liveness watch must hear
+// only Messenger's own traffic through it.
+test('the panel hears its own sockets through the shared watch', () => {
   electron.shell.openExternal = async () => {};
-  const statuses = { messenger: [], instagram: [] };
-  const messenger = createPanel({
-    site: MESSENGER,
-    onUnread() {},
-    onStatus: (s) => statuses.messenger.push(s.connection),
-  });
-  const instagram = createPanel({
-    site: INSTAGRAM,
-    onUnread() {},
-    onStatus: (s) => statuses.instagram.push(s.connection),
-  });
+  const messenger = createPanel({ site: MESSENGER, onUnread() {}, onStatus() {} });
   const { webRequest } = electron.windows[electron.windows.length - 1].webContents.session;
-  webRequest.errored.fn({
-    url: 'wss://gateway.instagram.com/ws/lightspeed',
-    resourceType: 'webSocket',
-  });
-  assert.equal(instagram.status().connection, 'reconnecting');
-  assert.notEqual(messenger.status().connection, 'reconnecting'); // nothing reached it yet
   webRequest.errored.fn({ url: 'wss://edge-chat.messenger.com/chat?x', resourceType: 'webSocket' });
   assert.equal(messenger.status().connection, 'reconnecting');
   webRequest.completed.fn({
     url: 'wss://edge-chat.messenger.com/chat?x',
     resourceType: 'webSocket',
   });
-  assert.notEqual(messenger.status().connection, 'reconnecting'); // nothing reached it yet
-  assert.equal(instagram.status().connection, 'reconnecting');
-  // A destroyed panel drops out of the shared watch; the other keeps hearing.
-  instagram.destroy();
-  webRequest.completed.fn({
-    url: 'wss://gateway.instagram.com/ws/lightspeed',
-    resourceType: 'webSocket',
-  });
-  assert.equal(instagram.status().connection, 'reconnecting');
+  assert.notEqual(messenger.status().connection, 'reconnecting');
   messenger.destroy();
 });
 
 test('a destroyed panel stops listening to the theme, power and its own timers', () => {
   electron.shell.openExternal = async () => {};
   const before = electron.nativeTheme.listenerCount('updated');
-  const panel = createPanel({ site: INSTAGRAM, onUnread() {} });
+  const panel = createPanel({ site: MESSENGER, onUnread() {} });
   panel.destroy();
   electron.nativeTheme.emit('updated'); // would throw on the destroyed window if still wired
   electron.powerMonitor.emit('resume');
@@ -267,12 +202,12 @@ test('a destroyed panel stops listening to the theme, power and its own timers',
 test('the pin button reports presses and is told its state', () => {
   electron.shell.openExternal = async () => {};
   const presses = [];
-  const panel = createPanel({ site: INSTAGRAM, onUnread() {}, onPin: (row) => presses.push(row) });
+  const panel = createPanel({ site: MESSENGER, onUnread() {}, onPin: (row) => presses.push(row) });
   const win = electron.windows[electron.windows.length - 1];
-  electron.ipcMain.emit(CHANNELS.PANEL_PIN, from(win), { href: '/direct/n/A/', name: 'A' }); // a row's
-  electron.ipcMain.emit(CHANNELS.PANEL_PIN, { sender: {} }, { href: '/direct/n/B/' }); // another page: ignored
-  assert.deepEqual(presses, [{ href: '/direct/n/A/', name: 'A' }]);
-  panel.setPinState({ pins: ['/direct/n/A/'] });
+  electron.ipcMain.emit(CHANNELS.PANEL_PIN, from(win), { href: '/t/1/', name: 'A' }); // a row's
+  electron.ipcMain.emit(CHANNELS.PANEL_PIN, { sender: {} }, { href: '/t/2/' }); // another page: ignored
+  assert.deepEqual(presses, [{ href: '/t/1/', name: 'A' }]);
+  panel.setPinState({ pins: ['/t/1/'] });
   const sent = win.webContents.sent.filter(([c]) => c === CHANNELS.PANEL_PIN_STATE).pop();
-  assert.deepEqual(sent[1], { pins: ['/direct/n/A/'] });
+  assert.deepEqual(sent[1], { pins: ['/t/1/'] });
 });

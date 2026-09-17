@@ -1,8 +1,8 @@
-// The panel's preload: watches the chat list — Messenger's or Instagram's, by host — and
-// reports its rows to main whenever they change, so main need not poll the page. Sandboxed,
-// and deliberately inert toward the page: no contextBridge, nothing written to window, nothing
-// evaluated. The reader functions are verbatim copies of lib/recent.js spanText, listAtTop and
-// lib/rows.js readRows / readRowsInstagram (a sandboxed preload cannot require them);
+// The panel's preload: watches Messenger's chat list and reports its rows to main whenever
+// they change, so main need not poll the page. Sandboxed, and deliberately inert toward the
+// page: no contextBridge, nothing written to window, nothing evaluated. The reader functions
+// are verbatim copies of lib/recent.js spanText, listAtTop and lib/rows.js readRows (a
+// sandboxed preload cannot require them);
 // test/panel-preload.test.js holds them to the originals. Channel names: lib/ipc.js.
 const { ipcRenderer } = require('electron');
 
@@ -67,44 +67,6 @@ function readRows(limit, spanText, listAtTop) {
   return out;
 }
 
-function readRowsInstagram(limit, spanText, listAtTop) {
-  const out = [];
-  for (const row of document.querySelectorAll('[role="button"]')) {
-    const nameEl = row.querySelector('span[title]');
-    const timeEl = row.querySelector('abbr');
-    if (!nameEl || !timeEl) continue; // the header's buttons, the notes tray
-    if (!out.length && !listAtTop(row, document.body)) return null;
-    const name = nameEl.getAttribute('title') || '';
-    const time = spanText(timeEl).trim();
-    const img = row.querySelector('img');
-    // Unread rows are bold; the name span decides, and only it is measured.
-    const unread = parseInt(getComputedStyle(nameEl).fontWeight, 10) >= 600;
-    // The preview is the first innermost span (emoji <img>s inside are fine) that is not the
-    // name, the separator or the time.
-    const texts = [...row.querySelectorAll('span')]
-      .filter((s) => !s.querySelector('span'))
-      .map((s) => spanText(s).trim())
-      .filter(Boolean);
-    const preview = texts.find((t) => t !== name && t !== '·' && t !== time) || '';
-    const handle = encodeURIComponent(name).replace(
-      /[!'()*]/g,
-      (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase(),
-    );
-    out.push({
-      href: '/direct/n/' + handle + '/',
-      name,
-      avatarUrl: img ? img.src : null,
-      unread,
-      preview,
-      time,
-    });
-    if (out.length === limit) break;
-  }
-  return out;
-}
-
-const reader = /(^|\.)instagram\.com$/.test(location.hostname) ? readRowsInstagram : readRows;
-
 let lastKey = '';
 let timer = null;
 let observed = null;
@@ -115,7 +77,7 @@ function report() {
   timer = null;
   let rows;
   try {
-    rows = reader(LIMIT, spanText, listAtTop);
+    rows = readRows(LIMIT, spanText, listAtTop);
   } catch (e) {
     return;
   }
@@ -144,8 +106,7 @@ function observe(target) {
   });
   observed = target;
 }
-// Messenger's list is a [role="grid"]; Instagram's rows have no such container, so its
-// document stays under watch (the debounce keeps that cheap).
+// Messenger's list is a [role="grid"]: narrow to it once there is one.
 function narrow() {
   const row = document.querySelector('[role="row"]');
   const list = row && row.closest('[role="grid"]');
@@ -163,7 +124,7 @@ ipcRenderer.on('panel:read', () => {
 // page's scripts never see a bridge): at the foot of an inbox row's picture while the pointer
 // is on the row — the left, clear of the row's own controls on the right — so a chat can be
 // pinned without opening it. Main says which chats are pinned. Paper when pinned, graphite
-// otherwise — the stack's pin badge, at 28px. Same on Messenger and Instagram. The colours
+// otherwise — the stack's pin badge, at 28px. The colours
 // are renderer/tokens.css's, as literals (sandboxed, see above); test/tokens.test.js holds
 // them to the file.
 const PIN_ID = 'mb-pin';
@@ -181,26 +142,13 @@ let hoverRow = null; // the inbox row under the pointer, if any
 
 // The inbox row an element is in, and what the row says about its chat — the same shape the
 // list readers above produce, so a row that is not among the recent five can still be pinned.
-const instagram = reader === readRowsInstagram;
 function rowAt(node) {
   if (!node || !node.closest) return null;
-  if (instagram) {
-    const row = node.closest('[role="button"]');
-    return row && row.querySelector('span[title]') && row.querySelector('abbr') ? row : null;
-  }
   const row = node.closest('[role="row"]');
   return row && row.querySelector('a[role="link"][href*="/t/"]') ? row : null;
 }
 function rowInfo(row) {
   const img = row.querySelector('img');
-  if (instagram) {
-    const name = row.querySelector('span[title]').getAttribute('title') || '';
-    const handle = encodeURIComponent(name).replace(
-      /[!'()*]/g,
-      (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase(),
-    );
-    return { href: '/direct/n/' + handle + '/', name, avatarUrl: img ? img.src : null };
-  }
   const link = row.querySelector('a[role="link"][href*="/t/"]');
   const span = row.querySelector('span[dir="auto"]');
   return {

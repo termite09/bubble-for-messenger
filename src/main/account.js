@@ -1,11 +1,9 @@
-// One platform, live: its panel (a hidden window on the site's inbox), the chat state
-// (lib/chats), what the page last said about unread and reachability, and the reads that keep
-// them fresh. main.js composes one of these per platform with the bubble; every event here
-// fires whether or not the account is the focused one, and every item it hands out carries
-// `platform` so the bubble can say where it came from.
+// Messenger, live: its panel (a hidden window on the inbox), the chat state (lib/chats),
+// what the page last said about unread and reachability, and the reads that keep them fresh.
+// main.js composes one of these with the bubble.
 const { createPanel: createRealPanel } = require('./panel');
 const { fetchAvatar: fetchRealAvatar } = require('./avatars');
-const { mergeHeads, platformOfHref, handleName } = require('../lib/recent');
+const { mergeHeads, platformOfHref } = require('../lib/recent');
 const chatsLib = require('../lib/chats');
 
 function createAccount({
@@ -32,10 +30,6 @@ function createAccount({
   // The chat the panel is showing while the user works in it — one reached by searching the
   // inbox is not in the list, and still deserves a head (with the ring) and a pin.
   let showing = null;
-  // Instagram chats are handled by name; the thread path each was found at is remembered so
-  // a chat that has left the list can still be opened (and kept on its pin, across restarts).
-  const learned = new Map();
-
   const panel = createPanel({
     site,
     log,
@@ -54,7 +48,6 @@ function createAccount({
     onShown,
     onBlurred: () => {
       close();
-      park();
       onBlurred();
     },
     onHidden,
@@ -81,18 +74,12 @@ function createAccount({
     const next = await panel.readShowing().catch(() => null);
     const before = showing;
     showing = next;
-    if (next && next.threadHref) learn(next.href, next.threadHref);
     const href = next ? next.href : null;
     const changed = (before && before.href) !== href;
     if (href && chats.activeHref !== href) chats = chatsLib.openChat(chats, href);
     syncPin();
     if (changed) onChanged({ displayChanged: false });
   }
-
-  // A site whose list only updates in front is parked on its inbox while put away.
-  const park = () => {
-    if (site.parkOnHide) panel.park();
-  };
 
   const stamp = (item) => ({ ...item, platform: site.id });
   const ownPins = () => settings().pins.filter((p) => platformOfHref(p.href) === site.id);
@@ -154,20 +141,6 @@ function createAccount({
     if (changed) patchPins([...otherPins(), ...pins]);
   }
 
-  // Where a chat handled by name was last found: learned this session, or saved on its pin.
-  const threadHrefOf = (href) => {
-    if (learned.has(href)) return learned.get(href);
-    const pin = ownPins().find((p) => p.href === href);
-    return (pin && pin.threadHref) || null;
-  };
-  function learn(href, landed) {
-    if (typeof landed !== 'string' || !handleName(href) || learned.get(href) === landed) return;
-    learned.set(href, landed);
-    const pins = settings().pins;
-    if (pins.some((p) => p.href === href && p.threadHref !== landed))
-      patchPins(pins.map((p) => (p.href === href ? { ...p, threadHref: landed } : p)));
-  }
-
   // The stack: recent chats and pinned ones (lib/recent mergeHeads), each with its picture. A
   // pinned chat missing from the list gets its picture from the URL saved when it was pinned.
   async function stackItems() {
@@ -192,7 +165,6 @@ function createAccount({
     unread: () => unread,
     status: () => status,
     landed: () => landed,
-    threadHrefOf,
     syncPin,
     // What is known about a chat that can be pinned: its list row, or the chat showing.
     rowFor: (href) =>
@@ -205,9 +177,7 @@ function createAccount({
     // Open a conversation beside `bounds` (the head column, or the disc).
     async open(href, bounds) {
       chats = chatsLib.openChat(chats, href);
-      const landed = await panel.openThread(href, bounds, { threadHref: threadHrefOf(href) });
-      learn(href, landed);
-      return landed;
+      return panel.openThread(href, bounds);
     },
     openInbox(bounds) {
       chats = chatsLib.openChat(chats, null);
@@ -218,15 +188,12 @@ function createAccount({
       return panel.openPreferences(bounds);
     },
     async reply(href, text) {
-      const ok = await panel.sendReply(href, text, { threadHref: threadHrefOf(href) });
-      if (!panel.isVisible()) park();
-      return ok;
+      return panel.sendReply(href, text);
     },
     // A disc click with nothing open: the remembered chat, or the stack.
     discClick: (now, seconds) => chatsLib.discClick(chats, now, seconds),
     hide() {
       panel.hide();
-      park();
     },
     destroy: () => panel.destroy(),
   };

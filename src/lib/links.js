@@ -1,5 +1,5 @@
-const REDIRECT_HOSTS = ['l.messenger.com', 'l.facebook.com', 'lm.facebook.com', 'l.instagram.com'];
-const META_DOMAINS = ['messenger.com', 'facebook.com', 'instagram.com'];
+const REDIRECT_HOSTS = ['l.messenger.com', 'l.facebook.com', 'lm.facebook.com'];
+const META_DOMAINS = ['messenger.com', 'facebook.com'];
 
 function parseUrl(url) {
   try {
@@ -36,7 +36,7 @@ const isMetaHost = (host) =>
   typeof host === 'string' &&
   META_DOMAINS.some((d) => onDomain(host.toLowerCase().replace(/^\./, ''), d));
 
-// Pages on the panel's own site (`domain`: messenger.com or instagram.com) stay in the panel;
+// Pages on the panel's own site (`domain`: messenger.com) stay in the panel;
 // everything else (incl. the l.* link-shims) is external.
 function isInternal(url, domain = 'messenger.com') {
   const u = parseUrl(url);

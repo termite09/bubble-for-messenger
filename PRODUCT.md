@@ -56,11 +56,11 @@ ornament.
   only "Open Messenger") are part of the product.
 - Own profile dir (`~/Library/Application Support/Bubble for Messenger`) so it can run beside the
   upstream MessengerApp.
-- Optionally a second hidden panel on instagram.com's *mobile* web app (a phone user agent: the
-  desktop site folds its thread list to an avatar rail at 420 px). Instagram's list carries no
-  thread ids, so its chats are handled by name; its list only updates while it is the view in
-  front, so a put-away Instagram panel is parked on its inbox. One platform is *in focus* at a
-  time; the other's unread rides on the disc as a satellite.
+- Messenger only. Instagram was carried alongside it until 3.0.0 and was removed: its usable
+  inbox needed a phone user agent sent from a desktop, and its rows could only be driven with
+  synthetic clicks, which together produce a session Instagram flags as automated. Keeping it
+  would have meant getting better at hiding rather than better behaved. See
+  docs/COMPLIANCE-PLAN.md.
 
 ## Capabilities and Constraints
 
@@ -74,7 +74,7 @@ ornament.
   in the stack; grows up when it fits, else down, leaving rows out rather than leaving the screen;
   stays open while a conversation is open so the next chat is one click away; a press
   anywhere outside it closes stack and panel. A disc click with something unread opens the
-  newest received message (either platform); a chat closed within the last 30 s (a setting)
+  newest received message; a chat closed within the last 30 s (a setting)
   reopens on the next click of the disc.
 - Panel: opens 8 px beyond the stack, an opaque window with the system's rounded corners and
   a hairline inside the edge, in the theme's wash; the open chat's head wears a ring.
@@ -87,16 +87,18 @@ ornament.
 - Settings (a 360-wide card on three tabs, as tall as the tab it shows, Cmd+,):
   over-full-screen, start at login, update check, bubble size, unread count; banner and its
   text, reply from the banner, Messenger's macOS notifications, where the message sound is
-  set; panel appearance, spell check, reopen-last-chat window, telemetry blocking. Applied at
-  once; saved atomically to `settings.json` (0600), which also holds the disc position and
-  the pinned chats.
-- Two platforms (Sept 2026): Messenger always, Instagram by a switch (off by default — a
-  second renderer, a few hundred MB). The focused platform's mark is on the disc and its count
-  in the blue pill; the other is a satellite pill at the disc's foot (its mark, its count in
-  blue; dimmed and count-less on hover when it has none); right-click → *Switch to…* too. Banners come from both, the avatar wearing the platform's mini-mark; a click switches
-  and opens, a reply sends without switching. Pins are five per platform.
-- Explicitly out of scope so far: pop-out to a full-size window, menu-bar tray icon, sender
-  avatar on the main bubble, more than two platforms, both platforms' chats in one stack.
+  set; panel appearance, spell check, reopen-last-chat window, telemetry blocking (off by
+  default). Applied at once; saved atomically to `settings.json` (0600), which also holds the
+  disc position and the pinned chats.
+- One platform: Messenger. Its mark is on the disc and its count in the blue pill. Pins are
+  five in all.
+- Account safety is a product constraint, not a footnote. The app must not behave in ways that
+  make a user's Messenger session look automated where that behaviour is not load-bearing for
+  a feature: no substituted user agent, no synthetic clicks where a real input event is what
+  actually happened, no metronomic polling, no overriding the site's own session scoping, and
+  telemetry blocking off unless the user asks for it.
+- Explicitly out of scope: pop-out to a full-size window, menu-bar tray icon, sender avatar on
+  the main bubble, any second platform.
 - Undecided: whether the app should ever show a first-run/onboarding hint (there is none; the
   bubble simply appears bottom-right).
 

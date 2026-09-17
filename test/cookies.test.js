@@ -8,7 +8,7 @@ const {
 } = require('../src/lib/cookies');
 
 const base = {
-  name: 'xs',
+  name: 'datr',
   value: 'v',
   domain: '.messenger.com',
   hostOnly: false,
@@ -19,11 +19,14 @@ const base = {
   sameSite: 'lax',
 };
 
-// Only the login pair (and Facebook's device cookies) are kept past the session, whenever the
-// site sets them as session cookies, and only on Meta's hosts.
-test('shouldPersistCookie: session login cookies from the site, nothing else', () => {
+// Only Facebook's device cookies are kept past the session, whenever the site sets them as
+// session cookies, and only on Meta's hosts. The auth pair is deliberately excluded: a session
+// scope on c_user/xs is the user declining "keep me logged in", and it is honoured.
+test('shouldPersistCookie: session device cookies from the site, nothing else', () => {
   assert.equal(shouldPersistCookie(base, 'explicit', false), true);
-  assert.equal(shouldPersistCookie({ ...base, name: 'c_user' }, 'explicit', false), true);
+  assert.equal(shouldPersistCookie({ ...base, name: 'sb' }, 'explicit', false), true);
+  assert.equal(shouldPersistCookie({ ...base, name: 'c_user' }, 'explicit', false), false); // the user's choice
+  assert.equal(shouldPersistCookie({ ...base, name: 'xs' }, 'explicit', false), false);
   assert.equal(shouldPersistCookie({ ...base, name: 'presence' }, 'explicit', false), false); // transient
   assert.equal(shouldPersistCookie({ ...base, name: 'wd' }, 'explicit', false), false);
   assert.equal(shouldPersistCookie({ ...base, session: false }, 'explicit', false), false); // already persistent (our own rewrite included)
@@ -32,7 +35,7 @@ test('shouldPersistCookie: session login cookies from the site, nothing else', (
   assert.equal(shouldPersistCookie(base, 'explicit', true), false); // a removal
   assert.equal(shouldPersistCookie({ ...base, domain: '.evil.com' }, 'explicit', false), false);
   assert.equal(shouldPersistCookie(null, 'explicit', false), false);
-  assert.deepEqual([...LOGIN_COOKIES].sort(), ['c_user', 'datr', 'fr', 'sb', 'xs']);
+  assert.deepEqual([...LOGIN_COOKIES].sort(), ['datr', 'fr', 'sb']);
 });
 
 test('persistentCookie: same attributes, 90-day expiry, host-only stays host-only', () => {
@@ -40,7 +43,7 @@ test('persistentCookie: same attributes, 90-day expiry, host-only stays host-onl
   const out = persistentCookie(base, now);
   assert.deepEqual(out, {
     url: 'https://messenger.com/',
-    name: 'xs',
+    name: 'datr',
     value: 'v',
     domain: '.messenger.com',
     path: '/',

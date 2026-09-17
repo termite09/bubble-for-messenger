@@ -11,8 +11,8 @@ function connectionState({ online, socketErrorAt }) {
 }
 
 // A signed-out session lands on a login or checkpoint page on Meta's own hosts: Messenger's
-// /login and /checkpoint, Instagram's /accounts/login (2FA under it) and /challenge.
-const SIGNED_OUT_PATH = /^\/(login|checkpoint|accounts\/login|challenge)(\/|\.php|$)/;
+// /login and /checkpoint.
+const SIGNED_OUT_PATH = /^\/(login|checkpoint)(\/|\.php|$)/;
 function signedOut(url) {
   try {
     const u = new URL(url);

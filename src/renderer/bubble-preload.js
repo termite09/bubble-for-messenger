@@ -9,7 +9,6 @@ contextBridge.exposeInMainWorld('bubbleApi', {
   openChat: (href) => ipcRenderer.send('bubble:open-chat', href),
   openInbox: () => ipcRenderer.send('bubble:open-inbox'),
   hit: (over) => ipcRenderer.send('bubble:hit', over),
-  switchPlatform: (id) => ipcRenderer.send('bubble:switch', id),
   onPlatform: (cb) => ipcRenderer.on('bubble:platform', (_event, state) => cb(state)),
   onFan: (cb) => ipcRenderer.on('bubble:fan', (_event, data) => cb(data)),
   onLayout: (cb) => ipcRenderer.on('bubble:layout', (_event, data) => cb(data)),

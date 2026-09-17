@@ -129,23 +129,17 @@ test('a size change zooms the page and keeps the disc on its edge', () => {
   assert.equal(win.getBounds().width, 250 * (68 / 44) + 2 * PAD * (68 / 44));
 });
 
-// Two platforms: the disc is told which mark and count to show and what the other platform's
-// satellite says.
-test('setPlatform reaches the page and the state handshake; a switch from the page is validated', async () => {
-  const switched = [];
-  const { bubble, win } = makeBubble({ onSwitch: (id) => switched.push(id) });
-  const state = {
-    id: 'messenger',
-    mark: 'icon.png',
-    badge: 3,
-    other: { id: 'instagram', label: 'Instagram', mark: 'instagram.svg', count: 2 },
-  };
+// The disc is told which mark and count to show.
+test('setPlatform reaches the page and the state handshake', async () => {
+  const { bubble, win } = makeBubble({});
+  const state = { id: 'messenger', label: 'Messenger', mark: 'icon.png', badge: 3 };
   bubble.setPlatform(state);
   assert.deepEqual(sentOn(win, CHANNELS.BUBBLE_PLATFORM).pop(), [state]);
   const handshake = await electron.ipcMain.handlers.get(CHANNELS.BUBBLE_STATE)(from(win));
   assert.deepEqual(handshake.platform, state);
-  electron.ipcMain.emit(CHANNELS.BUBBLE_SWITCH, from(win), 'instagram');
-  electron.ipcMain.emit(CHANNELS.BUBBLE_SWITCH, from(win), 'tiktok');
-  electron.ipcMain.emit(CHANNELS.BUBBLE_SWITCH, from(win), { id: 'instagram' });
-  assert.deepEqual(switched, ['instagram']);
+});
+
+// Instagram was removed in v3.0.0, and with it the satellite that switched between platforms.
+test('there is no platform-switch channel', () => {
+  assert.equal(CHANNELS.BUBBLE_SWITCH, undefined);
 });

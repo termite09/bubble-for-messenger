@@ -7,7 +7,7 @@ const { createDismissTarget } = require('./dismiss');
 const { createSettingsWindow } = require('./settings-window');
 const scrape = require('./scrape');
 const { LIMIT: RECENT_LIMIT, MAX_PINS, platformOfHref } = require('../lib/recent');
-const { MESSENGER, INSTAGRAM, discState } = require('../lib/sites');
+const { MESSENGER, discState } = require('../lib/sites');
 const { pickUnread } = require('../lib/chats');
 const { installedByHomebrew, HOMEBREW_UPGRADE, HOMEBREW_TRUST } = require('../lib/install');
 const { shouldPersistCookie, persistentCookie } = require('../lib/cookies');
@@ -25,7 +25,15 @@ const { createLog, hashHref } = require('./log');
 const { createSettingsStore } = require('./settings-store');
 const { createUpdateCheck } = require('./updates');
 
-const RECENT_POLL_MS = 60 * 1000; // a safety net: the panel's preload pushes rows as they change
+// A safety net only: the panel's preload watches the list and pushes rows as they change, so
+// this exists for the case where the observer misses a mutation. It used to run every 60s on
+// the dot — a metronome no person produces, and a needless read of a page nobody is looking
+// at. Now it is five minutes, jittered, so the reads carry no cadence. See
+// docs/COMPLIANCE-PLAN.md.
+const RECENT_POLL_MS = 5 * 60 * 1000;
+const POLL_JITTER = 0.25; // ±25%
+const nextPollDelay = () =>
+  Math.round(RECENT_POLL_MS * (1 + (Math.random() * 2 - 1) * POLL_JITTER));
 
 // Own profile folder, separate from the upstream MessengerApp so both can run side by side.
 // The folder was called MessengerBubble before the rename; move it once so logins carry over.
@@ -87,13 +95,11 @@ let dismiss;
 let settingsWindow;
 let updates = { latest: () => null, check: async () => null, due: () => false };
 
-// The platforms, live (main/account): Messenger always, Instagram by its setting. One is in
-// focus — its chats in the stack, its count on the disc; the other shows as a satellite.
-const accounts = {};
-let focused = 'messenger';
-const current = () => accounts[focused];
-const accountOf = (href) => accounts[platformOfHref(href)] || null;
-const eachAccount = (fn) => Object.values(accounts).forEach(fn);
+// Messenger, live (main/account): its chats in the stack, its count on the disc.
+let account = null;
+const current = () => account;
+const accountOf = (href) => (platformOfHref(href) ? account : null);
+const eachAccount = (fn) => (account ? fn(account) : undefined);
 
 // One setting changed on the page: the store normalises, saves and notifies; applySettings
 // runs from the subscription above. Only page-visible keys may come this way.
@@ -133,44 +139,24 @@ function applySettings(prev) {
   if (changed('theme')) nativeTheme.themeSource = settings.theme;
   if (changed('spellcheck')) session.defaultSession.setSpellCheckerEnabled(settings.spellcheck);
   if (changed('blockTelemetry')) blockTelemetry(settings.blockTelemetry);
-  if (prev && changed('instagram')) {
-    if (settings.instagram) addInstagram();
-    else removeInstagram();
-  }
-  // banner, bannerPreview, notifications, reopenLast, platform and pins are read where they matter.
+  // banner, bannerPreview, notifications, reopenLast and pins are read where they matter.
 }
 
-// The disc: the focused platform's mark and count, the other's satellite (lib/sites discState).
+// The disc: Messenger's mark and count (lib/sites discState).
 function disc() {
   const counts = {};
   eachAccount((a) => (counts[a.site.id] = { unread: a.unread() }));
-  return discState({ focused, accounts: counts, badge: settings.badge });
+  return discState({ accounts: counts, badge: settings.badge });
 }
 function pushDisc() {
   if (bubble) bubble.setPlatform(disc());
 }
-const otherPlatform = () => disc().other;
 
 // The open conversation's head reads as active in the stack.
 const syncActive = () => bubble && bubble.setActive(current().chats().activeHref);
 
-// Bring a platform into focus: its chats in the stack, its count on the disc, its status on
-// the mark. The other platform's panel goes away (its blur handler remembers its open chat).
-function setFocus(id) {
-  if (!accounts[id] || id === focused) return;
-  current().hide();
-  focused = id;
-  store.patch({ platform: id });
-  pushDisc();
-  bubble.setStatus(current().status());
-  syncActive();
-  if (bubble.isExpanded()) showStack(false);
-  refreshMenu();
-  log.info('platform focused', { platform: id });
-}
-
 function createPlatform(site) {
-  const account = createAccount({
+  const made = createAccount({
     site,
     log,
     overFullscreen: settings.overFullscreen,
@@ -178,15 +164,14 @@ function createPlatform(site) {
     patchPins: (pins) => store.patch({ pins }),
     onUnread: () => pushDisc(),
     onStatus: (status) => {
-      if (bubble && site.id === focused) bubble.setStatus(status);
+      if (bubble) bubble.setStatus(status);
     },
-    // A message landed on either platform: the banner says which.
     onLanded: (item) => {
       if (!bubble || !settings.banner || bubble.isExpanded()) return;
       bubble.landed(settings.bannerPreview ? item : { ...item, preview: '' });
     },
     onChanged: ({ displayChanged }) => {
-      if (site.id !== focused || !bubble) return;
+      if (!bubble) return;
       refreshMenu();
       syncActive();
       if (displayChanged && bubble.isExpanded()) showStack(false);
@@ -203,7 +188,7 @@ function createPlatform(site) {
     // chat is remembered by the account, and the ring comes off its head.
     onBlurred: () => {
       if (bubble) bubble.collapse();
-      if (site.id === focused) syncActive();
+      syncActive();
       syncSound();
     },
     onHidden: () => {
@@ -213,43 +198,8 @@ function createPlatform(site) {
     // The panel's own pin button on a row of the inbox.
     onPin: (row) => togglePin(row.href, row),
   });
-  accounts[site.id] = account;
-  return account;
-}
-
-// Instagram switched on: its panel loads, and its login page opens beside the disc with a word
-// from the disc, as on first launch.
-function addInstagram() {
-  if (accounts.instagram) return;
-  const account = createPlatform(INSTAGRAM);
-  pushDisc();
-  refreshMenu();
-  account.panel.win.webContents.once('did-finish-load', () =>
-    setTimeout(() => {
-      if (!accounts.instagram || !bubble) return;
-      setFocus('instagram');
-      account.openInbox(bubble.getBounds());
-      bubble.landed({
-        href: null,
-        name: 'Instagram is here',
-        preview:
-          'Sign in beside me. Click the small mark on my foot, or the Instagram head in the stack, to switch between the two.',
-        avatar: null,
-        platform: 'instagram',
-        hold: 30000,
-      });
-    }, 500),
-  );
-}
-
-function removeInstagram() {
-  const account = accounts.instagram;
-  if (!account) return;
-  if (focused === 'instagram') setFocus('messenger');
-  delete accounts.instagram;
-  account.destroy();
-  pushDisc();
-  refreshMenu();
+  account = made;
+  return made;
 }
 
 async function showStack(animate = true) {
@@ -257,13 +207,12 @@ async function showStack(animate = true) {
   syncSound();
 }
 
-// Messenger (and Instagram) play their own sound when a message arrives. While the stack is
-// up or a panel is showing the user is looking at Bubble and sees the message land, so the
-// pages are muted; the sound is for when Bubble is put away. (Both pages: a message on the
-// platform out of focus would otherwise sound while the other one is open.)
+// Messenger plays its own sound when a message arrives. While the stack is up or the panel is
+// showing the user is looking at Bubble and sees the message land, so the page is muted; the
+// sound is for when Bubble is put away.
 function syncSound() {
   if (!bubble) return;
-  const quiet = bubble.isExpanded() || Object.values(accounts).some((a) => a.panel.isVisible());
+  const quiet = bubble.isExpanded() || (account && account.panel.isVisible());
   eachAccount((a) => a.panel.setMuted(quiet));
 }
 
@@ -273,27 +222,22 @@ function setPins(pins) {
   if (bubble.isExpanded()) showStack(false);
 }
 
-// Pin a chat, or unpin it. Up to MAX_PINS per platform; a chat that is neither in the list
-// nor showing in the panel cannot be pinned (nothing is known about it) — but any pinned one
-// can be unpinned.
-const pinsOf = (href) =>
-  settings.pins.filter((p) => platformOfHref(p.href) === platformOfHref(href));
+// Pin a chat, or unpin it. Up to MAX_PINS; a chat that is neither in the list nor showing in
+// the panel cannot be pinned (nothing is known about it) — but any pinned one can be unpinned.
+const pinsOf = () => settings.pins;
 function togglePin(href, known = null) {
   if (settings.pins.some((p) => p.href === href))
     return setPins(settings.pins.filter((p) => p.href !== href));
-  const account = accountOf(href);
-  const row = known || (account && account.rowFor(href));
-  if (!account || !row || pinsOf(href).length >= MAX_PINS) return;
-  const pin = { href, name: row.name, avatarUrl: row.avatarUrl };
-  const threadHref = account.threadHrefOf(href);
-  if (threadHref) pin.threadHref = threadHref;
-  setPins([...settings.pins, pin]);
+  const acct = accountOf(href);
+  const row = known || (acct && acct.rowFor(href));
+  if (!acct || !row || pinsOf().length >= MAX_PINS) return;
+  setPins([...settings.pins, { href, name: row.name, avatarUrl: row.avatarUrl }]);
 }
 
 // Right-click on a head: pin it, or unpin it.
 function headMenu(href) {
   const pinned = settings.pins.some((p) => p.href === href);
-  const full = pinsOf(href).length >= MAX_PINS;
+  const full = pinsOf().length >= MAX_PINS;
   Menu.buildFromTemplate([
     pinned
       ? { label: 'Unpin', click: () => togglePin(href) }
@@ -336,7 +280,7 @@ function restrictPermissions() {
 // registered while the setting is on.
 function blockTelemetry(on) {
   const filter = {
-    urls: ['*://*.facebook.com/*', '*://*.messenger.com/*', '*://*.instagram.com/*'],
+    urls: ['*://*.facebook.com/*', '*://*.messenger.com/*'],
   };
   session.defaultSession.webRequest.onBeforeRequest(
     filter,
@@ -344,16 +288,14 @@ function blockTelemetry(on) {
   );
 }
 
-// The compose button lives in Messenger's inbox view, so bring that up first. (Instagram's
-// inbox has its own; the panel simply opens there.)
+// The compose button lives in Messenger's inbox view, so bring that up first.
 async function newMessage() {
   if (!bubble) return;
-  const account = current();
+  const acct = current();
   await openInbox();
-  if (account.site.id !== 'messenger') return;
   scrape
     .run(
-      account.panel.win.webContents,
+      acct.panel.win.webContents,
       `(() => {
     const btn = document.querySelector('[aria-label="New message"]') ||
                 document.querySelector('[aria-label="Start a new message"]') ||
@@ -365,16 +307,14 @@ async function newMessage() {
     .catch((err) => log.debug('panel script failed', { err }));
 }
 
-// Open a conversation beside the stack, bringing the stack up if it isn't already — and its
-// platform into focus if it isn't. The stack must be up before the panel is placed: it is
-// placed beside the column, not the disc.
+// Open a conversation beside the stack, bringing the stack up if it isn't already. The stack
+// must be up before the panel is placed: it is placed beside the column, not the disc.
 async function openChat(href) {
-  const account = accountOf(href);
-  if (!account) return;
-  if (account.site.id !== focused) setFocus(account.site.id);
+  const acct = accountOf(href);
+  if (!acct) return;
   if (!bubble.isExpanded()) await showStack();
   bubble.setActive(href);
-  account.open(href, bubble.getStackBounds());
+  acct.open(href, bubble.getStackBounds());
 }
 
 // The inbox beside the stack, the same way a conversation opens: the stack comes up if it
@@ -399,24 +339,11 @@ function openSettings() {
 
 function bubbleContextMenu() {
   const update = updates.latest();
-  const other = otherPlatform();
-  const openItems = Object.values(accounts).flatMap((a) => [
-    {
-      label: `Open ${a.site.label}`,
-      click: () => {
-        setFocus(a.site.id);
-        openInbox();
-      },
-    },
-    { label: `Reload ${a.site.label}`, click: () => a.panel.reload() },
-  ]);
+  const openItems = [
+    { label: `Open ${account.site.label}`, click: () => openInbox() },
+    { label: `Reload ${account.site.label}`, click: () => account.panel.reload() },
+  ];
   Menu.buildFromTemplate([
-    ...(other
-      ? [
-          { label: `Switch to ${other.label}`, click: () => setFocus(other.id) },
-          { type: 'separator' },
-        ]
-      : []),
     ...openItems,
     { type: 'separator' },
     ...(update
@@ -447,12 +374,11 @@ async function offerUpdate(update) {
   else if (response === 1) shell.openExternal(update.url);
 }
 
-// The app menu; rebuilt when the focused platform's recent chats' names change, so Cmd+1–5
-// show who they open.
+// The app menu; rebuilt when the recent chats' names change, so Cmd+1–5 show who they open.
 let menuKey = '';
 function refreshMenu() {
   const recent = current() ? current().chats().recent : [];
-  const key = focused + '\n' + recent.map((r) => r.name).join('\n');
+  const key = recent.map((r) => r.name).join('\n');
   if (key === menuKey) return;
   menuKey = key;
   createMenu();
@@ -567,9 +493,13 @@ app.whenReady().then(() => {
   blockTelemetry(settings.blockTelemetry); // before the panels start loading
 
   createPlatform(MESSENGER);
-  if (settings.instagram) createPlatform(INSTAGRAM);
-  focused = accounts[settings.platform] ? settings.platform : 'messenger';
-  setInterval(() => eachAccount((a) => a.refresh()), RECENT_POLL_MS);
+  // Each tick schedules the next, so no two are the same distance apart.
+  (function scheduleRefresh() {
+    setTimeout(() => {
+      eachAccount((a) => a.refresh());
+      scheduleRefresh();
+    }, nextPollDelay());
+  })();
 
   dismiss = createDismissTarget({ overFullscreen: settings.overFullscreen });
 
@@ -578,15 +508,13 @@ app.whenReady().then(() => {
     dismiss,
     overFullscreen: settings.overFullscreen,
     size: BUBBLE_SIZES[settings.bubbleSize],
-    // A disc click opens the newest received message, on either platform — or, with nothing
-    // unread, brings the stack up (or, soon after a chat was put away by clicking elsewhere,
-    // that chat straight back).
+    // A disc click opens the newest received message — or, with nothing unread, brings the
+    // stack up (or, soon after a chat was put away by clicking elsewhere, that chat straight
+    // back).
     onClick: () => {
       // Signed out: the stack would be empty; the disc goes straight to the login page.
       if (current().status().signedOut) return openInbox();
-      const unread = {};
-      eachAccount((a) => (unread[a.site.id] = { recent: a.chats().recent, landed: a.landed() }));
-      const pick = pickUnread({ focused, accounts: unread });
+      const pick = pickUnread({ recent: current().chats().recent, landed: current().landed() });
       if (pick) return openChat(pick.href);
       const click = current().discClick(Date.now(), settings.reopenLast);
       if (click.action === 'reopen') openChat(click.href);
@@ -607,13 +535,11 @@ app.whenReady().then(() => {
     // one click away without fanning out again.
     onOpenChat: (href) => openChat(href),
     onOpenInbox: openInbox,
-    onSwitch: setFocus,
-    // A reply typed into the banner goes out through that platform's hidden page, whichever is
-    // in focus. If that fails, the conversation opens with whatever got as far as the composer,
-    // so nothing typed is lost.
+    // A reply typed into the banner goes out through the hidden page. If that fails, the
+    // conversation opens with whatever got as far as the composer, so nothing typed is lost.
     onReply: async (href, text) => {
-      const account = accountOf(href);
-      const ok = account ? await account.reply(href, text) : false;
+      const acct = accountOf(href);
+      const ok = acct ? await acct.reply(href, text) : false;
       if (!ok) log.warn('quick reply not delivered; opening the chat', { thread: hashHref(href) });
       bubble.replyResult(ok);
       if (!ok) openChat(href);
@@ -631,7 +557,6 @@ app.whenReady().then(() => {
     subscribe: (fn) => store.subscribe((s) => fn(s)),
     // Messenger's own switches (notification sounds among them) live in its Preferences.
     onOpenMessengerPreferences: () => {
-      setFocus('messenger');
       current().openPreferences(bubble.getBounds());
       syncActive();
     },
@@ -679,9 +604,9 @@ app.whenReady().then(() => {
       state: () => current().chats(),
       settings: () => settings,
       store,
-      accounts,
-      focused: () => focused,
-      setFocus,
+      get account() {
+        return account;
+      },
       get panel() {
         return current().panel;
       },

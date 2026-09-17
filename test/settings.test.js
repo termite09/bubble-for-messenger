@@ -24,11 +24,9 @@ test('defaults are what the spec says', () => {
     theme: 'system',
     glass: true,
     spellcheck: true,
-    blockTelemetry: true,
+    blockTelemetry: false, // opt-in; see docs/COMPLIANCE-PLAN.md
     reopenLast: 30,
     checkUpdates: true,
-    instagram: false,
-    platform: 'messenger',
   });
   assert.deepEqual(REOPEN_SECONDS, [0, 15, 30, 60, 300]);
   assert.deepEqual(THEMES, ['system', 'light', 'dark']);
@@ -151,35 +149,29 @@ test('pins are validated and capped, and absent means none', () => {
   assert.equal(isSettingKey('pins'), false);
 });
 
-// The focused platform is remembered, but only while Instagram is on: off, there is only
-// Messenger to focus. A pin carries the thread path an Instagram chat was learned to have.
-test('platform is one of the two and reads as messenger while instagram is off', () => {
-  assert.equal(normalizeSettings({ instagram: true, platform: 'instagram' }).platform, 'instagram');
-  assert.equal(
-    normalizeSettings({ instagram: false, platform: 'instagram' }).platform,
-    'messenger',
-  );
-  assert.equal(normalizeSettings({ instagram: true, platform: 'tiktok' }).platform, 'messenger');
-  assert.equal(isSettingKey('instagram'), true);
+// Instagram was removed in v3.0.0: its setting is gone, and a settings.json left over from an
+// older version must not resurrect it.
+test('the instagram and platform keys are no longer settings', () => {
+  assert.equal(isSettingKey('instagram'), false);
+  assert.equal(isSettingKey('platform'), false);
+  const out = normalizeSettings({ instagram: true, platform: 'instagram' });
+  assert.equal('instagram' in out, false);
+  assert.equal('platform' in out, false);
 });
 
-test('pins keep an Instagram thread path when it is a clean one', () => {
+// A pin left over from the Instagram build is not a Messenger thread path, so it is dropped.
+test('pins from the Instagram build are dropped, and the cap is five in all', () => {
   const out = normalizeSettings({
     pins: [
       { href: '/direct/n/primeweb/', name: 'primeweb', threadHref: '/direct/t/838117799114653/' },
-      { href: '/direct/n/racers/', name: 'racers', threadHref: '/direct/t/x/' },
       { href: '/t/1/', name: 'A' },
     ],
   });
-  assert.equal(out.pins[0].threadHref, '/direct/t/838117799114653/');
-  assert.equal(out.pins[1].threadHref, null);
-  assert.equal('threadHref' in out.pins[2], false); // Messenger pins are as they were
-});
-
-test('pins are capped at five per platform, not five in all', () => {
-  const messenger = [1, 2, 3, 4, 5, 6].map((i) => ({ href: `/t/${i}/`, name: 'M' + i }));
-  const instagram = [1, 2, 3, 4, 5, 6].map((i) => ({ href: `/direct/n/I${i}/`, name: 'I' + i }));
-  const pins = normalizeSettings({ pins: [...messenger, ...instagram] }).pins;
-  assert.equal(pins.filter((p) => p.href.startsWith('/t/')).length, 5);
-  assert.equal(pins.filter((p) => p.href.startsWith('/direct/')).length, 5);
+  assert.deepEqual(
+    out.pins.map((p) => p.href),
+    ['/t/1/'],
+  );
+  assert.equal('threadHref' in out.pins[0], false);
+  const many = [1, 2, 3, 4, 5, 6].map((i) => ({ href: `/t/${i}/`, name: 'M' + i }));
+  assert.equal(normalizeSettings({ pins: many }).pins.length, 5);
 });

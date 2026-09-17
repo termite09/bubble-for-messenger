@@ -1,5 +1,47 @@
 # Changelog
 
+## v3.0.0 (2026-09-17) — Bubble for Messenger
+
+Messenger only, and better behaved toward the account it signs into. The full reasoning, with
+sources, is in [docs/COMPLIANCE.md](docs/COMPLIANCE.md) and
+[docs/COMPLIANCE-PLAN.md](docs/COMPLIANCE-PLAN.md).
+
+### Removed
+- **Instagram messages, and everything that served them.** Reaching Instagram's usable inbox
+  needed a phone user agent sent from a desktop — an "iPhone" reporting a desktop GPU and no
+  touch support — and its rows, its Back control and its Send button could only be driven with
+  synthetic `.click()` events, which carry `isTrusted: false`. Together those are close to a
+  textbook automated-session signature, on the platform that enforces hardest against one.
+  Fixing it would have meant getting better at not being noticed rather than better behaved,
+  so the feature is gone: the second panel, the satellite on the disc, platform switching, the
+  name-handle chat identity, the Instagram row reader and the Instagram glyph.
+- An Instagram pin left in `settings.json` is dropped on load; the `instagram` and `platform`
+  settings no longer exist.
+
+### Changed
+- **Facebook telemetry blocking is off by default** (the switch stays). It is the part of this
+  app that most clearly interferes with Messenger's intended operation, and a session that
+  messages all day while emitting no client logs at all does not resemble a real browser —
+  including an ad-blocked one.
+- **The login cookies `c_user` and `xs` are no longer rewritten to a 90-day expiry.** Facebook
+  issues them as session cookies exactly when the user did not tick "keep me logged in"; the
+  app was reversing that choice silently. The device cookies `datr`, `sb` and `fr` are still
+  kept — a stable `datr` is how Facebook recognises a returning trusted device, which helps
+  the account. Users who declined a persistent login now sign in again after a restart, which
+  is what they asked for.
+- **The safety poll is five minutes and jittered**, not sixty seconds on the dot. The panel's
+  preload already watches the list and pushes rows as they change, so the timer is a net, not
+  the mechanism — and a metronome is a cadence no person produces.
+- The README now says plainly, above the install instructions, that this app breaks Meta's
+  Terms of Service and that an account can be restricted for it.
+
+### Kept, deliberately
+- **The panel still sends Electron's own user agent**, which names this app and Electron on
+  every request. Substituting a browser's string is the most effective single anti-detection
+  change available, and that is precisely why it is not in this release: it would hide what
+  the app is rather than make it compliant. Messenger's thread opens and replies continue to
+  use real Chromium input events, because a human genuinely clicked and typed.
+
 ## v2.7.1 (2026-09-17) — Bubble for Messenger
 
 ### Changed

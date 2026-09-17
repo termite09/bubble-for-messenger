@@ -231,8 +231,7 @@ async function openThread(wc, href) {
 // what the user would press — rather than a Send button, whose label is localised and shares
 // its wording with "Send a like" / "Send a voice clip".
 const COMPOSER = '[role="main"] [contenteditable="true"][role="textbox"]';
-// The page-side halves for a composer found by `selector` (Instagram's mobile page has no
-// [role="main"], so it brings its own). `href` is a validated thread path.
+// The page-side halves for a composer found by `selector`. `href` is a validated thread path.
 function makeReplyActions(selector) {
   const FIND_COMPOSER = `[...document.querySelectorAll(${JSON.stringify(selector)})].find((el) => {
   const r = el.getBoundingClientRect();

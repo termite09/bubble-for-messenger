@@ -1,39 +1,14 @@
 const LIMIT = 5;
-// A chat's handle, per platform. Messenger: its thread path (/t/<id>/ or /e2ee/t/<id>/).
-// Instagram: its thread path (/direct/t/<id>/) once known — the list never carries ids — and
-// its name before that, as /direct/n/<name>/ with the name encoded to RFC 3986's unreserved
-// set plus %, so a handle is safe to splice anywhere and is decoded only to be compared.
+// A chat's handle: its Messenger thread path (/t/<id>/ or /e2ee/t/<id>/). This is the only
+// thing we ever splice into a page-side selector or a URL, so anything else is refused at the
+// boundary.
 const THREAD_HREFS = Object.freeze({
   messenger: /^\/(e2ee\/)?t\/\d+\/?$/,
-  instagram: /^\/direct\/(t\/\d+|n\/[A-Za-z0-9%._~-]+)\/?$/,
 });
 
-// A clean handle — the only thing we ever splice into a page-side selector or a URL, so
-// anything else is refused at the boundary.
 const platformOfHref = (href) =>
-  typeof href === 'string'
-    ? Object.keys(THREAD_HREFS).find((id) => THREAD_HREFS[id].test(href)) || null
-    : null;
+  typeof href === 'string' && THREAD_HREFS.messenger.test(href) ? 'messenger' : null;
 const isThreadHref = (href) => platformOfHref(href) !== null;
-
-const NAME_HANDLE = /^\/direct\/n\/([A-Za-z0-9%._~-]+)\/?$/;
-const nameHandle = (name) =>
-  '/direct/n/' +
-  encodeURIComponent(name).replace(
-    /[!'()*]/g,
-    (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase(),
-  ) +
-  '/';
-// The name behind a name handle; null for any other handle or a malformed one.
-function handleName(href) {
-  const m = typeof href === 'string' && NAME_HANDLE.exec(href);
-  if (!m) return null;
-  try {
-    return decodeURIComponent(m[1]);
-  } catch (e) {
-    return null;
-  }
-}
 
 // The text of a chat-list span with Messenger's emoji put back. Messenger draws emoji as sprite
 // <img>s (alt = the glyph) or background-image spans (aria-label = the glyph); textContent drops
@@ -128,8 +103,6 @@ module.exports = {
   isThreadHref,
   platformOfHref,
   THREAD_HREFS,
-  nameHandle,
-  handleName,
   spanText,
   listAtTop,
   LIMIT,

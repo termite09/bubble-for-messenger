@@ -13,7 +13,6 @@ const { normalizeRows } = require('../lib/recent');
 
 const LIVENESS_TICK_MS = 30 * 1000;
 // The page scripts for each site (lib/sites): the same surface, a different page.
-const SCRAPERS = { messenger: './scrape', instagram: './scrape-instagram' };
 
 // A session keeps one webRequest listener per event, and every panel shares the one session:
 // one listener per session here, sorting each request to the panels whose patterns it
@@ -65,7 +64,7 @@ function createPanel({
   overFullscreen = true,
   log = noLog,
 }) {
-  const scrape = require(SCRAPERS[site.id]);
+  const scrape = require('./scrape');
   // The site's page wash in each theme: the window's own colour, so nothing shows through
   // before the page paints or around its edges.
   const washFor = site.wash;
@@ -262,8 +261,8 @@ function createPanel({
   };
   win.webContents.on('will-navigate', guardNavigation);
   win.webContents.on('will-redirect', guardNavigation);
-  // Off the site, or on a part of it that is not messaging (Instagram's feed behind its inbox
-  // header's Back, say — reached in-page, by pushState): back to the inbox.
+  // Off the site, or on a part of it that is not messaging (reached in-page, by pushState):
+  // back to the inbox.
   const belongs = (url) => {
     if (!staysInPanel(url, site.domain)) return false;
     try {
@@ -325,9 +324,7 @@ function createPanel({
       .then(() => (win.isDestroyed() ? undefined : fn())) // a destroyed panel has nothing left to do
       .catch((err) => log.warn('panel action failed', { err })));
 
-  // Resolves to what the site's openThread reports: for Instagram the thread path the page
-  // landed on (learned for a chat handled by name), for Messenger nothing.
-  async function stageThread(href, bubbleBounds, opts) {
+  async function stageThread(href, bubbleBounds) {
     compact = true;
     resize('compact');
     // Stage the reload + row click invisibly (opacity 0 but rendered, so the click still
@@ -336,7 +333,7 @@ function createPanel({
     stage();
     try {
       await scrape.setCompact(win.webContents, true);
-      const landed = await scrape.openThread(win.webContents, href, opts);
+      const landed = await scrape.openThread(win.webContents, href);
       await scrape.setCompact(win.webContents, true);
       return landed;
     } finally {
@@ -365,11 +362,11 @@ function createPanel({
   // Send a reply through the page without showing it: a hidden window does not dispatch the
   // trusted row click, so stage it at opacity 0 like a thread open, then hide it again. If the
   // panel is already showing, it simply switches to that thread in view.
-  async function stageReply(href, text, opts) {
+  async function stageReply(href, text) {
     const wasHidden = !win.isVisible();
     if (wasHidden) stage();
     try {
-      return await scrape.sendReply(win.webContents, href, text, opts);
+      return await scrape.sendReply(win.webContents, href, text);
     } finally {
       // Never leave the invisible window up: it would swallow clicks meant for what's under it.
       if (wasHidden) {
@@ -403,7 +400,7 @@ function createPanel({
       win.webContents.reload();
     },
     readRecentChats: () => scrape.readRecentChats(win.webContents),
-    // The chat the page is showing ({ href, name, avatarUrl }, Instagram's with threadHref).
+    // The chat the page is showing ({ href, name, avatarUrl }).
     readShowing: () => scrape.readShowing(win.webContents),
     // The pin button drawn by the preload on the inbox rows: which of them are pinned.
     setPinState({ pins }) {
@@ -411,14 +408,11 @@ function createPanel({
     },
     requestRows: () => win.webContents.send(CHANNELS.PANEL_READ),
     session: () => win.webContents.session,
-    openThread: (href, bubbleBounds, opts) => enqueue(() => stageThread(href, bubbleBounds, opts)),
+    openThread: (href, bubbleBounds) => enqueue(() => stageThread(href, bubbleBounds)),
     openInbox: (bubbleBounds) => enqueue(() => stageInbox(bubbleBounds)),
-    // Back to the inbox without showing: where a hidden page waits for messages.
-    park: () => enqueue(() => scrape.openInbox(win.webContents)),
     openPreferences: (bubbleBounds) => enqueue(() => stagePreferences(bubbleBounds)),
     // Serialised with opens; the queue swallows rejections into undefined, hence `=== true`.
-    sendReply: (href, text, opts) =>
-      enqueue(() => stageReply(href, text, opts)).then((ok) => ok === true),
+    sendReply: (href, text) => enqueue(() => stageReply(href, text)).then((ok) => ok === true),
     setOverFullscreen: (on) => joinAllSpaces(win, on),
     // For good — the close guard above only yields to the app quitting — and out of everything
     // that would otherwise keep reaching for the window.

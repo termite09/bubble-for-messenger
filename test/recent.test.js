@@ -1,12 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const {
-  normalizeRows,
-  isThreadHref,
-  platformOfHref,
-  nameHandle,
-  handleName,
-} = require('../src/lib/recent');
+const { normalizeRows, isThreadHref, platformOfHref } = require('../src/lib/recent');
 
 test('isThreadHref accepts only clean thread paths', () => {
   assert.equal(isThreadHref('/t/123/'), true);
@@ -18,38 +12,12 @@ test('isThreadHref accepts only clean thread paths', () => {
   assert.equal(isThreadHref(undefined), false);
 });
 
-// Instagram chats are handled by thread id once known, and by name before that.
-test('isThreadHref accepts Instagram thread paths and name handles', () => {
-  assert.equal(isThreadHref('/direct/t/838117799114653/'), true);
-  assert.equal(isThreadHref('/direct/n/Spyros%20Lontos/'), true);
-  assert.equal(isThreadHref('/direct/n/'), false);
-  assert.equal(isThreadHref("/direct/n/a'b/"), false);
-  assert.equal(isThreadHref('/direct/t/abc/'), false);
-  assert.equal(isThreadHref('/direct/inbox/'), false);
-});
-
-test('platformOfHref says which platform a handle belongs to', () => {
+test('platformOfHref says which handles are Messenger threads', () => {
   assert.equal(platformOfHref('/t/1/'), 'messenger');
   assert.equal(platformOfHref('/e2ee/t/1/'), 'messenger');
-  assert.equal(platformOfHref('/direct/t/1/'), 'instagram');
-  assert.equal(platformOfHref('/direct/n/primeweb/'), 'instagram');
+  assert.equal(platformOfHref('/direct/t/1/'), null);
   assert.equal(platformOfHref('/marketplace/'), null);
   assert.equal(platformOfHref(null), null);
-});
-
-// The handle is the name, encoded to a charset that is safe anywhere it might be spliced
-// (RFC 3986 unreserved plus %), and it round-trips — emoji and quotes included.
-test('nameHandle encodes a name into a handle and handleName decodes it back', () => {
-  const names = ['Spyros Lontos', '𝒮 𝒯 𝐸 𝒫 𝐻  🎀', "O'Brien (work) *!", 'a/b?c#d'];
-  for (const name of names) {
-    const href = nameHandle(name);
-    assert.ok(isThreadHref(href), href);
-    assert.match(href, /^\/direct\/n\/[A-Za-z0-9%._~-]+\/$/);
-    assert.equal(handleName(href), name);
-  }
-  assert.equal(handleName('/direct/t/1/'), null);
-  assert.equal(handleName('/t/1/'), null);
-  assert.equal(handleName('/direct/n/%E0%A4%A/'), null); // malformed percent-encoding
 });
 
 const row = (href, name = 'Name', extra = {}) => ({

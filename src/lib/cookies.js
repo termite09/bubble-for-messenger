@@ -1,10 +1,17 @@
 const { isMetaHost } = require('./links');
 
-// Facebook issues the login pair (c_user, xs) as session cookies unless "keep me logged in" was
-// ticked; the app keeps them so the login survives a restart. datr/sb/fr are the device cookies
-// Facebook persists itself — listed so a session-scoped issue of them is kept too. Everything
-// else (presence, wd, ...) is transient on purpose and stays as issued.
-const LOGIN_COOKIES = new Set(['c_user', 'xs', 'datr', 'sb', 'fr']);
+// datr/sb/fr are the device cookies Facebook persists itself — listed so a session-scoped
+// issue of them is kept too. A stable datr is how Facebook recognises a returning trusted
+// device, so keeping these is good for the account, not merely convenient.
+//
+// The login pair (c_user, xs) is deliberately NOT here. Facebook issues those as *session*
+// cookies precisely when the user did not tick "keep me logged in" — rewriting them with a
+// 90-day expiry reversed that choice without telling anyone, and extended a session scope Meta
+// set on purpose. Honouring the site's scoping costs a sign-in after a restart for the users
+// who asked for exactly that. See docs/COMPLIANCE-PLAN.md §7.1.
+//
+// Everything else (presence, wd, ...) is transient on purpose and stays as issued.
+const LOGIN_COOKIES = new Set(['datr', 'sb', 'fr']);
 const PERSIST_DAYS = 90;
 
 // A session cookie from the list, on Meta's hosts, whenever the site (re)sets it — including a

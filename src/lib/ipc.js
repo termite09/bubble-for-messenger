@@ -20,7 +20,6 @@ const CHANNELS = Object.freeze({
   BUBBLE_ACTIVE: 'bubble:active',
   BUBBLE_OPENED: 'bubble:opened',
   BUBBLE_PLATFORM: 'bubble:platform',
-  BUBBLE_SWITCH: 'bubble:switch',
   BUBBLE_LANDED: 'bubble:landed',
   BUBBLE_REPLY_RESULT: 'bubble:reply-result',
   BUBBLE_SETTINGS: 'bubble:settings',

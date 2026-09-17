@@ -1,7 +1,6 @@
 // The user's choices, as saved in settings.json (which they may edit by hand) and as they
 // arrive from the settings page. One normalizer turns anything into the full shape.
-const { isThreadHref, platformOfHref, MAX_PINS } = require('./recent');
-const PLATFORMS = ['messenger', 'instagram'];
+const { isThreadHref, MAX_PINS } = require('./recent');
 const { isMetaHost } = require('./links');
 const THEMES = ['system', 'light', 'dark'];
 const BADGES = ['off', 'steady', 'pulse']; // the unread count on the disc
@@ -20,11 +19,14 @@ const DEFAULTS = Object.freeze({
   theme: 'system', // appearance: the panel's site and the app's own cards
   glass: true, // the cards let the wallpaper through; the settings card is frosted
   spellcheck: true,
-  blockTelemetry: true,
+  // Off by default. Cancelling Facebook's logging beacons is the ToS clause most directly
+  // about interfering with the intended operation of the Products, and a session that messages
+  // actively while emitting no client logs at all is anomalous in a way even an ad-blocked
+  // browser is not. The switch stays; enrolling every user by default does not.
+  // See docs/COMPLIANCE-PLAN.md §6.
+  blockTelemetry: false,
   reopenLast: 30, // seconds; 0 is off
   checkUpdates: true, // ask GitHub once a day whether there is a newer release
-  instagram: false, // Instagram's inbox loaded beside Messenger's
-  platform: 'messenger', // which of the two the disc and stack show; not on the settings page
 });
 
 // Keys whose value is one of a list rather than a boolean.
@@ -33,7 +35,6 @@ const CHOICES = {
   badge: BADGES,
   bubbleSize: Object.keys(BUBBLE_SIZES),
   reopenLast: REOPEN_SECONDS,
-  platform: PLATFORMS,
 };
 
 const GRANTED_PERMISSIONS = new Set([
@@ -75,8 +76,6 @@ function normalizeSettings(raw) {
   }
   // The unread count was a switch before 2.2; a saved boolean keeps meaning what it meant.
   if (typeof src.badge === 'boolean') out.badge = src.badge ? 'steady' : 'off';
-  // With Instagram off there is only Messenger to focus.
-  if (!out.instagram) out.platform = 'messenger';
   // The disc position is saved in the same file; it is not a setting the page shows. It is
   // hand-editable, so anything that is not two finite numbers reads as "no saved position".
   out.bubble = normalizePosition(src.bubble);
@@ -91,31 +90,20 @@ function normalizePosition(raw) {
   return Number.isFinite(x) && Number.isFinite(y) ? { x: Math.round(x), y: Math.round(y) } : null;
 }
 
-// Pinned chats, likewise not a page setting: thread hrefs only, no duplicates, MAX_PINS per
-// platform (each platform's stack shows its own).
-// An Instagram pin (handled by name) also keeps the thread path learned when the chat was open,
-// so it can be opened after it has left the recent list.
-const THREAD_PATH = /^\/direct\/t\/\d+\/?$/;
+// Pinned chats, likewise not a page setting: thread hrefs only, no duplicates, MAX_PINS in all.
 function normalizePins(raw) {
   if (!Array.isArray(raw)) return [];
   const seen = new Set();
-  const count = {};
   const out = [];
   for (const p of raw) {
     if (!p || typeof p !== 'object' || !isThreadHref(p.href) || seen.has(p.href)) continue;
-    const platform = platformOfHref(p.href);
-    if ((count[platform] || 0) >= MAX_PINS) continue;
-    count[platform] = (count[platform] || 0) + 1;
+    if (out.length >= MAX_PINS) continue;
     seen.add(p.href);
-    const pin = {
+    out.push({
       href: p.href,
       name: typeof p.name === 'string' ? p.name : '',
       avatarUrl: typeof p.avatarUrl === 'string' ? p.avatarUrl : null,
-    };
-    if (platform === 'instagram')
-      pin.threadHref =
-        typeof p.threadHref === 'string' && THREAD_PATH.test(p.threadHref) ? p.threadHref : null;
-    out.push(pin);
+    });
   }
   return out;
 }
@@ -126,7 +114,6 @@ module.exports = {
   BADGES,
   BUBBLE_SIZES,
   REOPEN_SECONDS,
-  PLATFORMS,
   normalizeSettings,
   isSettingKey,
   isPermissionGranted,

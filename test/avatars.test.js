@@ -88,9 +88,3 @@ test('fetchAvatar caches by picture path across signature changes, and forgets f
   await fetchAvatar(failing, 'https://scontent.xx.fbcdn.net/v/t39/pic2.jpg', () => t + 61_000);
   assert.equal(fetches, 3); // after it: retried
 });
-
-test("Instagram's picture CDN is an avatar host too", () => {
-  assert.equal(isAvatarUrl('https://scontent.cdninstagram.com/v/t51.2885-19/1.jpg?x=1'), true);
-  assert.equal(isAvatarUrl('https://instagram.fnic4-1.fna.fbcdn.net/v/t51.2885-19/1.jpg'), true);
-  assert.equal(isAvatarUrl('https://cdninstagram.com.evil.example/a.jpg'), false);
-});

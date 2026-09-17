@@ -4,13 +4,7 @@ const FAIL_TTL_MS = 60 * 1000; // a failed fetch is retried after a minute, not 
 const FETCH_TIMEOUT_MS = 8000;
 
 const MAX_BYTES = 1024 * 1024;
-const CDN_HOSTS = [
-  'fbcdn.net',
-  'facebook.com',
-  'messenger.com',
-  'cdninstagram.com',
-  'instagram.com',
-];
+const CDN_HOSTS = ['fbcdn.net', 'facebook.com', 'messenger.com'];
 
 // Messenger's picture URLs carry a signature in the query that changes on every page load;
 // the path names the picture. Caching by path keeps a picture across reloads.

@@ -45,50 +45,7 @@ function readRows(limit, spanText, listAtTop) {
   return out;
 }
 
-// Instagram's mobile inbox (the panel loads it with a phone user agent) draws each thread as a
-// [role="button"] holding the avatar <img>, the name in a span[title], the last-message
-// preview, a " · " and the time inside an <abbr>. The list carries no thread ids, so a row's
-// handle is its name: /direct/n/<name>/ with the name encoded to RFC 3986's unreserved set
-// plus % — the same rule as lib/recent nameHandle, spelt out here because this function is
-// serialised into the page and may close over nothing.
-function readRowsInstagram(limit, spanText, listAtTop) {
-  const out = [];
-  for (const row of document.querySelectorAll('[role="button"]')) {
-    const nameEl = row.querySelector('span[title]');
-    const timeEl = row.querySelector('abbr');
-    if (!nameEl || !timeEl) continue; // the header's buttons, the notes tray
-    if (!out.length && !listAtTop(row, document.body)) return null;
-    const name = nameEl.getAttribute('title') || '';
-    const time = spanText(timeEl).trim();
-    const img = row.querySelector('img');
-    // Unread rows are bold; the name span decides, and only it is measured.
-    const unread = parseInt(getComputedStyle(nameEl).fontWeight, 10) >= 600;
-    // The preview is the first innermost span (emoji <img>s inside are fine) that is not the
-    // name, the separator or the time.
-    const texts = [...row.querySelectorAll('span')]
-      .filter((s) => !s.querySelector('span'))
-      .map((s) => spanText(s).trim())
-      .filter(Boolean);
-    const preview = texts.find((t) => t !== name && t !== '·' && t !== time) || '';
-    const handle = encodeURIComponent(name).replace(
-      /[!'()*]/g,
-      (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase(),
-    );
-    out.push({
-      href: '/direct/n/' + handle + '/',
-      name,
-      avatarUrl: img ? img.src : null,
-      unread,
-      preview,
-      time,
-    });
-    if (out.length === limit) break;
-  }
-  return out;
-}
-
 // One expression that reads the rows: what scrape.js runs in the page.
 const ROW_READER_SOURCE = `(${readRows.toString()})(${LIMIT}, ${spanText.toString()}, ${listAtTop.toString()})`;
-const ROW_READER_INSTAGRAM_SOURCE = `(${readRowsInstagram.toString()})(${LIMIT}, ${spanText.toString()}, ${listAtTop.toString()})`;
 
-module.exports = { readRows, readRowsInstagram, ROW_READER_SOURCE, ROW_READER_INSTAGRAM_SOURCE };
+module.exports = { readRows, ROW_READER_SOURCE };

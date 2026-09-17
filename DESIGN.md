@@ -56,7 +56,6 @@ rounded:
   control: "8px"
   pill: "9px"
   chip: "10px"
-  satellite: "12px"
   field: "13px"
   close: "14px"
   avatar: "16px"
@@ -173,11 +172,11 @@ A near-monochrome graphite palette with one semantic accent; the only saturated 
 
 **The One File Rule.** Every value above is written once, in `src/renderer/tokens.css`; the pages link it and `lib/tokens.js` reads it (the dark block, and under `light` what the light block changes) for the CSS the app writes into messenger.com. The sandboxed panel preload carries copies, held to the file by a test.
 
-**The Two Appearances Rule.** The palette above is the dark appearance. The app's own chrome follows the Appearance setting (System by default), and in the light appearance the roles swap the way a Notification Center banner does: Paper (`#f5f5f7`) is the card, `#e8e8ed` the raised tone, `#c7c7cc` the slate, Graphite the ink, `#636366` the ash (4.9:1 on raised), the hairlines black at the same alphas, the shadow at 18%, and the system's light blue `#007aff` for unread — as a fill; as text (the satellite's count) it is 3.7:1 on paper, so `#0066cc` (5.1:1) carries it. What the app draws inside messenger.com (the frame's hairline, the pin badge) stays graphite.
+**The Two Appearances Rule.** The palette above is the dark appearance. The app's own chrome follows the Appearance setting (System by default), and in the light appearance the roles swap the way a Notification Center banner does: Paper (`#f5f5f7`) is the card, `#e8e8ed` the raised tone, `#c7c7cc` the slate, Graphite the ink, `#636366` the ash (4.9:1 on raised), the hairlines black at the same alphas, the shadow at 18%, and the system's light blue `#007aff` for unread — as a fill; as text it is 3.7:1 on paper, so `#0066cc` (5.1:1) carries it. What the app draws inside messenger.com (the frame's hairline, the pin badge) stays graphite.
 
 **Glass (under trial, September 2026).** By the Glass setting the bubble layer's cards are the same colours at 90% over the wallpaper, and the settings card is the system's frosted popover material under a 60% tint with the system's own window corners. Ash steps up with it (`#a5a5aa` dark, `#58585c` light), because over a white wallpaper the 90% card is `#333334` and the opaque ash would be 4.4:1 there; the lifted ash holds 4.7:1 and better on every modelled ground. Reduce Transparency makes both opaque again, ash included. A real per-card blur is not available to the bubble layer (one window, many cards), so this is a tint, not Liquid Glass; whether it stays is the user's call after living with it.
 
-**The Count Pill Exception.** White on System Blue is 3.65:1, under AA for its 11px digits. Kept on purpose (September 2026): it is the system's own badge convention and the pill shows at most two characters; the satellite's blue-on-graphite count is 4.7:1 (and on paper it is the text blue above, 5.1:1).
+**The Count Pill Exception.** White on System Blue is 3.65:1, under AA for its 11px digits. Kept on purpose (September 2026): it is the system's own badge convention and the pill shows at most two characters.
 
 ## Typography
 
@@ -230,12 +229,12 @@ Depth is a hybrid of one shadow and one hairline. Every card carries the same li
 
 ## Shapes
 
-Everything is a rounded rectangle from the same family, and the radius follows the height. The 44px disc, the 44px heads and the 44px landed banner use 22px (a full circle or pill); the 18px count pill uses 9px; the 32px avatar is a 16px circle; the 12px dot is a 6px circle; the 16px pin badge is an 8px circle; the 20px caption chip uses 10px; the 24px satellite uses 12px; the 26px reply field uses 13px; the 56px dismiss target is a 28px circle; the 420-wide sheet has the system's own rounded-window radius (about 10px) — it is an opaque window, not a clipped page. The one rectangle that is not a pill is the 26px control (a segmented choice, the "Open" button in Settings) at 8px, and the 14px platform mini-mark at 4px. Borders are always 1px, always the hairline, always inside the box (`box-sizing: border-box`), so a card's outer dimension is the stated one.
+Everything is a rounded rectangle from the same family, and the radius follows the height. The 44px disc, the 44px heads and the 44px landed banner use 22px (a full circle or pill); the 18px count pill uses 9px; the 32px avatar is a 16px circle; the 12px dot is a 6px circle; the 16px pin badge is an 8px circle; the 20px caption chip uses 10px; the 26px reply field uses 13px; the 56px dismiss target is a 28px circle; the 420-wide sheet has the system's own rounded-window radius (about 10px) — it is an opaque window, not a clipped page. The one rectangle that is not a pill is the 26px control (a segmented choice, the "Open" button in Settings) at 8px. Borders are always 1px, always the hairline, always inside the box (`box-sizing: border-box`), so a card's outer dimension is the stated one.
 
 The landed banner is shape as motion: a 252×44 pill whose `clip-path` starts as `inset(0 0 0 208px round 22px)` (exactly the disc's own circle at the screen edge) and opens to `inset(0 round 22px)`. One element, no layout, the disc simply lengthens.
 
 ### Named Rules
-**The Radius Follows Height Rule.** Pills (disc, landed banner, count, avatar, dot, pin, chip, satellite, field, target) are radius = height / 2. Controls that sit in a row (segments, the tabs, the Open button) use 8px; the sheet and the settings card are opaque windows and take the system's window radius (about 10px). Nothing is square-cornered.
+**The Radius Follows Height Rule.** Pills (disc, landed banner, count, avatar, dot, pin, chip, field, target) are radius = height / 2. Controls that sit in a row (segments, the tabs, the Open button) use 8px; the sheet and the settings card are opaque windows and take the system's window radius (about 10px). Nothing is square-cornered.
 
 ## Components
 
@@ -245,21 +244,7 @@ The resting state: a graphite card cut to a circle with the Messenger mark insid
 - **Content:** the icon raster at 24px, no tint applied.
 - **Count pill:** absolutely positioned 8px past the right edge and 6px above the top; System Blue, White 600 11px on an 18px line, min-width 18px, 0 5px padding, 9px radius. Shows the unread total, "9+" above nine, hidden at zero and hidden while a landed banner is showing.
 - **States:** no hover treatment; left-drag moves it, right-click opens the context menu.
-- **For a reader:** the button is the face inside the card, not the card: its name carries the platform, the count and the connection ("Messenger, 3 unread, offline"); the satellite and the landed banner are the face's siblings, never inside it, since a button's descendants are presentational.
-
-### Satellite
-The other platform, hung off the disc's foot: where "Instagram has 2 unread while Messenger
-is in focus" is read.
-- **Shape:** a pill 24px tall, 12px radius, Graphite, hairline, Lift, overhanging the disc's
-  bottom-left by 10px and 8px (mirroring the count pill top-right). Scales with the disc: the
-  page is zoomed by the size setting.
-- **Content:** the other platform's mark at 16px and, above zero, its count in System Blue
-  600 12px (`9+` cap).
-- **States:** shown while its count is above zero; otherwise at 60% opacity, mark only, while
-  the disc is hovered. Hovering it brightens it and puts "Switch to <platform>" in the status
-  chip. Hidden while a landed banner shows. Click switches focus; the press never drags.
-- **Mark swap:** on a switch the disc's mark fades out over 200ms, is swapped, and fades in
-  (no fade under Reduce Motion).
+- **For a reader:** the button is the face inside the card, not the card: its name carries the platform, the count and the connection ("Messenger, 3 unread, offline"); the landed banner is the face's sibling, never inside it, since a button's descendants are presentational.
 
 ### Head
 A conversation as a disc: the contact's photo filling a 44px circle, one per recent chat. The

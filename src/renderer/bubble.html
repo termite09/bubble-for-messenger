@@ -142,62 +142,11 @@
       }
       body.offline #disc:hover #status,
       body.reconnecting #disc:hover #status,
-      body.signed-out #status,
-      body.switching #status {
+      body.signed-out #status {
         opacity: 1;
       }
       body.landed #status {
         opacity: 0;
-      }
-      /* The other platform, as a satellite at the disc's foot (bottom-left, opposite the count):
-         its mark and, while it has unread, its count. Shown while it has unread; otherwise it
-         appears dimmed, mark only, while the disc is hovered — the switch is one hover away. */
-      #other {
-        position: absolute;
-        left: -10px;
-        bottom: -8px;
-        height: 24px;
-        padding: 0 3px;
-        box-sizing: border-box;
-        border-radius: 12px;
-        display: none;
-        align-items: center;
-        gap: 3px;
-        cursor: default;
-        opacity: 0.6;
-        transition: opacity 120ms linear;
-      }
-      #other img {
-        width: 16px;
-        height: 16px;
-        display: block;
-        pointer-events: none;
-      }
-      #other .n {
-        display: none;
-        padding-right: 3px;
-        color: var(--blue-text);
-        font:
-          600 12px/22px -apple-system,
-          system-ui,
-          sans-serif;
-      }
-      body.has-other #disc:hover #other,
-      body.other-unread #other {
-        display: flex;
-      }
-      body.other-unread #other {
-        opacity: 1;
-      }
-      body.other-unread #other .n {
-        display: block;
-      }
-      #other:hover {
-        opacity: 1;
-        border-color: var(--rule-active);
-      }
-      body.landed #other {
-        display: none;
       }
       #count {
         position: absolute;
@@ -563,9 +512,6 @@
         box-sizing: content-box;
         background: var(--card);
       }
-      body.has-other .av .mini[src] {
-        display: block;
-      }
       .name {
         min-width: 0;
         font-weight: 600;
@@ -768,10 +714,6 @@
         </div>
         <div id="count" aria-hidden="true"></div>
         <div id="status" aria-hidden="true"></div>
-        <div id="other" class="card" role="button" aria-label="Switch platform">
-          <img alt="" />
-          <span class="n"></span>
-        </div>
         <div id="landed" class="card" role="status" aria-live="polite" aria-atomic="true">
           <div class="av" id="landed-av"><img class="mini" id="landed-mark" alt="" /></div>
           <div class="name" id="landed-name"></div>
