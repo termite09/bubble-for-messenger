@@ -64,7 +64,7 @@ ornament.
 
 ## Capabilities and Constraints
 
-- Disc: 44 px grey disc with the Messenger mark; drag anywhere, snaps to nearest vertical edge
+- Disc: 44 px grey disc with the app's mark; drag anywhere, snaps to nearest vertical edge
   on release, position persisted; blue unread count (`9+` cap); right-click menu (Open
   Messenger, Reload Messenger, Settings…, Reset Bubble Position, Quit). When a message lands, the disc
   unrolls into a banner (avatar, name, the whole message up to six lines) for four seconds.
@@ -107,9 +107,13 @@ ornament.
 - Name: **Bubble for Messenger** (`Bubble.app`, `com.termite09.bubble-for-messenger`). The
   "<name> for Messenger" form is deliberate: Messenger is Meta's mark, so the product name
   never leads with it.
-- Mark: the Messenger logo (`icon.png` / `icon.icns`) is the only colour the disc carries at
-  rest; the app's own surfaces are system-grey cards. The app is an unofficial wrapper and
-  must say so; it must not impersonate Meta.
+- Mark: the app's own mark (`icon.png` / `icon.icns`) — two overlapping speech bubbles in
+  periwinkle on a blue outline — is the only colour the disc carries at rest; the app's own
+  surfaces are system-grey cards. It is deliberately **not** Meta's Messenger logo: that logo
+  was the app icon until 3.0.0, and shipping a Meta trademark as this product's own identity
+  is the one thing nominative fair use does not cover. No Meta logo or glyph may be
+  reintroduced as a product mark. The app is an unofficial wrapper and must say so; it must
+  not impersonate Meta.
 - Unread is macOS system blue `#0a84ff` (count pill and dot); no red anywhere in the app's
   own UI (decided during the September 2026 redesign to the "standing notification" look).
 - Voice (README, menus): plain, direct, lower-case-technical; explains *why* things work the

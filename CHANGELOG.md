@@ -17,6 +17,16 @@ sources, is in [docs/COMPLIANCE.md](docs/COMPLIANCE.md) and
   name-handle chat identity, the Instagram row reader and the Instagram glyph.
 - An Instagram pin left in `settings.json` is dropped on load; the `instagram` and `platform`
   settings no longer exist.
+- **Meta's Messenger logo is no longer this app's icon.** It was shipped as `icon.png` /
+  `icon.icns` — the macOS and Windows app icon, and the mark on the disc at rest. Nominative
+  fair use lets a third-party app *refer* to a trademark to say what it works with; it does
+  not let one adopt that trademark as its own product identity, which is what an app icon is.
+  Meta's trademark policy is explicit that its marks may not be used as or as part of a
+  product or app name either.
+
+### Added
+- An original app mark: two overlapping speech bubbles, periwinkle on a blue outline. It is
+  the icon on both platforms and the disc's mark at rest, and it carries no Meta trademark.
 
 ### Changed
 - **Facebook telemetry blocking is off by default** (the switch stays). It is the part of this

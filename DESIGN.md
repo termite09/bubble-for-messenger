@@ -132,7 +132,7 @@ components:
 
 **Creative North Star: "The Standing Notification"**
 
-Bubble for Messenger looks like a macOS notification banner that decided to stay. Every surface is the same material: a solid graphite card, a one-pixel white hairline at twelve percent, and one soft lifted shadow. The disc at rest is that card cut to a circle; a conversation is that card stretched to a banner; the open sheet is that card at 420 wide with messenger.com painted inside it. Nothing is translucent, nothing is tinted, nothing glows. The Messenger mark's own raster is the only colour on screen at rest, and blue appears only where the system has to say "unread".
+Bubble for Messenger looks like a macOS notification banner that decided to stay. Every surface is the same material: a solid graphite card, a one-pixel white hairline at twelve percent, and one soft lifted shadow. The disc at rest is that card cut to a circle; a conversation is that card stretched to a banner; the open sheet is that card at 420 wide with messenger.com painted inside it. Nothing is translucent, nothing is tinted, nothing glows. The app's own mark is the only colour on screen at rest, and blue appears only where the system has to say "unread".
 
 The system is dense and quiet. Five conversations occupy 292 vertical pixels. Type is the system face at three sizes, and the hierarchy is carried by weight and by ash-grey secondaries rather than by size jumps. Motion is a single idea applied everywhere: one ease-out-quint curve at 220 milliseconds, driving transform, opacity, or clip-path and nothing else. The stack does not animate as five cards; it animates as one number, `--p`, that every banner reads its offset and opacity from.
 
@@ -147,7 +147,7 @@ The build refused two things on purpose and they are confirmed rejections: the i
 
 ## Colors
 
-A near-monochrome graphite palette with one semantic accent; the only saturated colour at rest is the raster of the Messenger mark itself.
+A near-monochrome graphite palette with one semantic accent; the only saturated colour at rest is the raster of the app's own mark.
 
 ### Primary
 - **System Blue** (`{colors.system-blue}`): the unread count pill and the 6px unread dot in a banner's name row. It is a status colour, not a brand colour; it never fills a button, rule, or background.
@@ -168,7 +168,7 @@ A near-monochrome graphite palette with one semantic accent; the only saturated 
 
 **The No Red Rule.** There is no destructive colour. The dismiss target arms by inverting Graphite and Paper, not by turning red.
 
-**The Mark Is The Colour Rule.** At rest the only chroma on screen is the Messenger icon raster (24px). The system supplies no gradient, tint, or vibrancy of its own.
+**The Mark Is The Colour Rule.** At rest the only chroma on screen is the app's icon raster (24px). The system supplies no gradient, tint, or vibrancy of its own.
 
 **The One File Rule.** Every value above is written once, in `src/renderer/tokens.css`; the pages link it and `lib/tokens.js` reads it (the dark block, and under `light` what the light block changes) for the CSS the app writes into messenger.com. The sandboxed panel preload carries copies, held to the file by a test.
 
@@ -239,7 +239,7 @@ The landed banner is shape as motion: a 252×44 pill whose `clip-path` starts as
 ## Components
 
 ### Disc
-The resting state: a graphite card cut to a circle with the Messenger mark inside.
+The resting state: a graphite card cut to a circle with the app's mark inside.
 - **Shape:** full circle (44px, radius 22px), Graphite, hairline, Lift.
 - **Content:** the icon raster at 24px, no tint applied.
 - **Count pill:** absolutely positioned 8px past the right edge and 6px above the top; System Blue, White 600 11px on an 18px line, min-width 18px, 0 5px padding, 9px radius. Shows the unread total, "9+" above nine, hidden at zero and hidden while a landed banner is showing.
