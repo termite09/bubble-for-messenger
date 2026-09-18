@@ -240,3 +240,85 @@ test('no page script presses a control with element.click()', () => {
     assert.equal(/\.click\(\)/.test(code), false, `${file} calls .click() in a page script`);
   }
 });
+
+const { EventEmitter } = require('node:events');
+const { openThread } = require('../src/main/scrape');
+
+// Messenger at the panel's width, scripted: `front` is what is in front of the other (the
+// thread, or the list), `rows` whether the list has rendered its rows yet, `back` whether the
+// thread view offers its Back control. Scripts are told apart by what they look for; a press
+// moves the page the way Messenger does (Back slides the list in, a row slides the thread in),
+// and a URL load lands on the list with no rows until `rowsAfterMs` have passed.
+function narrowPage({
+  front = 'thread',
+  rows = true,
+  back = true,
+  listed = true,
+  rowsAfterMs = 0,
+} = {}) {
+  const page = Object.assign(new EventEmitter(), { front, rows, back, events: [], loads: [] });
+  const BACK = { x: 20, y: 20 };
+  const ROW = { x: 100, y: 100 };
+  page.getURL = () => 'https://www.messenger.com/t/1/';
+  page.executeJavaScriptInIsolatedWorld = async (_world, [{ code }]) => {
+    if (code.includes('mb-back')) {
+      if (code.includes("textContent = ''")) return undefined; // the unhide
+      return page.front === 'thread' && page.back ? BACK : null;
+    }
+    if (code.includes('[href^=')) return page.front === 'list' && page.rows && listed ? ROW : null; // rowPoint
+    if (code.includes('[href*="/t/"]')) return page.front === 'list' && page.rows; // listInteractive
+    if (code.includes('[role="main"]')) return page.front === 'thread'; // threadShowing
+    return undefined;
+  };
+  page.sendInputEvent = (e) => {
+    page.events.push(e);
+    if (e.type !== 'mouseUp') return;
+    if (e.x === BACK.x) page.front = 'list';
+    else if (e.x === ROW.x && page.front === 'list' && page.rows) page.front = 'thread';
+  };
+  page.loadURL = async (url) => {
+    page.loads.push(url);
+    page.front = 'list';
+    page.rows = false;
+    setTimeout(() => page.emit('did-finish-load'), 0);
+    setTimeout(() => {
+      page.rows = true;
+    }, rowsAfterMs).unref();
+  };
+  return page;
+}
+const presses = (page) => page.events.filter((e) => e.type === 'mouseUp').map((e) => e.x);
+
+test('openThread: the row is pressed straight away when the list is in front', async () => {
+  const page = narrowPage({ front: 'list' });
+  assert.deepEqual(await openThread(page, '/t/1/'), { via: 'row', landed: true });
+  assert.deepEqual(presses(page), [100]);
+  assert.deepEqual(page.loads, []);
+});
+
+test('openThread: behind an open thread, Back brings the list in and the row is pressed', async () => {
+  const page = narrowPage({ front: 'thread' });
+  assert.deepEqual(await openThread(page, '/t/1/'), { via: 'back', landed: true });
+  assert.deepEqual(presses(page), [20, 100]);
+  assert.deepEqual(page.loads, []);
+  assert.equal(page.front, 'thread');
+});
+
+// The last resort: a page with no Back control to press is loaded at the thread's address,
+// which lands on the list. Its rows render some time after the load settles — the row is
+// waited for, not looked for once at a fixed moment after the load — and then pressed.
+test('openThread: without Back the thread is reloaded, and the row waited for', async () => {
+  const page = narrowPage({ front: 'thread', back: false, rowsAfterMs: 900 });
+  assert.deepEqual(await openThread(page, '/t/1/'), { via: 'reload', landed: true });
+  assert.deepEqual(page.loads, ['https://www.messenger.com/t/1/']);
+  assert.deepEqual(presses(page), [100]);
+  assert.equal(page.front, 'thread');
+});
+
+// A chat that is not in the list (nothing to press) is reported as not landed, so the caller
+// can say so; what it reveals is then the list, knowingly.
+test('openThread: a chat with no row to press is reported as not landed', async () => {
+  const page = narrowPage({ front: 'thread', back: false, listed: false });
+  assert.deepEqual(await openThread(page, '/t/1/'), { via: 'reload', landed: false });
+  assert.deepEqual(presses(page), []);
+});

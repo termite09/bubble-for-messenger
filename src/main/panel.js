@@ -8,6 +8,7 @@ const { connectionState, signedOut } = require('../lib/status');
 const { MESSENGER } = require('../lib/sites');
 const { joinAllSpaces } = require('./workspaces');
 const { createFloatingWindow, ipcFor } = require('./floating-window');
+const { hashHref } = require('./log');
 const { CHANNELS } = require('../lib/ipc');
 const { normalizeRows } = require('../lib/recent');
 
@@ -333,8 +334,12 @@ function createPanel({
     stage();
     try {
       await scrape.setCompact(win.webContents, true);
-      const landed = await scrape.openThread(win.webContents, href);
+      const outcome = await scrape.openThread(win.webContents, href);
       await scrape.setCompact(win.webContents, true);
+      // Which route the open took, and whether it got there: a thread that did not land leaves
+      // the list on screen in the thread's compact size, so that one is worth a warning.
+      const { via, landed } = outcome || {};
+      log[landed ? 'debug' : 'warn']('thread open', { thread: hashHref(href), via, landed });
       return landed;
     } finally {
       // Whatever happened, never leave the panel staged: an invisible window still swallows

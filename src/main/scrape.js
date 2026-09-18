@@ -96,10 +96,12 @@ function rowPoint(wc, href) {
 const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const LOAD_TIMEOUT_MS = 15000;
+const LIST_TIMEOUT_MS = 4000; // a loaded list with no rows yet, as long as a thread is waited for
 const ERR_ABORTED = -3; // a superseded navigation (e.g. a redirect); the replacement still loads
 
 // Load `url` and settle once the page has finished or failed loading — bounded by a timeout so a
-// dead network can never leave the caller (and an invisible panel) waiting forever.
+// dead network can never leave the caller (and an invisible panel) waiting forever. Loaded is
+// not rendered: Messenger draws its list some time after, so the caller waits for what it needs.
 function reload(wc, url) {
   return new Promise((resolve) => {
     let timer;
@@ -109,7 +111,7 @@ function reload(wc, url) {
       wc.removeListener('did-fail-load', onFail);
       resolve();
     };
-    const onLoad = () => setTimeout(done, 700);
+    const onLoad = () => done();
     const onFail = (_e, code, _desc, _url, isMainFrame) => {
       if (isMainFrame && code !== ERR_ABORTED) done();
     };
@@ -237,22 +239,29 @@ const waitForThread = (wc, timeout = 4000) => waitUntil(threadShowing, wc, timeo
 // we inject a real mouse event at the row. If the row isn't clickable (a thread is already open,
 // so the list is behind it) we reload to the list first. Resolves once the thread is on screen,
 // letting the caller keep the panel hidden until then so the list transition is never seen.
+// Reports which route it took and whether the thread is showing at the end (`landed`): a
+// caller that reveals the panel regardless can then say what it revealed.
 async function openThread(wc, href) {
+  let via = 'row';
   let point = await rowPoint(wc, href);
-  if (!point && (await backToList(wc))) point = await rowPoint(wc, href); // fast client-side path
-  if (!point) {
-    await reload(wc, 'https://www.messenger.com' + href); // last resort
+  if (!point && (await backToList(wc))) {
+    via = 'back'; // fast client-side path
     point = await rowPoint(wc, href);
   }
-  if (!point) return;
+  if (!point) {
+    via = 'reload'; // last resort: the thread's address lands on the list, row highlighted
+    await reload(wc, 'https://www.messenger.com' + href);
+    await waitUntil(listInteractive, wc, LIST_TIMEOUT_MS); // its rows render after the load
+    point = await rowPoint(wc, href);
+  }
+  if (!point) return { via, landed: false };
   click(wc, point);
-  if (await waitForThread(wc)) return;
+  if (await waitForThread(wc)) return { via, landed: true };
   // A click that lands while the list is still sliding in only highlights the row; once more.
   point = await rowPoint(wc, href);
-  if (point) {
-    click(wc, point);
-    await waitForThread(wc);
-  }
+  if (!point) return { via, landed: false };
+  click(wc, point);
+  return { via, landed: await waitForThread(wc) };
 }
 
 // Page-side halves of a quick reply. Kept as replaceable actions so the delivery loop can be
