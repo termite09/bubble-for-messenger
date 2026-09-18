@@ -69,3 +69,23 @@ test('without vibrancy the card is opaque, and the page can ask for the capabili
   assert.deepEqual(await handler(from(win)), caps);
   assert.equal(await handler({ sender: {} }), null); // another window's page gets nothing
 });
+
+// The "Check now" button on the updates row: the page asks, main checks (and answers with a
+// dialog of its own); a page from another window is not heard.
+test('the page can ask for an update check now', () => {
+  let asked = 0;
+  const sw = createSettingsWindow({
+    getSettings: () => ({}),
+    setSetting() {},
+    subscribe() {},
+    onOpenMessengerPreferences() {},
+    onCheckUpdates: () => asked++,
+    caps: capabilities('darwin'),
+  });
+  sw.open({ x: 0, y: 0, width: 44, height: 44 });
+  const win = electron.windows[electron.windows.length - 1];
+  electron.ipcMain.emit(CHANNELS.SETTINGS_CHECK_UPDATES, { sender: {} });
+  assert.equal(asked, 0);
+  electron.ipcMain.emit(CHANNELS.SETTINGS_CHECK_UPDATES, from(win));
+  assert.equal(asked, 1);
+});

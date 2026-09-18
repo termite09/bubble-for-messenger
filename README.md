@@ -83,9 +83,10 @@ please [open an issue](https://github.com/termite09/bubble-for-messenger/issues)
   it all away.
 - **Hover a head** for its name; the pin badge pins it to the top of the stack (up to five).
   Chats can also be pinned from a row in the Inbox.
-- **Right-click the bubble** for *Open Messenger*, *Reload Messenger*, *Update to…* (when a
-  newer release exists), *Settings…*, *Reset Bubble Position* and *Quit* — or drag the bubble
-  onto the ✕ target at the bottom of the screen and hold it there to quit.
+- **Right-click the bubble** for *Open Messenger*, *Reload Messenger*, *Check for Updates…*
+  (or *Update to…* once a newer release is known), *Settings…*, *Reset Bubble Position* and
+  *Quit* — or drag the bubble onto the ✕ target at the bottom of the screen and hold it there
+  to quit.
 - The bubble's mark dims when Messenger is unreachable and shows *Sign in* when nobody is
   signed in. Messenger stays loaded in the background, so messages keep arriving.
 
@@ -104,7 +105,8 @@ A few need a word:
 - *Show over full-screen apps* off also keeps the bubble on one desktop; macOS allows one or
   the other.
 - *Check for updates* asks GitHub once a day and shows a menu item; nothing is downloaded on
-  its own.
+  its own. **Check now** (and the bubble menu's *Check for Updates…*) asks straight away,
+  whatever the switch says, and tells you the answer either way.
 - *New-message sound* is Messenger's own switch (Preferences → Notification sounds); the
   **Open** button takes you there. It sounds only while the bubble is put away.
 - *Block Facebook telemetry* cancels Facebook's logging beacons and nothing Messenger needs.

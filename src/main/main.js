@@ -22,7 +22,7 @@ const {
 const { removeStaleLockFiles } = require('../lib/storage');
 const { createLog, hashHref } = require('./log');
 const { createSettingsStore } = require('./settings-store');
-const { createUpdateCheck } = require('./updates');
+const { createUpdateCheck, RELEASES_PAGE } = require('./updates');
 
 // A safety net only: the panel's preload watches the list and pushes rows as they change, so
 // this exists for the case where the observer misses a mutation. It used to run every 60s on
@@ -92,7 +92,12 @@ store.subscribe((next, prev) => {
 let bubble;
 let dismiss;
 let settingsWindow;
-let updates = { latest: () => null, check: async () => null, due: () => false };
+let updates = {
+  latest: () => null,
+  check: async () => null,
+  checkNow: async () => ({ status: 'error' }),
+  due: () => false,
+};
 
 // Messenger, live (main/account): its chats in the stack, its count on the disc.
 let account = null;
@@ -335,9 +340,9 @@ function bubbleContextMenu() {
   Menu.buildFromTemplate([
     ...openItems,
     { type: 'separator' },
-    ...(update
-      ? [{ label: `Update to ${update.version}…`, click: () => offerUpdate(update) }]
-      : []),
+    update
+      ? { label: `Update to ${update.version}…`, click: () => offerUpdate(update) }
+      : { label: 'Check for Updates…', click: checkForUpdatesNow },
     { label: 'Settings…', click: openSettings },
     { label: 'Reset Bubble Position', click: () => bubble.resetPosition() },
     { type: 'separator' },
@@ -361,6 +366,45 @@ async function offerUpdate(update) {
   });
   if (response === 0) clipboard.writeText(HOMEBREW_UPGRADE);
   else if (response === 1) shell.openExternal(update.url);
+}
+
+// A check the user asked for (the bubble's menu, or Settings) — whatever the daily setting says
+// — answers every time: a newer release is offered, up to date is said so, and GitHub being out
+// of reach is said too, with the releases page one click away.
+async function checkForUpdatesNow() {
+  const version = app.getVersion();
+  const { status, latest } = await updates.checkNow();
+  if (status === 'update') {
+    if (installedByHomebrew()) return offerUpdate(latest);
+    const { response } = await dialog.showMessageBox({
+      type: 'info',
+      message: `Bubble ${latest.version} is available`,
+      detail: `You have ${version}.`,
+      buttons: ['Open Release Page', 'Later'],
+      defaultId: 0,
+      cancelId: 1,
+    });
+    if (response === 0) shell.openExternal(latest.url);
+    return;
+  }
+  if (status === 'current') {
+    await dialog.showMessageBox({
+      type: 'info',
+      message: 'Bubble is up to date',
+      detail: `Bubble ${version} is the latest version.`,
+      buttons: ['OK'],
+    });
+    return;
+  }
+  const { response } = await dialog.showMessageBox({
+    type: 'warning',
+    message: 'Couldn’t check for updates',
+    detail: 'GitHub could not be reached. Try again later, or see the releases page.',
+    buttons: ['Open Releases Page', 'OK'],
+    defaultId: 1,
+    cancelId: 1,
+  });
+  if (response === 0) shell.openExternal(RELEASES_PAGE);
 }
 
 // The app menu; rebuilt when the recent chats' names change, so Cmd+1–5 show who they open.
@@ -549,6 +593,7 @@ app.whenReady().then(() => {
       current().openPreferences(bubble.getBounds());
       syncActive();
     },
+    onCheckUpdates: checkForUpdatesNow,
   });
 
   applySettings(null);

@@ -7,5 +7,6 @@ contextBridge.exposeInMainWorld('settingsApi', {
   close: () => ipcRenderer.send('settings:close'),
   resize: (height) => ipcRenderer.send('settings:resize', height),
   openMessengerPreferences: () => ipcRenderer.send('settings:open-messenger-preferences'),
+  checkUpdates: () => ipcRenderer.send('settings:check-updates'),
   onSettings: (cb) => ipcRenderer.on('settings:changed', (_event, s) => cb(s)),
 });

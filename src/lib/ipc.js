@@ -41,6 +41,7 @@ const CHANNELS = Object.freeze({
   SETTINGS_CLOSE: 'settings:close',
   SETTINGS_RESIZE: 'settings:resize',
   SETTINGS_OPEN_MESSENGER_PREFERENCES: 'settings:open-messenger-preferences',
+  SETTINGS_CHECK_UPDATES: 'settings:check-updates',
   SETTINGS_CHANGED: 'settings:changed',
 });
 

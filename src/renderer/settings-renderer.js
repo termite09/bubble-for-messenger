@@ -26,6 +26,9 @@ document.getElementById('close').addEventListener('click', () => window.settings
 document
   .getElementById('open-sounds')
   .addEventListener('click', () => window.settingsApi.openMessengerPreferences());
+document
+  .getElementById('check-updates')
+  .addEventListener('click', () => window.settingsApi.checkUpdates());
 // Esc and Cmd+W (Ctrl+W elsewhere) put the card away (there is no Window > Close: it would
 // destroy the panel).
 window.addEventListener('keydown', (e) => {

@@ -20,6 +20,7 @@ function createSettingsWindow({
   setSetting,
   subscribe,
   onOpenMessengerPreferences,
+  onCheckUpdates = () => {},
   caps = CAPS,
 }) {
   let win = null;
@@ -82,6 +83,7 @@ function createSettingsWindow({
       w.setBounds({ x, y, width: WIDTH, height: h }, true);
     });
     ipc.on(CHANNELS.SETTINGS_OPEN_MESSENGER_PREFERENCES, () => onOpenMessengerPreferences());
+    ipc.on(CHANNELS.SETTINGS_CHECK_UPDATES, () => onCheckUpdates());
   }
   subscribe((s) => {
     if (!win) return;

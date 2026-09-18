@@ -54,3 +54,48 @@ test('createUpdateCheck reports a newer release once, tolerates failures, and re
   assert.equal(await older.check(), null);
   assert.equal(seen.length, 1);
 });
+
+// A check the user asked for answers every time — newer, up to date, or unreachable — and
+// runs whether or not the daily check is switched on; a newer release it finds is remembered
+// and told once, like the daily one.
+test('checkNow answers with the outcome and ignores the daily setting', async () => {
+  const seen = [];
+  const release = { tag_name: 'v9.0.0', html_url: 'https://github.com/x/y/releases/tag/v9.0.0' };
+  const newer = createUpdateCheck({
+    fetch: async () => ({ ok: true, json: async () => release }),
+    version: '2.3.0',
+    enabled: () => false,
+    onUpdate: (u) => seen.push(u),
+  });
+  const latest = { version: '9.0.0', url: release.html_url };
+  assert.deepEqual(await newer.checkNow(), { status: 'update', latest });
+  assert.deepEqual(newer.latest(), latest);
+  await newer.checkNow();
+  assert.equal(seen.length, 1);
+
+  const current = createUpdateCheck({
+    fetch: async () => ({ ok: true, json: async () => ({ tag_name: 'v2.3.0', html_url: 'u' }) }),
+    version: '2.3.0',
+    enabled: () => false,
+    onUpdate: () => seen.push('no'),
+  });
+  assert.deepEqual(await current.checkNow(), { status: 'current' });
+
+  const unreachable = createUpdateCheck({
+    fetch: async () => {
+      throw new Error('offline');
+    },
+    version: '2.3.0',
+    enabled: () => true,
+    onUpdate: () => seen.push('no'),
+  });
+  assert.deepEqual(await unreachable.checkNow(), { status: 'error' });
+  const denied = createUpdateCheck({
+    fetch: async () => ({ ok: false, json: async () => ({}) }),
+    version: '2.3.0',
+    enabled: () => true,
+    onUpdate: () => seen.push('no'),
+  });
+  assert.deepEqual(await denied.checkNow(), { status: 'error' });
+  assert.equal(seen.length, 1);
+});
