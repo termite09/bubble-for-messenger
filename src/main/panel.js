@@ -10,7 +10,7 @@ const { joinAllSpaces } = require('./workspaces');
 const { createFloatingWindow, ipcFor } = require('./floating-window');
 const { hashHref } = require('./log');
 const { CHANNELS } = require('../lib/ipc');
-const { normalizeRows } = require('../lib/recent');
+const { normalizeRows, platformOfHref } = require('../lib/recent');
 
 const LIVENESS_TICK_MS = 30 * 1000;
 // The page scripts for each site (lib/sites): the same surface, a different page.
@@ -100,9 +100,21 @@ function createPanel({
     onHidden();
   }
   win.on('blur', () => {
+    log.debug('panel blur', { showing });
     hide();
     onBlurred();
   });
+  // Diagnostics for the open path (a Windows report of the list showing where a thread
+  // landed): where the page goes, and how big it is, as it happens.
+  const pathKind = (url) => {
+    try {
+      const { pathname } = new URL(url);
+      return platformOfHref(pathname) ? 'thread' : pathname === '/' ? 'list' : 'other';
+    } catch (e) {
+      return 'none';
+    }
+  };
+  win.on('resize', () => log.debug('panel resized', { size: win.getContentSize() }));
   // The chat list's rows, pushed by the preload whenever they change; and the pin button.
   ipcFor(win).on(CHANNELS.PANEL_ROWS, (rows) => onRows(normalizeRows(rows)));
   // The pin button on an inbox row: the row, as the page read it.
@@ -274,12 +286,14 @@ function createPanel({
     }
   };
   win.webContents.on('did-navigate', (_event, url) => {
+    log.debug('panel navigated', { kind: pathKind(url), inPage: false });
     reportStatus();
     if (!belongs(url)) win.loadURL(site.home).catch(() => {});
     else onNavigated(url);
   });
   win.webContents.on('did-navigate-in-page', (_event, url, isMainFrame) => {
     if (!isMainFrame) return;
+    log.debug('panel navigated', { kind: pathKind(url), inPage: true });
     if (!belongs(url)) win.loadURL(site.home).catch(() => {});
     else onNavigated(url);
   });
@@ -315,6 +329,15 @@ function createPanel({
     win.focus();
     showing = true;
     onShown();
+    // What the page looks like once it is on screen, and a moment later: the viewport it
+    // has, and whether the thread is still in front.
+    for (const after of [0, 300, 1200]) {
+      setTimeout(async () => {
+        if (win.isDestroyed()) return;
+        const view = await scrape.viewport(win.webContents);
+        log.debug('panel revealed', { after, ...view, kind: pathKind(win.webContents.getURL()) });
+      }, after).unref();
+    }
   }
 
   // Opens are serialised: a second fan click while one is still staging would otherwise
@@ -353,6 +376,7 @@ function createPanel({
   // real input event, which a hidden window does not dispatch, so the page is rendered at
   // opacity 0 for the press and revealed after it.
   async function stageInbox(bubbleBounds) {
+    log.debug('inbox open', { visible: win.isVisible() });
     compact = false;
     await scrape.setCompact(win.webContents, false);
     resize('full');

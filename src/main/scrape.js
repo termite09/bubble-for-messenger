@@ -138,6 +138,12 @@ function threadShowing(wc) {
   ).catch(() => false);
 }
 
+// The page's viewport and whether the thread is in front, for the log.
+async function viewport(wc) {
+  const size = await run(wc, `({ w: innerWidth, h: innerHeight })`).catch(() => ({}));
+  return { ...size, thread: await threadShowing(wc) };
+}
+
 // Any conversation row is clickable, i.e. the list is in front.
 function listInteractive(wc) {
   return run(
@@ -506,6 +512,7 @@ module.exports = {
   readShowing,
   openThread,
   openInbox,
+  viewport,
   openPreferences,
   setCompact,
   setFrame,

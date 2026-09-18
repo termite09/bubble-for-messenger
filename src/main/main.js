@@ -191,6 +191,7 @@ function createPlatform(site) {
     // The panel put itself away (the user went elsewhere): the stack folds with it, its open
     // chat is remembered by the account, and the ring comes off its head.
     onBlurred: () => {
+      log.debug('panel blurred');
       if (bubble) bubble.collapse();
       syncActive();
       syncSound();
@@ -546,16 +547,24 @@ app.whenReady().then(() => {
     // back).
     onClick: () => {
       // Signed out: the stack would be empty; the disc goes straight to the login page.
-      if (current().status().signedOut) return openInbox();
+      if (current().status().signedOut) {
+        log.debug('disc click', { action: 'signed-out' });
+        return openInbox();
+      }
       const pick = pickUnread({ recent: current().chats().recent, landed: current().landed() });
-      if (pick) return openChat(pick.href);
+      if (pick) {
+        log.debug('disc click', { action: 'unread' });
+        return openChat(pick.href);
+      }
       const click = current().discClick(Date.now(), settings.reopenLast);
+      log.debug('disc click', { action: click.action });
       if (click.action === 'reopen') openChat(click.href);
       else showStack();
     },
     // Pressing the disc while the stack is open, or anywhere outside it (the shield), puts it
     // all away — and remembers the open chat for a while.
-    onClose: () => {
+    onClose: (by) => {
+      log.debug('stack closed', { by });
       current().close();
       syncActive();
       current().hide();

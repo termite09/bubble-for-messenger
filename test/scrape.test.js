@@ -322,3 +322,16 @@ test('openThread: a chat with no row to press is reported as not landed', async 
   assert.deepEqual(await openThread(page, '/t/1/'), { via: 'reload', landed: false });
   assert.deepEqual(presses(page), []);
 });
+
+const { viewport } = require('../src/main/scrape');
+
+// The diagnostic read of the page at reveal: its viewport, and whether the thread is in front.
+test('viewport reports the page size and whether the thread shows', async () => {
+  const page = narrowPage({ front: 'thread' });
+  const inner = page.executeJavaScriptInIsolatedWorld;
+  page.executeJavaScriptInIsolatedWorld = async (world, scripts) =>
+    scripts[0].code.includes('innerWidth') ? { w: 420, h: 560 } : inner(world, scripts);
+  assert.deepEqual(await viewport(page), { w: 420, h: 560, thread: true });
+  page.front = 'list';
+  assert.deepEqual(await viewport(page), { w: 420, h: 560, thread: false });
+});
