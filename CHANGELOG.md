@@ -1,5 +1,14 @@
 # Changelog
 
+## v3.0.2 (2026-09-18) — Bubble for Messenger
+
+### Changed
+- **More in the log around opening a chat**, for the Windows report of the inbox showing where
+  the chat should: what a bubble click decided, why the stack closed, the panel's blur, resize
+  and navigation events, and — at 0, 300 and 1200 ms after the panel appears — the page's
+  size and whether the chat is still in front. Still no names, messages or links: chats are an
+  8-character hash, paths are only "thread", "list" or "other".
+
 ## v3.0.1 (2026-09-18) — Bubble for Messenger
 
 ### Fixed
