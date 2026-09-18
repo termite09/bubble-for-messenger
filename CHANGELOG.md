@@ -1,5 +1,22 @@
 # Changelog
 
+## v3.0.1 (2026-09-18) — Bubble for Messenger
+
+### Fixed
+- **Reopening the last chat on Windows showed the inbox instead**, with the chat's row
+  highlighted, and alternated between the chat and the inbox on each click. Opening a thread
+  falls back to loading its address, which lands on the list with the row selected; the row
+  was then looked for once, at a fixed moment after the load, and on a machine whose list
+  renders later than that nothing was pressed. The row is now waited for. The app also logs
+  how each thread opened (`thread open` in `logs/main.log`, a warning when it did not land),
+  which is what to send with a report if the reopen still misbehaves.
+
+### Added
+- **Check for updates on demand.** *Check for Updates…* in the bubble's menu (in place of
+  *Update to…* until a newer release is known) and a **Check now** button on the Settings row
+  ask GitHub straight away, whatever the daily switch says, and answer either way: a newer
+  release, up to date, or GitHub out of reach.
+
 ## v3.0.0 (2026-09-17) — Bubble for Messenger
 
 Messenger only, and better behaved toward the account it signs into. The full reasoning, with
