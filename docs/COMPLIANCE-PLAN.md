@@ -137,10 +137,11 @@ Bubble/2.7.1 Chrome/1xx.0.0.0 Electron/44.3.0 Safari/537.36
 third-party Electron app called Bubble.** If Meta ever wants to enumerate or block this app's
 users, that is a one-line rule.
 
-> **Verify this yourself before acting on it.** I could not run Electron in this environment
-> (`node_modules` is absent), so this is inferred from Electron's documented default, not
-> measured. Check with:
-> `npm install && npx electron -e "const{app,BrowserWindow}=require('electron');app.whenReady().then(()=>console.log(new BrowserWindow({show:false}).webContents.getUserAgent()))"`
+> **Measured, 2026-09-17, in the v3.0.0 review** (Electron 44.3.0, an isolated profile, the
+> app's `productName` and version in place):
+> `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Bubble/3.0.0 Chrome/152.0.7977.78 Electron/44.3.0 Safari/537.36`
+> — exactly the documented default. The app's name and version, and Electron's, are in the
+> header on every request.
 
 **Recommendation: leave it as it is. [honest]** Replacing it with a stock Chrome string is
 **[evasion]** — it is the single most effective anti-detection change available, and that is
@@ -443,8 +444,8 @@ to get someone locked out.
   the separate-written-permission requirement. Meta's own domains are **blocked from this
   environment**, so these came from search extracts rather than first-hand fetches.
   **Re-read them at source before acting.**
-- **Inferred, not measured:** the Electron UA contents (S1) — `node_modules` is absent, so I
-  could not run it. Verify with the command in Section 3.
+- **Measured:** the Electron UA contents (S1) — see Section 3. It was inferred when this plan
+  was written and confirmed byte for byte in the v3.0.0 review.
 - **Inferred, flagged inline:** every causal claim linking a signal to enforcement. Meta
   publishes nothing here.
 - **Weak sources, not relied on:** much of the Instagram-enforcement material online is from
