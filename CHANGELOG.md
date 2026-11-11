@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v3.1.0 (2026-11-11) — Bubble for Messenger
 
 ### Fixed
 - **Glass now reaches the bubble.** The setting has always frosted the Settings card, but its

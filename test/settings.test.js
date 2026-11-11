@@ -177,7 +177,7 @@ test('pins from the Instagram build are dropped, and the cap is five in all', ()
 });
 
 // The bubble page reads its settings from one message; a key it reads that main never sends is
-// a switch that silently does nothing there (Glass, until 3.0.3).
+// a switch that silently does nothing there (Glass, until 3.1.0).
 const fs = require('node:fs');
 const path = require('node:path');
 const { bubblePageSettings, BUBBLE_PAGE_KEYS } = require('../src/lib/settings');
