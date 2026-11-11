@@ -82,9 +82,9 @@
         cursor: default;
       }
       /* The face is the disc's button: the mark, and the name a reader hears (platform, count,
-         whether Messenger is reachable). The satellite, the banner and its reply controls are the
-         disc's siblings in the tree, not its children — a button's descendants are presentational
-         to a reader, so they must not be inside it. */
+         whether Messenger is reachable). The count, the status chip, the banner and its reply
+         controls are the disc's siblings in the tree, not its children — a button's descendants
+         are presentational to a reader, so they must not be inside it. */
       #disc-face {
         position: absolute;
         inset: 0;
@@ -97,11 +97,6 @@
         width: 24px;
         height: 24px;
         display: block;
-        transition: opacity 120ms linear;
-      }
-      /* Switching platform: the mark fades out, is swapped, and fades back in. */
-      body.swapping #mark {
-        opacity: 0;
       }
       /* Messenger unreachable: the mark dims to ash, and a chip beside the disc says why on
          hover. Signed out: the chip stays, reading "Sign in", and the disc opens the login page. */
@@ -499,19 +494,6 @@
         object-fit: cover;
         display: block;
       }
-      /* With two platforms on, the avatar wears the mini-mark of the one the message is from. */
-      .av .mini {
-        display: none;
-        position: absolute;
-        right: -3px;
-        bottom: -3px;
-        width: 14px;
-        height: 14px;
-        border-radius: 4px;
-        border: 2px solid var(--card);
-        box-sizing: content-box;
-        background: var(--card);
-      }
       .name {
         min-width: 0;
         font-weight: 600;
@@ -670,11 +652,8 @@
         display: none;
       }
 
-      /* Reduce Motion: no travel, just the crossfade — and no fade on the mark swap. */
+      /* Reduce Motion: no travel, just the crossfade. */
       @media (prefers-reduced-motion: reduce) {
-        #mark {
-          transition: none;
-        }
         body.sending #landed-sub::before {
           animation: none;
           border-top-color: var(--dim);
@@ -706,8 +685,8 @@
       <div id="fan"></div>
       <!-- The disc is the card; the face inside it is the button, whose name carries the
            platform, the count and the connection (the pill and the chip are decoration to a
-           reader). The satellite and the banner sit beside the face, not inside it; the banner
-           is a status region, so a landed message is announced. -->
+           reader). The banner sits beside the face, not inside it; it is a status region, so a
+           landed message is announced. -->
       <div id="disc" class="card">
         <div id="disc-face" role="button" aria-label="Messenger">
           <img id="mark" src="../../assets/icon.png" alt="" />
@@ -715,7 +694,7 @@
         <div id="count" aria-hidden="true"></div>
         <div id="status" aria-hidden="true"></div>
         <div id="landed" class="card" role="status" aria-live="polite" aria-atomic="true">
-          <div class="av" id="landed-av"><img class="mini" id="landed-mark" alt="" /></div>
+          <div class="av" id="landed-av"></div>
           <div class="name" id="landed-name"></div>
           <div class="sub" id="landed-sub"></div>
           <input
@@ -735,6 +714,7 @@
         </div>
       </div>
     </div>
+    <script src="drafts.js"></script>
     <script src="bubble-renderer.js"></script>
   </body>
 </html>

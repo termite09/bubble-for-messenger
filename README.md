@@ -76,7 +76,8 @@ please [open an issue](https://github.com/termite09/bubble-for-messenger/issues)
   it snaps to the nearest edge and remembers its place. A blue count shows total unread.
 - **A message lands:** the bubble unrolls into a banner — avatar, name, the message — for four
   seconds. Click it to open the chat, or click the text (or ↩) to reply in place: Enter sends,
-  Esc cancels. The bubble only takes the keyboard while that field is open.
+  Esc cancels. Click elsewhere and what you typed waits there for the next time you reply to
+  that chat. The bubble only takes the keyboard while that field is open.
 - **Click the bubble** and your five most recent chats fan out as round heads (a blue dot means
   unread), with an Inbox head last. Pick one and it opens in a compact panel beside the stack.
   With something unread, a click opens the newest message directly. Click anywhere else to put
@@ -122,7 +123,8 @@ A few need a word:
 | `Cmd/Ctrl + 1–5` | Open one of the five most recent chats |
 | `Cmd/Ctrl + ,` | Settings |
 
-These work whenever a Bubble window (the panel or Settings) is focused. In Settings, `Tab`
+These work whenever a Bubble window (the panel or Settings) is focused — not from another
+app, since the bubble itself never takes the keyboard. In Settings, `Tab`
 moves through the rows, `Space` flips a switch, `←` `→` choose within a control and move
 between tabs, and `Esc` closes.
 
@@ -184,7 +186,7 @@ have no trust entry). Run `brew trust termite09/tap` once, or upgrade by the ful
 
 **Does it work with VoiceOver?** Partly, by design. The bubble never takes the keyboard, so
 the stack is pointer-only — but everything under the pointer is named (the bubble's platform,
-count and connection; each head; the satellite), and a landing message is announced. Settings
+count and connection; each head), and a landing message is announced. Settings
 is fully keyboard-operable.
 
 **Something went wrong.** Open an issue and attach the log:

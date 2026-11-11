@@ -4,7 +4,7 @@
 // stamps ("2m", "Yesterday"). Another language leaves those paths as no-ops.
 const { normalizeRows, platformOfHref } = require('../lib/recent');
 const { nameFromTitle } = require('../lib/unread');
-const { ROW_READER_SOURCE } = require('../lib/rows');
+const { ROW_READER_SOURCE, rowReaderSource } = require('../lib/rows');
 const { THREAD_CARD_SOURCE } = require('../lib/fit');
 const { decideReply, REPLY_BUDGET_MS, REPLY_POLL_MS } = require('../lib/reply');
 const tokens = require('../lib/tokens');
@@ -30,11 +30,13 @@ function run(wc, code, { timeoutMs = 3000, userGesture = false } = {}) {
 
 const onMessenger = (wc) => /^https:\/\/(www\.)?messenger\.com\//.test(wc.getURL());
 
-// The chat list, or null when the page's rows can't be trusted right now (see the script).
-async function readRecentChats(wc) {
+// The first `limit` rows of the chat list, or null when the page's rows can't be trusted right
+// now (see the script).
+async function readRecentChats(wc, limit) {
   if (!onMessenger(wc)) return [];
   try {
-    const raw = await run(wc, RECENT_CHATS_SCRIPT, { timeoutMs: 2000 });
+    const script = limit ? rowReaderSource(limit) : RECENT_CHATS_SCRIPT;
+    const raw = await run(wc, script, { timeoutMs: 2000 });
     return raw === null ? null : normalizeRows(raw);
   } catch (e) {
     return [];
@@ -247,7 +249,9 @@ const waitForThread = (wc, timeout = 4000) => waitUntil(threadShowing, wc, timeo
 // letting the caller keep the panel hidden until then so the list transition is never seen.
 // Reports which route it took and whether the thread is showing at the end (`landed`): a
 // caller that reveals the panel regardless can then say what it revealed.
-async function openThread(wc, href) {
+// `beforeReload` is called just before the last resort replaces the document — and with it
+// anything the caller put over the page (see cover).
+async function openThread(wc, href, { beforeReload = () => {} } = {}) {
   let via = 'row';
   let point = await rowPoint(wc, href);
   if (!point && (await backToList(wc))) {
@@ -256,6 +260,7 @@ async function openThread(wc, href) {
   }
   if (!point) {
     via = 'reload'; // last resort: the thread's address lands on the list, row highlighted
+    beforeReload();
     await reload(wc, 'https://www.messenger.com' + href);
     await waitUntil(listInteractive, wc, LIST_TIMEOUT_MS); // its rows render after the load
     point = await rowPoint(wc, href);
@@ -268,6 +273,60 @@ async function openThread(wc, href) {
   if (!point) return { via, landed: false };
   click(wc, point);
   return { via, landed: await waitForThread(wc) };
+}
+
+// The picture the panel was showing, held over the page while the page switches chats
+// underneath, then faded: a switch reads as a crossfade rather than as the window blinking out.
+// An <img> over everything but the frame's hairline (z-index one under #mb-frame), and
+// transparent to the pointer — so to elementFromPoint and to the presses of the open path too.
+// It answers once the picture is decoded, so it is on screen before the page moves.
+const COVER_CSS = (
+  `position:fixed;top:0;left:0;width:100%;height:auto;max-width:none;margin:0;padding:0;` +
+  `border:0;z-index:2147483646;pointer-events:none;opacity:1;transition:none`
+)
+  .split(';')
+  .map((d) => d + '!important')
+  .join(';');
+function cover(wc, dataUrl) {
+  return run(
+    wc,
+    `(async () => {
+    const old = document.getElementById('mb-cover');
+    if (old) old.remove();
+    const img = document.createElement('img');
+    img.id = 'mb-cover';
+    img.alt = '';
+    img.style.cssText = ${JSON.stringify(COVER_CSS)};
+    img.src = ${JSON.stringify(dataUrl)};
+    (document.body || document.documentElement).appendChild(img);
+    try {
+      await img.decode();
+      return true;
+    } catch (e) {
+      img.remove();
+      return false;
+    }
+  })()`,
+  )
+    .then((ok) => ok === true)
+    .catch(() => false);
+}
+
+// The page is showing the new chat: the held picture fades over the crossfade clock (120ms),
+// or simply goes under Reduce Motion. Removes the element it found, so a cover put up by the
+// next switch is never taken down by this one's timer.
+function uncover(wc) {
+  return run(
+    wc,
+    `(() => {
+    const img = document.getElementById('mb-cover');
+    if (!img) return;
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return img.remove();
+    img.style.setProperty('transition', 'opacity 120ms linear', 'important');
+    img.style.setProperty('opacity', '0', 'important');
+    setTimeout(() => img.remove(), 160);
+  })()`,
+  ).catch(() => {});
 }
 
 // Page-side halves of a quick reply. Kept as replaceable actions so the delivery loop can be
@@ -512,6 +571,8 @@ module.exports = {
   readShowing,
   openThread,
   openInbox,
+  cover,
+  uncover,
   viewport,
   openPreferences,
   setCompact,

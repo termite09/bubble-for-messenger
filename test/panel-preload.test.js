@@ -33,3 +33,11 @@ test('the panel preload exposes nothing to the page', () => {
   );
   assert.match(preload, /require\('electron'\)/);
 });
+
+// It reads five rows plus one per pinned chat, so pins among the newest leave five that are
+// not pinned; and a change of pins is a reason to read again.
+test('the panel preload reads five rows plus one per pin, again when the pins change', () => {
+  assert.match(preload, /readRows\(LIMIT \+ pins\.length, spanText, listAtTop\)/);
+  const onPins = /ipcRenderer\.on\('panel:pin-state'[\s\S]*?\n\}\);/.exec(preload)[0];
+  assert.match(onPins, /schedule\(\)/);
+});

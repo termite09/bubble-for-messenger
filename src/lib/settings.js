@@ -67,6 +67,11 @@ function isMetaOrigin(url) {
 const isSettingKey = (key) =>
   typeof key === 'string' && Object.prototype.hasOwnProperty.call(DEFAULTS, key);
 
+// What the bubble page draws from: the reply control, how the count shows, the disc size and
+// the Glass material. One list, for what is sent and for when a change is worth sending.
+const BUBBLE_PAGE_KEYS = Object.freeze(['quickReply', 'badge', 'bubbleSize', 'glass']);
+const bubblePageSettings = (s) => Object.fromEntries(BUBBLE_PAGE_KEYS.map((k) => [k, s[k]]));
+
 function normalizeSettings(raw) {
   const src = raw && typeof raw === 'object' ? raw : {};
   const out = {};
@@ -118,4 +123,6 @@ module.exports = {
   isSettingKey,
   isPermissionGranted,
   isMetaOrigin,
+  BUBBLE_PAGE_KEYS,
+  bubblePageSettings,
 };

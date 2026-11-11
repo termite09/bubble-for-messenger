@@ -53,4 +53,16 @@ function release(drag, { overDismiss, now = 0 }) {
   return drag.collapsedOnPress ? 'nothing' : 'click';
 }
 
-module.exports = { press, move, release, armed, ARM_MS };
+// After a drag the disc eases to the edge on the system's one spatial curve (DESIGN.md:
+// ease-out-quint, 220 ms), its place read off the clock so a late tick shortens nothing.
+const SNAP_MS = 220;
+const easeOutQuint = (t) => 1 - (1 - t) ** 5;
+function snapX(fromX, toX, elapsedMs, durationMs = SNAP_MS) {
+  const t = Math.min(1, Math.max(0, elapsedMs / durationMs));
+  return Math.round(fromX + (toX - fromX) * easeOutQuint(t));
+}
+
+// A tick per frame of the display the disc is on (its refresh rate, when Electron knows it).
+const frameInterval = (hz) => (hz > 0 ? Math.max(4, Math.floor(1000 / hz)) : 16);
+
+module.exports = { press, move, release, armed, ARM_MS, snapX, frameInterval, SNAP_MS };

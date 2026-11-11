@@ -335,3 +335,67 @@ test('viewport reports the page size and whether the thread shows', async () => 
   page.front = 'list';
   assert.deepEqual(await viewport(page), { w: 420, h: 560, thread: false });
 });
+
+// ---- The picture held over a switch -----------------------------------------------------------
+const { cover, uncover } = require('../src/main/scrape');
+const recording = (result) => {
+  const codes = [];
+  return {
+    codes,
+    wc: {
+      getURL: () => 'https://www.messenger.com/t/1/',
+      executeJavaScript: async (code) => {
+        codes.push(code);
+        return result;
+      },
+    },
+  };
+};
+
+// The cover is an <img> over everything but the frame's hairline, transparent to the pointer
+// (and so to elementFromPoint and to the presses the open path makes), and it is in place —
+// decoded — before the caller lets the page move underneath it.
+test('cover puts the picture over the page, pointer-transparent, decoded before it answers', async () => {
+  const { wc, codes } = recording(true);
+  assert.equal(await cover(wc, 'data:image/jpeg;base64,QUJD'), true);
+  const [code] = codes;
+  assert.match(code, /data:image\/jpeg;base64,QUJD/);
+  assert.match(code, /mb-cover/);
+  assert.match(code, /pointer-events:none/);
+  assert.match(code, /z-index:2147483646/); // under the hairline frame (…647)
+  assert.match(code, /await \w+\.decode\(\)/);
+  assert.equal(await cover(recording(null).wc, 'data:,'), false); // the page could not
+});
+
+test('uncover fades the picture away, at once under Reduce Motion', async () => {
+  const { wc, codes } = recording(undefined);
+  await uncover(wc);
+  assert.match(codes[0], /mb-cover/);
+  assert.match(codes[0], /opacity 120ms linear/);
+  assert.match(codes[0], /prefers-reduced-motion: reduce/);
+});
+
+// The last resort replaces the document, and with it anything the caller put over the page:
+// the caller is told just before, and only on that path.
+test('openThread tells the caller before it reloads the page, and only then', async () => {
+  const told = [];
+  const reloading = narrowPage({ front: 'thread', back: false });
+  const beforeReload = () => told.push(reloading.loads.length);
+  assert.equal((await openThread(reloading, '/t/1/', { beforeReload })).via, 'reload');
+  assert.deepEqual(told, [0]); // before the load, once
+  const quick = narrowPage({ front: 'thread' });
+  await openThread(quick, '/t/1/', { beforeReload: () => told.push('back') });
+  assert.deepEqual(told, [0]);
+});
+
+test('the page is asked for as many rows as the caller needs (five, plus one per pin)', async () => {
+  const codes = [];
+  const page = {
+    getURL: () => 'https://www.messenger.com/',
+    executeJavaScript: async (code) => (codes.push(code), []),
+  };
+  await readRecentChats(page, 8);
+  await readRecentChats(page);
+  assert.match(codes[0], /\)\(8, function spanText\(/);
+  assert.match(codes[1], /\)\(5, function spanText\(/);
+});

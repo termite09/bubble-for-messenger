@@ -6,6 +6,7 @@ const { looksLikeErrorPage, errorRetryDelay } = require('../lib/refresh');
 const liveness = require('../lib/liveness');
 const { connectionState, signedOut } = require('../lib/status');
 const { MESSENGER } = require('../lib/sites');
+const { CAPS } = require('../lib/platform');
 const { joinAllSpaces } = require('./workspaces');
 const { createFloatingWindow, ipcFor } = require('./floating-window');
 const { hashHref } = require('./log');
@@ -13,6 +14,7 @@ const { CHANNELS } = require('../lib/ipc');
 const { normalizeRows, platformOfHref } = require('../lib/recent');
 
 const LIVENESS_TICK_MS = 30 * 1000;
+const CAPTURE_DEADLINE_MS = 300; // the picture held over a chat switch, or staging instead
 // The page scripts for each site (lib/sites): the same surface, a different page.
 
 // A session keeps one webRequest listener per event, and every panel shares the one session:
@@ -64,8 +66,9 @@ function createPanel({
   onPin = () => {},
   overFullscreen = true,
   log = noLog,
+  scrape = require('./scrape'),
+  caps = CAPS,
 }) {
-  const scrape = require('./scrape');
   // The site's page wash in each theme: the window's own colour, so nothing shows through
   // before the page paints or around its edges.
   const washFor = site.wash;
@@ -89,6 +92,7 @@ function createPanel({
     // and the page idles instead of running its timers at full rate. Its scripts are the same
     // multi-megabyte bundle every load: cache them compiled.
     webPreferences: { backgroundThrottling: PANEL_THROTTLE, v8CacheOptions: 'bypassHeatCheck' },
+    caps,
   });
 
   // Put away, and say so if it was showing (a staged panel at opacity 0 is not "showing").
@@ -177,7 +181,10 @@ function createPanel({
     onStatus(status);
   };
   const note = (event) => {
+    const before = live;
     live = liveness.reduce(live, event, Date.now());
+    if (before.resumePending && !live.resumePending && event === 'socket-open')
+      log.info('wake settled without a reload');
     reportStatus();
   };
   const unwatch = watchRequests(win.webContents.session, {
@@ -214,6 +221,10 @@ function createPanel({
     note('reload');
     win.webContents.reload();
   }, LIVENESS_TICK_MS).unref();
+  let pinState = { pins: [] };
+  const sendPinState = () => {
+    if (!win.isDestroyed()) win.webContents.send(CHANNELS.PANEL_PIN_STATE, pinState);
+  };
   let errorRetries = 0;
   let errorTimer = null;
   win.webContents.on('did-finish-load', async () => {
@@ -221,6 +232,7 @@ function createPanel({
       loadFailed = false;
       return;
     }
+    sendPinState(); // a fresh preload knows no pins
     scrape.setFrame(win.webContents, true);
     scrape.setCompact(win.webContents, compact);
     applyTheme();
@@ -330,7 +342,9 @@ function createPanel({
     showing = true;
     onShown();
     // What the page looks like once it is on screen, and a moment later: the viewport it
-    // has, and whether the thread is still in front.
+    // has, and whether the thread is still in front. Six page scripts per open, so only where
+    // the open path has not been verified (lib/platform openVerified).
+    if (caps.openVerified) return;
     for (const after of [0, 300, 1200]) {
       setTimeout(async () => {
         if (win.isDestroyed()) return;
@@ -348,27 +362,59 @@ function createPanel({
       .then(() => (win.isDestroyed() ? undefined : fn())) // a destroyed panel has nothing left to do
       .catch((err) => log.warn('panel action failed', { err })));
 
+  // The picture the panel shows, held over its page (scrape.cover). False when none can be had
+  // in time: a capture is a few ms warm (measured: 3–16 ms at 420×560 on a 2× display), the
+  // first of a session can take ~200 ms, and one that never settles must not hold up the opens
+  // queued behind it.
+  async function holdPicture() {
+    let timer;
+    try {
+      const image = await Promise.race([
+        win.webContents.capturePage(),
+        new Promise((resolve) => (timer = setTimeout(resolve, CAPTURE_DEADLINE_MS, null))),
+      ]);
+      if (!image || image.isEmpty()) return false;
+      const jpeg = image.toJPEG(90).toString('base64');
+      return (await scrape.cover(win.webContents, 'data:image/jpeg;base64,' + jpeg)) === true;
+    } catch (e) {
+      return false;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   async function stageThread(href, bubbleBounds) {
     compact = true;
+    // On screen already (another chat, or the inbox): the picture it shows is held over the
+    // page while the page switches underneath, then faded, so a switch reads as a crossfade
+    // rather than the window blinking out. Hidden — or with no picture to hold — the press and
+    // the list are staged out of sight instead (opacity 0 but rendered, so the click still
+    // dispatches). Either way the list is never seen.
+    const covered = showing && (await holdPicture());
     resize('compact');
-    // Stage the reload + row click invisibly (opacity 0 but rendered, so the click still
-    // dispatches), then reveal only once the conversation is showing — the list is never seen.
     place(bubbleBounds);
-    stage();
+    if (!covered) stage();
     try {
       await scrape.setCompact(win.webContents, true);
-      const outcome = await scrape.openThread(win.webContents, href);
+      // The slow path reloads the page, and the held picture goes with the old document.
+      const outcome = await scrape.openThread(win.webContents, href, { beforeReload: stage });
       await scrape.setCompact(win.webContents, true);
       // Which route the open took, and whether it got there: a thread that did not land leaves
       // the list on screen in the thread's compact size, so that one is worth a warning.
       const { via, landed } = outcome || {};
-      log[landed ? 'debug' : 'warn']('thread open', { thread: hashHref(href), via, landed });
+      log[landed ? 'debug' : 'warn']('thread open', {
+        thread: hashHref(href),
+        via,
+        landed,
+        covered,
+      });
       return landed;
     } finally {
       // Whatever happened, never leave the panel staged: an invisible window still swallows
-      // the clicks meant for whatever is underneath it.
+      // the clicks meant for whatever is underneath it. Nor the picture held over the page.
       place(bubbleBounds);
       reveal();
+      if (covered) scrape.uncover(win.webContents);
     }
   }
 
@@ -422,6 +468,8 @@ function createPanel({
     win,
     site,
     isVisible: () => win.isVisible(),
+    // On screen to the user — not merely staged at opacity 0.
+    isShowing: () => showing,
     isLoading: () => win.webContents.isLoading(),
     liveness: () => live,
     status: () => JSON.parse(lastStatus || '{}'),
@@ -440,12 +488,14 @@ function createPanel({
     reload() {
       win.webContents.reload();
     },
-    readRecentChats: () => scrape.readRecentChats(win.webContents),
+    readRecentChats: (limit) => scrape.readRecentChats(win.webContents, limit),
     // The chat the page is showing ({ href, name, avatarUrl }).
     readShowing: () => scrape.readShowing(win.webContents),
-    // The pin button drawn by the preload on the inbox rows: which of them are pinned.
+    // The pinned chats, for the preload: its pin buttons show them, and it reads a row more
+    // for each. Kept, because every load starts the preload afresh (see did-finish-load).
     setPinState({ pins }) {
-      if (!win.isDestroyed()) win.webContents.send(CHANNELS.PANEL_PIN_STATE, { pins });
+      pinState = { pins };
+      sendPinState();
     },
     requestRows: () => win.webContents.send(CHANNELS.PANEL_READ),
     session: () => win.webContents.session,
@@ -456,7 +506,7 @@ function createPanel({
     openPreferences: (bubbleBounds) => enqueue(() => stagePreferences(bubbleBounds)),
     // Serialised with opens; the queue swallows rejections into undefined, hence `=== true`.
     sendReply: (href, text) => enqueue(() => stageReply(href, text)).then((ok) => ok === true),
-    setOverFullscreen: (on) => joinAllSpaces(win, on),
+    setOverFullscreen: (on) => joinAllSpaces(win, on, caps),
     // For good — the close guard above only yields to the app quitting — and out of everything
     // that would otherwise keep reaching for the window.
     destroy() {

@@ -1,7 +1,8 @@
 // Messenger is kept loaded, hidden, for days at a time. Its live connection does not survive
 // that indefinitely — a laptop sleeping, a network change, a failed load all leave a page that
 // looks fine but never receives another message. The cure is a reload, taken only for a
-// reason, only when nobody is looking, and never in a loop. This is the rule, pure; panel.js
+// reason, only when nobody is looking, and never in a loop. A wake is a reason only until the
+// chat socket is seen to open again on its own. This is the rule, pure; panel.js
 // feeds it events and asks it what to do.
 const { errorRetryDelay } = require('./refresh');
 
@@ -36,8 +37,15 @@ function reduce(state, event, now) {
       };
     case 'fail-load':
       return { ...state, failLoadAt: now, failCount: state.failCount + 1 };
+    // A chat socket that opens after a wake is Messenger reconnecting on its own: the reload
+    // the wake was owed is not needed.
     case 'socket-open':
-      return { ...alive(state, now), socketErrorAt: null, lastRequestAt: now };
+      return {
+        ...alive(state, now),
+        socketErrorAt: null,
+        lastRequestAt: now,
+        resumePending: state.suspended ? state.resumePending : false,
+      };
     case 'socket-error':
       return { ...state, socketErrorAt: state.socketErrorAt || now };
     case 'request-ok':

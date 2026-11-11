@@ -43,6 +43,9 @@ function makeStub() {
     executeJavaScript() {
       return Promise.resolve(null);
     }
+    capturePage() {
+      return Promise.resolve({ isEmpty: () => false, toJPEG: () => Buffer.from('picture') });
+    }
     isLoading() {
       return false;
     }
@@ -158,7 +161,9 @@ function makeStub() {
     setFocusable(on) {
       this.focusable = on;
     }
-    setOpacity() {}
+    setOpacity(o) {
+      this.opacities = [...(this.opacities || []), o];
+    }
     setBackgroundColor(c) {
       if (this.destroyed) throw new TypeError('Object has been destroyed');
       this.background = c;
@@ -200,6 +205,12 @@ function makeStub() {
     prefersReducedTransparency: false,
   });
   const powerMonitor = new EventEmitter();
+  const systemPreferences = {
+    reduceMotion: false,
+    getAnimationSettings() {
+      return { prefersReducedMotion: this.reduceMotion };
+    },
+  };
   const session = {
     defaultSession: {
       cookies: new EventEmitter(),
@@ -223,6 +234,7 @@ function makeStub() {
     screen,
     nativeTheme,
     powerMonitor,
+    systemPreferences,
     session,
     Menu,
     shell,

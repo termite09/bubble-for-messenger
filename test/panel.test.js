@@ -211,3 +211,162 @@ test('the pin button reports presses and is told its state', () => {
   const sent = win.webContents.sent.filter(([c]) => c === CHANNELS.PANEL_PIN_STATE).pop();
   assert.deepEqual(sent[1], { pins: ['/t/1/'] });
 });
+
+// ---- Opening a chat ---------------------------------------------------------------------------
+const { capabilities } = require('../src/lib/platform');
+const BOUNDS = { x: 100, y: 100, width: 44, height: 44 };
+
+// The page scripts the open path runs, faked: what each was asked, in order.
+function fakeScrape({ openThread } = {}) {
+  const calls = [];
+  const rec =
+    (name, result) =>
+    async (_wc, ...args) => {
+      calls.push([name, ...args]);
+      return result;
+    };
+  return {
+    calls,
+    names: () => calls.map((c) => c[0]),
+    api: {
+      setFrame: rec('frame'),
+      setCompact: rec('compact'),
+      setTheme: rec('theme'),
+      run: async () => null,
+      openInbox: rec('inbox'),
+      viewport: rec('viewport', {}),
+      cover: rec('cover', true),
+      uncover: rec('uncover'),
+      openThread: async (wc, href, opts) => {
+        calls.push(['openThread', href]);
+        if (openThread) await openThread(opts);
+        return { via: 'back', landed: true };
+      },
+    },
+  };
+}
+function panelWith(scrape, caps = capabilities('darwin')) {
+  electron.shell.openExternal = async () => {};
+  const panel = createPanel({ onUnread() {}, scrape: scrape.api, caps });
+  const win = electron.windows[electron.windows.length - 1];
+  return { panel, win };
+}
+
+// Switching chats with the panel on screen used to blank the window for the length of the
+// switch (it was staged at opacity 0 like a hidden one), so whatever was behind it flashed
+// through. Now the picture it shows is held over the page while it switches, then faded.
+test('switching chats on a showing panel holds its picture over the switch and never blanks it', async () => {
+  const scrape = fakeScrape();
+  const { panel, win } = panelWith(scrape);
+  panel.showAt(BOUNDS);
+  win.opacities = [];
+  await panel.openThread('/t/2/', BOUNDS);
+  assert.equal(win.opacities.includes(0), false);
+  const names = scrape.names();
+  assert.ok(names.indexOf('cover') >= 0 && names.indexOf('cover') < names.indexOf('openThread'));
+  assert.ok(names.lastIndexOf('uncover') > names.indexOf('openThread'));
+  const [, picture] = scrape.calls.find((c) => c[0] === 'cover');
+  assert.equal(picture, 'data:image/jpeg;base64,' + Buffer.from('picture').toString('base64'));
+  assert.equal(win.visible, true);
+});
+
+test('a hidden panel is staged out of sight for an open, as before, with no picture held', async () => {
+  const scrape = fakeScrape();
+  const { panel, win } = panelWith(scrape);
+  await panel.openThread('/t/2/', BOUNDS);
+  assert.equal(win.opacities[0], 0);
+  assert.equal(win.opacities[win.opacities.length - 1], 1);
+  assert.equal(scrape.names().includes('cover'), false);
+});
+
+// The slow path reloads the page, and the held picture goes with the old document.
+test('a covered switch that has to reload the page goes out of sight for the reload', async () => {
+  const scrape = fakeScrape({ openThread: (opts) => opts.beforeReload() });
+  const { panel, win } = panelWith(scrape);
+  panel.showAt(BOUNDS);
+  win.opacities = [];
+  await panel.openThread('/t/2/', BOUNDS);
+  assert.ok(scrape.names().includes('cover')); // held at first; out of sight only for the reload
+  assert.deepEqual(win.opacities, [0, 1]);
+});
+
+test('a picture that cannot be taken falls back to staging out of sight', async () => {
+  const scrape = fakeScrape();
+  const { panel, win } = panelWith(scrape);
+  win.webContents.capturePage = async () => {
+    throw new Error('no picture');
+  };
+  panel.showAt(BOUNDS);
+  win.opacities = [];
+  await panel.openThread('/t/2/', BOUNDS);
+  assert.equal(win.opacities[0], 0);
+  assert.equal(scrape.names().includes('cover'), false);
+});
+
+// Opens are serialised: a picture that never comes must not hold up this open or the next.
+test('a picture that never comes is given up on, and the open goes ahead out of sight', async () => {
+  const scrape = fakeScrape();
+  const { panel, win } = panelWith(scrape);
+  win.webContents.capturePage = () => new Promise(() => {});
+  panel.showAt(BOUNDS);
+  win.opacities = [];
+  const started = Date.now();
+  await panel.openThread('/t/2/', BOUNDS);
+  assert.ok(Date.now() - started < 1000);
+  assert.equal(win.opacities[0], 0);
+  assert.equal(scrape.names().includes('openThread'), true);
+});
+
+test('isShowing is what the user sees: true once revealed, false once put away or merely staged', async () => {
+  const scrape = fakeScrape({
+    openThread: async () => assert.equal(panel.isShowing(), false), // staged, not shown
+  });
+  const { panel, win } = panelWith(scrape);
+  assert.equal(panel.isShowing(), false);
+  await panel.openThread('/t/1/', BOUNDS);
+  assert.equal(panel.isShowing(), true);
+  win.emit('blur');
+  assert.equal(panel.isShowing(), false);
+});
+
+// A load starts the preload afresh, knowing no pins: it is told them again on every load.
+test('the pinned chats are told to the page again after every load', () => {
+  const { panel, win } = makePanel();
+  panel.setPinState({ pins: ['/t/1/'] });
+  win.webContents.sent = [];
+  win.webContents.emit('did-finish-load');
+  const sent = win.webContents.sent.filter(([c]) => c === CHANNELS.PANEL_PIN_STATE);
+  assert.deepEqual(sent, [[CHANNELS.PANEL_PIN_STATE, { pins: ['/t/1/'] }]]);
+});
+
+// What the page looks like 0, 300 and 1200 ms after a reveal was added to the log for a Windows
+// report; on macOS, where the open path is verified, those six page scripts per open are not run.
+test('the page is probed after a reveal only where the open path is not verified', async () => {
+  const counts = {};
+  for (const platform of ['darwin', 'win32']) {
+    const scrape = fakeScrape();
+    const { panel } = panelWith(scrape, capabilities(platform));
+    await panel.openThread('/t/1/', BOUNDS);
+    await new Promise((r) => setTimeout(r, 20));
+    counts[platform] = scrape.names().filter((n) => n === 'viewport').length;
+  }
+  assert.deepEqual(counts, { darwin: 0, win32: 1 }); // the first of three, at 0 ms
+});
+
+// Whether a wake still needs its reload is worth seeing in a bug report's log.
+test('a wake settled by the socket coming back is logged, and no reload is owed', () => {
+  electron.shell.openExternal = async () => {};
+  const lines = [];
+  const log = { debug() {}, warn() {}, error() {}, info: (msg) => lines.push(msg) };
+  const panel = createPanel({ site: MESSENGER, onUnread() {}, log });
+  const { webRequest } = electron.windows[electron.windows.length - 1].webContents.session;
+  electron.powerMonitor.emit('resume');
+  assert.equal(panel.liveness().resumePending, true);
+  webRequest.completed.fn({
+    url: 'wss://edge-chat.messenger.com/chat?x',
+    resourceType: 'webSocket',
+  });
+  assert.equal(panel.liveness().resumePending, false);
+  assert.ok(lines.includes('wake settled without a reload'));
+  panel.destroy();
+});

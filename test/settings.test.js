@@ -175,3 +175,26 @@ test('pins from the Instagram build are dropped, and the cap is five in all', ()
   const many = [1, 2, 3, 4, 5, 6].map((i) => ({ href: `/t/${i}/`, name: 'M' + i }));
   assert.equal(normalizeSettings({ pins: many }).pins.length, 5);
 });
+
+// The bubble page reads its settings from one message; a key it reads that main never sends is
+// a switch that silently does nothing there (Glass, until 3.0.3).
+const fs = require('node:fs');
+const path = require('node:path');
+const { bubblePageSettings, BUBBLE_PAGE_KEYS } = require('../src/lib/settings');
+test('the bubble page is sent every setting it reads, Glass included', () => {
+  const s = normalizeSettings({ glass: false, quickReply: false, badge: 'pulse' });
+  assert.deepEqual(bubblePageSettings(s), {
+    quickReply: false,
+    badge: 'pulse',
+    bubbleSize: 'small',
+    glass: false,
+  });
+  const page = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'renderer', 'bubble-renderer.js'),
+    'utf8',
+  );
+  const body = /function setSettings\(s\) \{([\s\S]*?)\n\}/.exec(page)[1];
+  const read = [...body.matchAll(/\bs\.(\w+)/g)].map((m) => m[1]);
+  assert.ok(read.length > 0);
+  for (const key of read) assert.ok(BUBBLE_PAGE_KEYS.includes(key), `${key} is never sent`);
+});

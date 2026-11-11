@@ -1,4 +1,4 @@
-const { screen } = require('electron');
+const { screen, systemPreferences } = require('electron');
 const { CHANNELS } = require('../lib/ipc');
 const { clampToArea, snapToEdge, EDGE_MARGIN } = require('../lib/layout');
 const { bubbleLayout, stackBounds, resizeAnchor, BASE } = require('../lib/bubble-layout');
@@ -11,8 +11,19 @@ const { joinAllSpaces } = require('./workspaces');
 const { createFloatingWindow, ipcFor } = require('./floating-window');
 const { createShield } = require('./shield');
 
-const DRAG_TICK_MS = 16;
 const COLLAPSE_MS = 240; // the fold transition is 220ms
+
+// Reduce Motion: the disc goes to its edge without travelling there.
+const reducedMotion = () => {
+  try {
+    return Boolean(systemPreferences.getAnimationSettings().prefersReducedMotion);
+  } catch (e) {
+    return false;
+  }
+};
+// One tick per frame of the display at `point` (lib/drag frameInterval).
+const tickAt = (point) =>
+  dragLib.frameInterval(screen.getDisplayNearestPoint(point).displayFrequency);
 
 function defaultPosition(size) {
   const { workArea } = screen.getPrimaryDisplay();
@@ -109,10 +120,18 @@ function createBubble({
   const layout = () =>
     bubbleLayout({ anchor, size: SIZE, scale, fanCount, bannerExtra, area: area() });
 
+  // The page is told its layout when it changes: a drag moves the window every frame, while
+  // where the disc sits inside it changes only when it crosses to another edge or direction.
+  // (A fresh document asks for it in the state handshake.)
+  let sentLayout = '';
   function applyBounds() {
     const l = layout();
     win.setBounds(l.window);
-    send(CHANNELS.BUBBLE_LAYOUT, l.renderer);
+    const key = JSON.stringify(l.renderer);
+    if (key !== sentLayout) {
+      sentLayout = key;
+      send(CHANNELS.BUBBLE_LAYOUT, l.renderer);
+    }
     return l;
   }
 
@@ -123,8 +142,9 @@ function createBubble({
     onMoved({ x, y });
   }
 
-  // Ease the disc to a resting x (edge snap) over a few frames. A new drag or a position reset
-  // cancels it so the two never fight over the anchor.
+  // Ease the disc to a resting x (edge snap) on the system curve, its place read off the clock
+  // each frame (lib/drag snapX) — or, under Reduce Motion, put it there. A new drag or a
+  // position reset cancels it so the two never fight over the anchor.
   let snapTimer = null;
   const stopSnap = () => {
     clearInterval(snapTimer);
@@ -134,15 +154,16 @@ function createBubble({
     stopSnap();
     const startX = anchor.x;
     const y = anchor.y;
-    const steps = 8;
-    let i = 0;
+    if (reducedMotion() || startX === targetX) {
+      if (startX !== targetX) moveTo(targetX, y);
+      return;
+    }
+    const start = Date.now();
     snapTimer = setInterval(() => {
-      i += 1;
-      const t = i / steps;
-      const eased = 1 - (1 - t) * (1 - t);
-      moveTo(Math.round(startX + (targetX - startX) * eased), y);
-      if (i >= steps) stopSnap();
-    }, 12);
+      const elapsed = Date.now() - start;
+      moveTo(dragLib.snapX(startX, targetX, elapsed), y);
+      if (elapsed >= dragLib.SNAP_MS) stopSnap();
+    }, tickAt(anchor));
   }
 
   // A new disc size: the page zooms; where the disc goes is lib/bubble-layout resizeAnchor. The
@@ -240,7 +261,8 @@ function createBubble({
       collapse();
       onClose('disc');
     }
-    drag = dragLib.press({ cursor: screen.getCursorScreenPoint(), anchor, expanded: wasExpanded });
+    const pressedAt = screen.getCursorScreenPoint();
+    drag = dragLib.press({ cursor: pressedAt, anchor, expanded: wasExpanded });
     dragTimer = setInterval(() => {
       const cursor = screen.getCursorScreenPoint();
       // Keep the disc fully on whichever display the cursor is over.
@@ -260,7 +282,7 @@ function createBubble({
       const state = !drag.hot ? 'idle' : dragLib.armed(drag, now) ? 'armed' : 'arming';
       if (state !== dragState && dismiss) dismiss.setHot(state);
       dragState = state;
-    }, DRAG_TICK_MS);
+    }, tickAt(pressedAt));
   });
 
   ipc.on(CHANNELS.BUBBLE_DRAG_END, () => {

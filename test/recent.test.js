@@ -28,11 +28,13 @@ const row = (href, name = 'Name', extra = {}) => ({
   ...extra,
 });
 
-test('keeps well-formed rows in order, capped at 5', () => {
-  const rows = [1, 2, 3, 4, 5, 6, 7].map((i) => row(`/t/${i}/`));
+// Five recent chats, plus room for the pinned ones among them (the stack shows five that are
+// not pinned): at most ten rows are kept.
+test('keeps well-formed rows in order, capped at five plus room for the pins', () => {
+  const rows = Array.from({ length: 12 }, (_, i) => row(`/t/${i + 1}/`));
   assert.deepEqual(
     normalizeRows(rows).map((r) => r.href),
-    ['/t/1/', '/t/2/', '/t/3/', '/t/4/', '/t/5/'],
+    rows.slice(0, 10).map((r) => r.href),
   );
 });
 

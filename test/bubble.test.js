@@ -63,9 +63,29 @@ test('a press and release without movement is a click; with movement, a snap to 
   assert.ok(calls.moved.length >= 1);
   assert.equal(calls.moved[calls.moved.length - 1].x, 1080);
   electron.ipcMain.emit(CHANNELS.BUBBLE_DRAG_END, from(win));
-  await new Promise((r) => setTimeout(r, 150));
+  await new Promise((r) => setTimeout(r, 320)); // the snap is 220 ms
   assert.equal(calls.click, 1);
   assert.equal(calls.moved[calls.moved.length - 1].x, 1440 - 44 - 16);
+});
+
+// Reduce Motion: no travel, the disc is simply at the edge.
+test('under Reduce Motion the disc rests against the edge at once, with no snap travel', async () => {
+  const { win, calls } = makeBubble();
+  electron.screen.cursor = { x: 1400, y: 820 };
+  electron.ipcMain.emit(CHANNELS.BUBBLE_DRAG_START, from(win));
+  electron.screen.cursor = { x: 1100, y: 820 };
+  await new Promise((r) => setTimeout(r, 40));
+  electron.systemPreferences.reduceMotion = true;
+  try {
+    const before = calls.moved.length;
+    electron.ipcMain.emit(CHANNELS.BUBBLE_DRAG_END, from(win));
+    assert.deepEqual(
+      calls.moved.slice(before).map((p) => p.x),
+      [1440 - 44 - 16],
+    );
+  } finally {
+    electron.systemPreferences.reduceMotion = false;
+  }
 });
 
 test('expand grows the window for the rows, tells the page, shows the shield; a press folds it and closes', async () => {
@@ -139,7 +159,25 @@ test('setPlatform reaches the page and the state handshake', async () => {
   assert.deepEqual(handshake.platform, state);
 });
 
-// Instagram was removed in v3.0.0, and with it the satellite that switched between platforms.
+// Instagram was removed in v3.0.0, and with it the control that switched between platforms.
 test('there is no platform-switch channel', () => {
   assert.equal(CHANNELS.BUBBLE_SWITCH, undefined);
+});
+
+// A drag moves the window every frame, but the page's layout inside it (where the disc sits,
+// which way things grow) only changes when the disc crosses to another edge or direction: the
+// page is told only then.
+test('a drag tells the page its layout only when that layout changes', async () => {
+  const { win } = makeBubble();
+  const sends = () => sentOn(win, CHANNELS.BUBBLE_LAYOUT).length;
+  electron.screen.cursor = { x: 1400, y: 820 };
+  electron.ipcMain.emit(CHANNELS.BUBBLE_DRAG_START, from(win));
+  const before = sends();
+  for (const x of [1300, 1250, 1200]) {
+    electron.screen.cursor = { x, y: 820 };
+    await new Promise((r) => setTimeout(r, 25));
+  }
+  electron.ipcMain.emit(CHANNELS.BUBBLE_DRAG_END, from(win));
+  assert.ok(win.getBounds().x < 1300); // the window did follow
+  assert.equal(sends(), before);
 });

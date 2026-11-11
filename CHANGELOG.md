@@ -1,5 +1,40 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+- **Glass now reaches the bubble.** The setting has always frosted the Settings card, but its
+  other half — the disc, heads and banner letting the wallpaper through — never reached the
+  bubble's page. It is on by default, so updating turns it on; turn it off in Settings →
+  Bubble.
+- **A click on the *Check for updates* row's text flips its switch.** It pressed **Check now**
+  instead, asking GitHub and putting up a dialog.
+- **Pinned chats no longer crowd out the recent ones.** The stack shows five recent chats that
+  are not pinned; pinned chats among the five newest used to take those places. The inbox's
+  pin buttons also know the pinned chats again straight after Messenger reloads.
+- **A half-typed reply in the banner survives a click elsewhere.** It used to vanish with the
+  field; it is now kept for that chat, the banner stays up a little longer, and the text is
+  back the next time you reply there. Esc still throws it away.
+- **Settings opens at its size.** The card appeared blank at a guessed height, then jumped to
+  the right one off-centre; it now appears once it knows how tall it is, centred.
+
+### Changed
+- **Switching chats with the panel open no longer blinks.** The panel used to vanish for the
+  switch; the chat it showed now stays on screen while the next one loads underneath, then
+  fades into it.
+- **Clicking the head of the chat already open just brings the panel forward**, rather than
+  opening it again (and losing your place in it).
+- **The chosen segment and tab in Settings are easier to see**: the hairline an open chat's
+  head wears, at rest too.
+- **The bubble follows the cursor once per frame of your display** (120 times a second on a
+  ProMotion screen, not 60), and snaps to the edge on the app's one curve — at once with
+  Reduce Motion on.
+- **Fewer reloads of the hidden Messenger page after the Mac wakes.** One is still made when
+  Messenger has not reconnected on its own; when it has, there is no reload (`wake settled
+  without a reload` in the log).
+- **No page probing after each open on macOS.** The extra log lines from 3.0.2 (the page's
+  size at 0, 300 and 1200 ms) stay on Windows, where the report they were added for is open.
+
 ## v3.0.2 (2026-09-18) — Bubble for Messenger
 
 ### Changed

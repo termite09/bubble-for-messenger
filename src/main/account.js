@@ -3,7 +3,7 @@
 // main.js composes one of these with the bubble.
 const { createPanel: createRealPanel } = require('./panel');
 const { fetchAvatar: fetchRealAvatar } = require('./avatars');
-const { mergeHeads, platformOfHref } = require('../lib/recent');
+const { mergeHeads, platformOfHref, LIMIT } = require('../lib/recent');
 const chatsLib = require('../lib/chats');
 
 function createAccount({
@@ -84,6 +84,7 @@ function createAccount({
   const stamp = (item) => ({ ...item, platform: site.id });
   const ownPins = () => settings().pins.filter((p) => platformOfHref(p.href) === site.id);
   const otherPins = () => settings().pins.filter((p) => platformOfHref(p.href) !== site.id);
+  syncPin(); // the preload reads a row more for each pin, from the first read
 
   // Take in the chat list — pushed by the panel's preload as it changes, or read from the
   // page by the safety poll — and say when a chat turned unread with someone else's message.
@@ -107,7 +108,7 @@ function createAccount({
       else {
         if (panel.isLoading()) return; // a page mid-reload has no rows worth reading
         stats.polls++;
-        rows = await panel.readRecentChats();
+        rows = await panel.readRecentChats(LIMIT + ownPins().length); // room for the pinned
       }
       if (!rows) return; // the list is scrolled: keep what we last knew rather than read the wrong rows
       const ses = panel.session();
@@ -174,8 +175,10 @@ function createAccount({
     refresh,
     stackItems,
     close,
-    // Open a conversation beside `bounds` (the head column, or the disc).
+    // Open a conversation beside `bounds` (the head column, or the disc). The one already in
+    // front has nothing to load: the panel is only brought forward, the reader's place kept.
     async open(href, bounds) {
+      if (panel.isShowing() && chats.activeHref === href) return panel.showAt(bounds);
       chats = chatsLib.openChat(chats, href);
       return panel.openThread(href, bounds);
     },

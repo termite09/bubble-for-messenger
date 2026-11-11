@@ -38,12 +38,15 @@ function make({ site = MESSENGER, pins = [], landed = undefined, showing = null 
     destroy: () => asked.push(['destroy']),
     isLoading: () => false,
     session: () => ({}),
-    readRecentChats: async () => [],
+    readRecentChats: async (limit) => (asked.push(['read', limit]), []),
     readShowing: async () => showing,
     setPinState: (state) => asked.push(['pin-state', state]),
+    showAt: () => asked.push(['show']),
     visible: false,
+    showing: false, // on screen to the user, not merely staged
   };
   panel.isVisible = () => panel.visible;
+  panel.isShowing = () => panel.showing;
   const account = createAccount({
     site,
     createPanel: (opts) => {
@@ -103,11 +106,12 @@ test('the unread count from the title is passed on; a title flash keeps the last
 
 test('opening a chat makes it active and asks the panel for it', async () => {
   const { account, asked } = make();
+  const acts = () => asked.filter((a) => a[0] !== 'pin-state');
   await account.open('/t/1/', { x: 0, y: 0, width: 44, height: 44 });
-  assert.deepEqual(asked[0], ['open', '/t/1/']);
+  assert.deepEqual(acts()[0], ['open', '/t/1/']);
   assert.equal(account.chats().activeHref, '/t/1/');
   await account.reply('/t/1/', 'hi');
-  assert.deepEqual(asked[1], ['reply', '/t/1/', 'hi']);
+  assert.deepEqual(acts()[1], ['reply', '/t/1/', 'hi']);
 });
 
 test('the stack shows the pinned chats', async () => {
@@ -214,5 +218,57 @@ test('a navigation while the panel is hidden is not a chat the user is looking a
 test('newMessage is passed through to the panel', async () => {
   const { account, asked } = make();
   await account.newMessage();
-  assert.deepEqual(asked, [['new-message']]);
+  assert.deepEqual(
+    asked.filter((a) => a[0] !== 'pin-state'),
+    [['new-message']],
+  );
+});
+
+// Clicking the head of the chat already in front used to run the whole open again — Back,
+// the row press, the blink — and dropped the reader's place in the thread.
+test('opening the chat the panel is already showing just brings the panel forward', async () => {
+  const { account, asked, panel } = make();
+  const at = { x: 0, y: 0, width: 44, height: 44 };
+  await account.open('/t/1/', at);
+  panel.showing = true;
+  await account.open('/t/1/', at);
+  assert.deepEqual(
+    asked.filter((a) => a[0] === 'open'),
+    [['open', '/t/1/']],
+  );
+  assert.deepEqual(asked[asked.length - 1], ['show']);
+  await account.open('/t/2/', at); // another chat still opens
+  assert.deepEqual(asked[asked.length - 1], ['open', '/t/2/']);
+});
+
+// The stack shows five recent chats that are not pinned; pinned chats near the top of the list
+// used to take those places, so three pins among the five most recent left two recent heads.
+test('pinned chats near the top of the list do not crowd the recent ones out of the stack', async () => {
+  const pins = [
+    { href: '/t/1/', name: 'A', avatarUrl: null },
+    { href: '/t/2/', name: 'B', avatarUrl: null },
+  ];
+  const { account, asked, page } = make({ pins });
+  assert.deepEqual(asked[0], ['pin-state', { pins: ['/t/1/', '/t/2/'] }]); // told at once
+  await account.refresh(); // the safety poll reads five rows plus one per pin
+  assert.deepEqual(
+    asked.find((a) => a[0] === 'read'),
+    ['read', 7],
+  );
+  page().onRows([1, 2, 3, 4, 5, 6, 7].map((i) => row(`/t/${i}/`, 'N' + i)));
+  await tick();
+  await tick();
+  const items = await account.stackItems();
+  assert.deepEqual(
+    items.map((i) => [i.href, i.pinned]),
+    [
+      ['/t/1/', true],
+      ['/t/2/', true],
+      ['/t/3/', false],
+      ['/t/4/', false],
+      ['/t/5/', false],
+      ['/t/6/', false],
+      ['/t/7/', false],
+    ],
+  );
 });

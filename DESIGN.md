@@ -19,7 +19,6 @@ colors:
   hairline-light-active: "rgba(0,0,0,.28)"
   hairline-light-focus: "rgba(0,0,0,.45)"
   system-blue-light: "#007aff"
-  system-blue-text-light: "#0066cc"
   ash-glass: "#a5a5aa"
   ash-glass-light: "#58585c"
 typography:
@@ -132,7 +131,7 @@ components:
 
 **Creative North Star: "The Standing Notification"**
 
-Bubble for Messenger looks like a macOS notification banner that decided to stay. Every surface is the same material: a solid graphite card, a one-pixel white hairline at twelve percent, and one soft lifted shadow. The disc at rest is that card cut to a circle; a conversation is that card stretched to a banner; the open sheet is that card at 420 wide with messenger.com painted inside it. Nothing is translucent, nothing is tinted, nothing glows. The app's own mark is the only colour on screen at rest, and blue appears only where the system has to say "unread".
+Bubble for Messenger looks like a macOS notification banner that decided to stay. Every surface is the same material: a solid graphite card, a one-pixel white hairline at twelve percent, and one soft lifted shadow. The disc at rest is that card cut to a circle; a conversation is that card stretched to a banner; the open sheet is that card at 420 wide with messenger.com painted inside it. Nothing is translucent, nothing is tinted, nothing glows (the Glass trial, under Colors, is the one exception, and the user's to keep or drop). The app's own mark is the only colour on screen at rest, and blue appears only where the system has to say "unread".
 
 The system is dense and quiet. Five conversations occupy 292 vertical pixels. Type is the system face at three sizes, and the hierarchy is carried by weight and by ash-grey secondaries rather than by size jumps. Motion is a single idea applied everywhere: one ease-out-quint curve at 220 milliseconds, driving transform, opacity, or clip-path and nothing else. The stack does not animate as five cards; it animates as one number, `--p`, that every banner reads its offset and opacity from.
 
@@ -172,7 +171,7 @@ A near-monochrome graphite palette with one semantic accent; the only saturated 
 
 **The One File Rule.** Every value above is written once, in `src/renderer/tokens.css`; the pages link it and `lib/tokens.js` reads it (the dark block, and under `light` what the light block changes) for the CSS the app writes into messenger.com. The sandboxed panel preload carries copies, held to the file by a test.
 
-**The Two Appearances Rule.** The palette above is the dark appearance. The app's own chrome follows the Appearance setting (System by default), and in the light appearance the roles swap the way a Notification Center banner does: Paper (`#f5f5f7`) is the card, `#e8e8ed` the raised tone, `#c7c7cc` the slate, Graphite the ink, `#636366` the ash (4.9:1 on raised), the hairlines black at the same alphas, the shadow at 18%, and the system's light blue `#007aff` for unread — as a fill; as text it is 3.7:1 on paper, so `#0066cc` (5.1:1) carries it. What the app draws inside messenger.com (the frame's hairline, the pin badge) stays graphite.
+**The Two Appearances Rule.** The palette above is the dark appearance. The app's own chrome follows the Appearance setting (System by default), and in the light appearance the roles swap the way a Notification Center banner does: Paper (`#f5f5f7`) is the card, `#e8e8ed` the raised tone, `#c7c7cc` the slate, Graphite the ink, `#636366` the ash (4.9:1 on raised), the hairlines black at the same alphas, the shadow at 18%, and the system's light blue `#007aff` for unread (a fill only: no app text is blue). What the app draws inside messenger.com (the frame's hairline, the pin badge) stays graphite.
 
 **Glass (under trial, September 2026).** By the Glass setting the bubble layer's cards are the same colours at 90% over the wallpaper, and the settings card is the system's frosted popover material under a 60% tint with the system's own window corners. Ash steps up with it (`#a5a5aa` dark, `#58585c` light), because over a white wallpaper the 90% card is `#333334` and the opaque ash would be 4.4:1 there; the lifted ash holds 4.7:1 and better on every modelled ground. Reduce Transparency makes both opaque again, ash included. A real per-card blur is not available to the bubble layer (one window, many cards), so this is a tint, not Liquid Glass; whether it stays is the user's call after living with it.
 
@@ -202,7 +201,7 @@ A near-monochrome graphite palette with one semantic accent; the only saturated 
 
 ## Layout
 
-The bubble layer is a single column anchored at the disc. The disc is 44px and rests flush against the left or right screen edge (it snaps there after a drag); the heads sit directly over the disc in a single 44px column; only the landed banner (252px) extends into the screen from the disc's edge. The stack grows upward when five rows fit above the disc and downward otherwise, with an 8px gap between disc and stack and an 8px gap between heads (row pitch 52px: 44 head + 8 gap). Pinned chats lead the column, then the recent ones newest-first under a hairline, and the paper Inbox head is always last. When the column would not fit the screen, the rows farthest from the Inbox head are left out rather than the disc leaving the screen. A panel opens 8px beyond the column. The disc comes in three sizes (44, 56, 68px); the larger ones are the same page zoomed, so every length here scales with it.
+The bubble layer is a single column anchored at the disc. The disc is 44px and rests flush against the left or right screen edge (it snaps there after a drag, on the one curve over 220ms, or at once under Reduce Motion); the heads sit directly over the disc in a single 44px column; only the landed banner (252px) extends into the screen from the disc's edge. The stack grows upward when five rows fit above the disc and downward otherwise, with an 8px gap between disc and stack and an 8px gap between heads (row pitch 52px: 44 head + 8 gap). Pinned chats lead the column, then the recent ones newest-first under a hairline, and the paper Inbox head is always last. When the column would not fit the screen, the rows farthest from the Inbox head are left out rather than the disc leaving the screen. A panel opens 8px beyond the column. The disc comes in three sizes (44, 56, 68px); the larger ones are the same page zoomed, so every length here scales with it.
 
 The transparent window carries 32px of padding on every side of the content so the 8/24 shadow and the count pill (which overhangs the disc by 8px right and 6px up) are never clipped. The main process reports the disc's position and edge to the page; the page only lays out relative to that.
 
@@ -274,7 +273,6 @@ The pin badge, in the panel: a 28px Graphite disc (hairline, Lift) with the pin 
 - **Content:** a grid — 32px avatar spanning two rows, held to the disc's own row (the foot when the banner hangs from the disc, the top when it stands on it) so on a long message it still sits where the mark was; name (Title 600), the literal "now" (Label Ash) and the drawn reply arrow on the first row; the message (Body Ash, "New message" when none) across the second. The banner is a polite live region, so a reader hears the message land.
 - **Motion:** `clip-path` from the disc's circle to the full pill over 220ms on the ease-out-quint curve; opacity 0→1 over 120ms linear. Hides the count pill while visible. Auto-folds after 4000ms; hovering holds it, and it folds 1500ms after the cursor leaves.
 - **Click:** opens that conversation (the press never starts a disc drag). Hover steps the fill to Raised Graphite.
-- **Platform:** with two platforms on, the avatar wears a 14px mini-mark of the message's platform at its bottom-right, ringed 2px in Graphite, so a banner from the platform not in focus reads as such before it is clicked.
 
 ### Stack
 Up to five recent heads, up to five pinned ones, and the Inbox head, opened as one motion.
@@ -288,9 +286,10 @@ The conversation sheet: messenger.com framed, not restyled.
 - **Shape:** an opaque window in Messenger's own wash for the theme, with the system's rounded corners and shadow (a transparent window with a shadow is recomposited every frame); inside it a fixed, pointer-transparent overlay draws a 1px hairline at the same radius (about 10px) on top of everything — white at 12% on the dark wash, black at 12% on the light one, both from tokens.css.
 - **Size:** 420×640 for the inbox, 420×560 for a single thread; 8px beyond the bubble layer, top-aligned.
 - **Compact mode:** hides Messenger's inbox switcher rail, call/info buttons and Back arrow; removes the thread's inset margin and radius so the conversation fills the sheet; hides scrollbars. Messenger's message bubbles, purple own-message fill, and controls are its own and are not part of this system.
+- **Switching chats:** with the sheet on screen, the picture it shows is held over the page (a pointer-transparent image under the hairline) while the page moves to the next chat underneath, then faded over 120ms linear — a crossfade, never the window blinking out. Removed at once under Reduce Motion. A hidden sheet is staged out of sight at opacity 0 instead.
 
 ### Settings tabs
-The three panes' switch, in the segmented control's clothes: real tabs (buttons in a tablist), so Left/Right move along them and choose, and Tab leaves the bar. The chosen tab holds the raised tone; focus is the 45% hairline inset. Each row names its control by its label and describes it by its ash line (`aria-labelledby` / `aria-describedby`), so a reader hears the two apart.
+The three panes' switch, in the segmented control's clothes: real tabs (buttons in a tablist), so Left/Right move along them and choose, and Tab leaves the bar. The chosen tab, like the chosen segment of any segmented control, holds the active state — the raised tone and the 28% hairline inset, as an open chat's head does; the tone alone is 1.1–1.2:1 against the card. Focus is the 45% hairline inset. Each row names its control by its label and describes it by its ash line (`aria-labelledby` / `aria-describedby`), so a reader hears the two apart.
 
 ### Dismiss target
 The ✕ that appears at the bottom of the display while dragging; dropping the disc on it quits.
@@ -308,7 +307,7 @@ The ✕ that appears at the bottom of the display while dragging; dropping the d
 - **Do** leave messenger.com's own content alone inside the frame; the system owns the silhouette, not the page.
 
 ### Don't:
-- **Don't** introduce gradients, blur, vibrancy, or translucency; the rejected liquid fan is not to be carried forward.
+- **Don't** introduce gradients, blur, vibrancy, or translucency beyond the Glass trial; the rejected liquid fan is not to be carried forward.
 - **Don't** use red anywhere; arming or destructive states invert Graphite and Paper instead.
 - **Don't** put System Blue on anything but the unread count and the unread dot.
 - **Don't** set app text larger than 13px or use a second family; emphasis is 600 weight or Ash, not size.

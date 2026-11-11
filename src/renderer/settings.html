@@ -121,9 +121,12 @@
       nav .segments button + button {
         border-left: 1px solid var(--rule);
       }
+      /* Chosen: the active state's tone and rule, as an open chat's head wears them. The raised
+         tone alone is 1.1–1.2:1 against the card; the 28% hairline makes it read at rest. */
       nav .segments button[aria-selected='true'] {
         background: var(--raised);
         color: var(--ink);
+        box-shadow: inset 0 0 0 1px var(--rule-active);
       }
       nav .segments button:hover {
         color: var(--ink);
@@ -336,15 +339,21 @@
       .segments label + label span {
         border-left: 1px solid var(--rule);
       }
+      /* The chosen segment holds the active state's tone and rule, the way an open chat's head
+       does — at rest too, so it reads on the card and never drops into a raised row. */
       .segments input:checked + span {
         background: var(--raised);
         color: var(--ink);
-      }
-      /* On a raised row the chosen segment keeps its tone and brightens its rule, the way an
-       active head does; it never drops below the row. */
-      .row:hover .segments input:checked + span,
-      .row:focus-within .segments input:checked + span {
         box-shadow: inset 0 0 0 1px var(--rule-active);
+      }
+      /* That hairline (and the focus one) follows the control's rounded ends. */
+      .segments label:first-child span,
+      nav .segments button:first-child {
+        border-radius: 7px 0 0 7px;
+      }
+      .segments label:last-child span,
+      nav .segments button:last-child {
+        border-radius: 0 7px 7px 0;
       }
       .segments input:focus-visible + span {
         color: var(--ink);
@@ -415,7 +424,7 @@
             ><div class="text">
               <div class="name">Show over full-screen apps</div>
               <div class="sub">
-                Off keeps it off full-screen video and apps — and on the desktop it’s on.
+                Off keeps it out of full-screen apps and video, and on one desktop only.
               </div>
             </div>
             <span class="switch"
@@ -435,7 +444,8 @@
             </div>
             <span class="switch"><input type="checkbox" data-key="glass" /><span></span></span
           ></label>
-          <label class="row"
+          <!-- `for`: a label activates its first control, which here would be Check now. -->
+          <label class="row" for="check-updates-switch"
             ><div class="text">
               <div class="name">Check for updates</div>
               <div class="sub">
@@ -444,7 +454,10 @@
             </div>
             <button class="open" id="check-updates" type="button">Check now</button>
             <span class="switch"
-              ><input type="checkbox" data-key="checkUpdates" /><span></span></span
+              ><input
+                type="checkbox"
+                id="check-updates-switch"
+                data-key="checkUpdates" /><span></span></span
           ></label>
           <div class="row">
             <div class="text">

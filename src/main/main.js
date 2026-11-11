@@ -18,6 +18,8 @@ const {
   isPermissionGranted,
   isMetaOrigin,
   BUBBLE_SIZES,
+  BUBBLE_PAGE_KEYS,
+  bubblePageSettings,
 } = require('../lib/settings');
 const { removeStaleLockFiles } = require('../lib/storage');
 const { createLog, hashHref } = require('./log');
@@ -111,13 +113,6 @@ function updateSetting(key, value) {
   return isSettingKey(key) ? store.set(key, value) : settings;
 }
 
-// What the bubble page needs to know: the reply control, how the count shows, and the disc size.
-const rendererSettings = () => ({
-  quickReply: settings.quickReply,
-  badge: settings.badge,
-  bubbleSize: settings.bubbleSize,
-});
-
 // Every setting has one place it takes effect. `prev` is the state before a change (null at
 // startup): only what differs is re-applied, so flipping one switch never touches the rest.
 function applySettings(prev) {
@@ -138,8 +133,7 @@ function applySettings(prev) {
     });
   }
   if (changed('badge')) pushDisc();
-  if ((changed('quickReply') || changed('badge') || changed('bubbleSize')) && bubble)
-    bubble.setSettings(rendererSettings());
+  if (BUBBLE_PAGE_KEYS.some(changed) && bubble) bubble.setSettings(bubblePageSettings(settings));
   if (changed('theme')) nativeTheme.themeSource = settings.theme;
   if (changed('spellcheck')) session.defaultSession.setSpellCheckerEnabled(settings.spellcheck);
   if (changed('blockTelemetry')) blockTelemetry(settings.blockTelemetry);

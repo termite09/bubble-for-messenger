@@ -1,4 +1,8 @@
-const LIMIT = 5;
+const LIMIT = 5; // recent chats in the stack
+const MAX_PINS = 5;
+// Rows read from the list: the stack's five recent chats are the five newest that are not
+// pinned, so the read has room for every pin among them.
+const READ_LIMIT = LIMIT + MAX_PINS;
 // A chat's handle: its Messenger thread path (/t/<id>/ or /e2ee/t/<id>/). This is the only
 // thing we ever splice into a page-side selector or a URL, so anything else is refused at the
 // boundary.
@@ -51,7 +55,7 @@ function normalizeRows(raw) {
     const time = typeof r.time === 'string' && r.time.trim().length <= 9 ? r.time.trim() : '';
     const avatarUrl = typeof r.avatarUrl === 'string' ? r.avatarUrl.slice(0, MAX_URL) : null;
     out.push({ href, name, avatarUrl, unread: Boolean(r.unread), preview, time });
-    if (out.length === LIMIT) break;
+    if (out.length === READ_LIMIT) break;
   }
   return out;
 }
@@ -71,7 +75,6 @@ function listAtTop(row, root) {
 // What the stack shows: the pinned chats in pin order, then up to `limit` recent chats that
 // are not pinned. A pinned chat also in the list is refreshed from its row (name, avatar,
 // unread, preview); one that is not shows as it was pinned, never unread.
-const MAX_PINS = 5;
 function mergeHeads(pins, recent, limit = LIMIT) {
   const byHref = new Map(recent.map((r) => [r.href, r]));
   const pinnedHrefs = new Set(pins.map((p) => p.href));
@@ -106,4 +109,5 @@ module.exports = {
   spanText,
   listAtTop,
   LIMIT,
+  READ_LIMIT,
 };

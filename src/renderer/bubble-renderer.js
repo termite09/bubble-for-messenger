@@ -77,25 +77,10 @@ function setBadge(n) {
 }
 
 // ---- The mark ---------------------------------------------------------------------------------
-// { id, mark, badge } (lib/sites discState): the disc wears Messenger's mark and count.
-const markSrc = (file) => '../../assets/' + file;
-const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
-let swapTimer = null;
+// { id, mark, badge } (lib/sites discState): the disc wears the app's mark and Messenger's count.
 function setMark(file) {
-  const src = markSrc(file);
-  if (mark.getAttribute('src') === src) return;
-  if (reduceMotion.matches || !mark.getAttribute('src')) {
-    mark.src = src;
-    return;
-  }
-  // Fade out, swap, fade in: the mark's own opacity transition (120ms, the crossfade clock),
-  // both ways.
-  clearTimeout(swapTimer);
-  body.classList.add('swapping');
-  swapTimer = setTimeout(() => {
-    mark.src = src;
-    body.classList.remove('swapping');
-  }, 120);
+  const src = '../../assets/' + file;
+  if (mark.getAttribute('src') !== src) mark.src = src;
 }
 function setPlatform(state) {
   if (!state) return;
@@ -332,7 +317,6 @@ window.bubbleApi.onOpened(clearBusy);
 // ---- "A message landed" ----------------------------------------------------------------------
 const landedInput = document.getElementById('landed-input');
 const landedReply = document.getElementById('landed-reply');
-const landedMark = document.getElementById('landed-mark');
 let landedTimer;
 let landedHref = null;
 let sending = false; // one reply in flight at a time; ↩ is inert meanwhile
@@ -367,8 +351,6 @@ window.bubbleApi.onLanded((item) => {
   if (replying() || sending) return; // don't yank a reply out from under the user
   landedHref = item.href || null;
   fillAvatar(landedAv, item);
-  landedMark.removeAttribute('src');
-  landedAv.appendChild(landedMark);
   landedName.textContent = item.name;
   landedSub.textContent = item.preview || 'New message';
   body.classList.remove('sent', 'failed');
@@ -396,14 +378,18 @@ landed.addEventListener('click', (e) => {
 
 // ---- Reply from the banner --------------------------------------------------------------------
 // ↩ swaps the first line for a field and borrows keyboard focus for exactly as long as it is
-// open. Enter sends, Esc or a click anywhere else cancels; either way the focus goes back.
+// open. Enter sends; Esc throws the text away; a click anywhere else puts the field away but
+// keeps the text for that chat (drafts.js), and the banner stays a while so it is one click from
+// being finished. Either way the focus goes back.
+const drafts = createDrafts();
 function openReply() {
   if (!landedHref || sending) return;
   clearTimeout(landedTimer);
   body.classList.add('replying');
-  landedInput.value = '';
+  landedInput.value = drafts.get(landedHref);
   window.bubbleApi.replyFocus(true);
   landedInput.focus();
+  landedInput.setSelectionRange(landedInput.value.length, landedInput.value.length);
 }
 function closeReply() {
   body.classList.remove('replying');
@@ -424,6 +410,7 @@ landedInput.addEventListener('click', (e) => e.stopPropagation());
 landedInput.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     e.preventDefault();
+    drafts.drop(landedHref);
     closeReply();
     fold(300);
   }
@@ -431,6 +418,7 @@ landedInput.addEventListener('keydown', (e) => {
   e.preventDefault();
   const text = landedInput.value.trim();
   if (!text) return;
+  drafts.drop(landedHref); // sent, or — should it fail — waiting in the chat's own composer
   sending = true;
   closeReply();
   body.classList.add('sending');
@@ -443,10 +431,11 @@ landedInput.addEventListener('keydown', (e) => {
   sendTimer = setTimeout(() => replyResult(false), 30000);
 });
 landedInput.addEventListener('blur', () => {
-  if (replying()) {
-    closeReply();
-    fold(300);
-  }
+  if (!replying()) return; // Enter and Esc put the field away themselves
+  const text = landedInput.value;
+  drafts.keep(landedHref, text);
+  closeReply();
+  fold(text.trim() ? 4000 : 300);
 });
 let sendTimer;
 function replyResult(ok) {

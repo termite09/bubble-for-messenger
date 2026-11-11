@@ -89,3 +89,47 @@ test('the page can ask for an update check now', () => {
   electron.ipcMain.emit(CHANNELS.SETTINGS_CHECK_UPDATES, from(win));
   assert.equal(asked, 1);
 });
+
+// The card used to appear at a guessed 480 px before its page had drawn anything, then jump to
+// the pane's height — off-centre, since it kept its top edge. It now waits for the page to say
+// how tall the pane is, and is centred at that height.
+test('the card shows once its page has said how tall it is, centred at that height', () => {
+  const sw = createSettingsWindow({
+    getSettings: () => ({}),
+    setSetting() {},
+    subscribe() {},
+    onOpenMessengerPreferences() {},
+    caps: capabilities('darwin'),
+  });
+  sw.open({ x: 0, y: 0, width: 44, height: 44 });
+  const win = electron.windows[electron.windows.length - 1];
+  assert.equal(win.visible, false);
+  electron.ipcMain.emit(CHANNELS.SETTINGS_RESIZE, from(win), 372);
+  assert.equal(win.visible, true);
+  const { workArea } = electron.screen.getPrimaryDisplay();
+  assert.deepEqual(win.getBounds(), {
+    x: Math.round(workArea.x + (workArea.width - 360) / 2),
+    y: Math.round(workArea.y + (workArea.height - 372) / 2),
+    width: 360,
+    height: 372,
+  });
+  win.hide();
+  sw.open({ x: 0, y: 0, width: 44, height: 44 }); // sized already: at once
+  assert.equal(win.visible, true);
+});
+
+test('a page that never says how tall it is still gets its card, after a moment', async () => {
+  const sw = createSettingsWindow({
+    getSettings: () => ({}),
+    setSetting() {},
+    subscribe() {},
+    onOpenMessengerPreferences() {},
+    caps: capabilities('darwin'),
+    firstSizeWaitMs: 10,
+  });
+  sw.open({ x: 0, y: 0, width: 44, height: 44 });
+  const win = electron.windows[electron.windows.length - 1];
+  assert.equal(win.visible, false);
+  await new Promise((r) => setTimeout(r, 30));
+  assert.equal(win.visible, true);
+});

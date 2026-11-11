@@ -77,7 +77,8 @@ function report() {
   timer = null;
   let rows;
   try {
-    rows = readRows(LIMIT, spanText, listAtTop);
+    // Five rows plus one per pinned chat: the stack's recent five are the newest not pinned.
+    rows = readRows(LIMIT + pins.length, spanText, listAtTop);
   } catch (e) {
     return;
   }
@@ -205,8 +206,9 @@ function drawPin() {
   btn.setAttribute('aria-label', btn.title);
 }
 ipcRenderer.on('panel:pin-state', (_event, state) => {
-  pins = state && Array.isArray(state.pins) ? state.pins : [];
+  pins = state && Array.isArray(state.pins) ? state.pins.slice(0, 5) : [];
   drawPin();
+  schedule(); // a row more or fewer to read
 });
 // The pointer over a row brings the button to that row; leaving the row and the button
 // takes it away. Scrolling the list takes it away too.

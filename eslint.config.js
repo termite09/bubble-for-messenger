@@ -20,7 +20,17 @@ module.exports = [
         settingsApi: 'readonly',
         shieldApi: 'readonly',
         dismissApi: 'readonly',
+        createDrafts: 'readonly', // drafts.js, loaded before bubble-renderer.js
       },
+    },
+  },
+  {
+    // A plain script the bubble page loads, which the tests also require.
+    files: ['src/renderer/drafts.js'],
+    languageOptions: {
+      ecmaVersion: 2023,
+      sourceType: 'script',
+      globals: { ...globals.browser, module: 'writable' },
     },
   },
   {

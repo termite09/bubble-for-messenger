@@ -9,6 +9,9 @@ function capabilities(platform) {
     vibrancy: darwin, // setVibrancy exists; elsewhere the card is opaque
     dock: darwin,
     homebrew: darwin,
+    // The thread open has been measured here (195 of 195 landed, Sept–Nov 2026); elsewhere the
+    // log follows each reveal for a moment, for the Windows report it was added for (panel.js).
+    openVerified: darwin,
   });
 }
 

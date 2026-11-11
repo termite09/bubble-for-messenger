@@ -116,3 +116,28 @@ test('asleep means no reloads, whatever the page looks like; the wake reloads on
   s = reduce(s, 'resume', 60 * MIN);
   assert.deepEqual(decide(s, { ...up, now: 60 * MIN + 1 }), { reload: true, reason: 'resume' });
 });
+
+// 145 of the 200 reloads in one author's log (Sept–Nov 2026) came after a wake, every one of
+// them whether or not Messenger had already reconnected. A chat socket that opens after the
+// wake is the proof that it did: the reload is owed only when none does.
+test('a wake whose chat socket comes back on its own needs no reload', () => {
+  const s = play([
+    ['loaded', 0],
+    ['resume', 60 * MIN],
+    ['socket-open', 60 * MIN + 4000],
+  ]);
+  assert.deepEqual(decide(s, { ...up, now: 60 * MIN + 30 * 1000 }), {
+    reload: false,
+    reason: null,
+  });
+});
+
+test('a socket that opened before the wake (a dark wake, say) does not excuse it', () => {
+  const s = play([
+    ['loaded', 0],
+    ['suspend', 50 * MIN],
+    ['socket-open', 55 * MIN],
+    ['resume', 60 * MIN],
+  ]);
+  assert.deepEqual(decide(s, { ...up, now: 60 * MIN + 1 }), { reload: true, reason: 'resume' });
+});

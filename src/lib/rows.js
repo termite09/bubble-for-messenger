@@ -45,7 +45,9 @@ function readRows(limit, spanText, listAtTop) {
   return out;
 }
 
-// One expression that reads the rows: what scrape.js runs in the page.
-const ROW_READER_SOURCE = `(${readRows.toString()})(${LIMIT}, ${spanText.toString()}, ${listAtTop.toString()})`;
+// One expression that reads the first `limit` rows: what scrape.js runs in the page.
+const rowReaderSource = (limit) =>
+  `(${readRows.toString()})(${Number(limit) || LIMIT}, ${spanText.toString()}, ${listAtTop.toString()})`;
+const ROW_READER_SOURCE = rowReaderSource(LIMIT);
 
-module.exports = { readRows, ROW_READER_SOURCE };
+module.exports = { readRows, rowReaderSource, ROW_READER_SOURCE };
