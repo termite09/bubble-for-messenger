@@ -493,11 +493,17 @@ function createMenu() {
   );
 }
 
-// A second launch handed over to this one: show the stack — unless this one is on its way out.
+// A second launch handed over to this one: bring the bubble back if it has gone missing (it
+// logs what it found), then show the stack — unless this one is on its way out.
 let quitting = false;
-app.on('second-instance', () => {
-  if (bubble && !quitting)
-    showStack().catch((err) => log.warn('stack after second launch', { err }));
+app.on('second-instance', async () => {
+  if (!bubble || quitting) return;
+  try {
+    await bubble.recover('second-launch');
+    await showStack();
+  } catch (err) {
+    log.warn('stack after second launch', { err });
+  }
 });
 
 // Every renderer is sandboxed (the window factory sets it per window; this makes it the rule),
@@ -531,7 +537,14 @@ app.whenReady().then(() => {
 
   dismiss = createDismissTarget({ overFullscreen: settings.overFullscreen });
 
+  log.info('app started', {
+    version: app.getVersion(),
+    overFullscreen: settings.overFullscreen,
+    glass: settings.glass,
+    bubbleSize: settings.bubbleSize,
+  });
   bubble = createBubble({
+    log,
     position: settings.bubble,
     dismiss,
     overFullscreen: settings.overFullscreen,

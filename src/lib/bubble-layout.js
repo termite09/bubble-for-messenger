@@ -33,6 +33,7 @@ function bubbleLayout({ anchor, size, scale, fanCount, bannerExtra, area }) {
     direction === 'up' ? { above: extra } : { below: extra },
     scale,
   );
+  const contentY = frame.contentY + (column.bounds.height - size) * (direction === 'up' ? 1 : 0);
   return {
     content,
     direction,
@@ -40,8 +41,11 @@ function bubbleLayout({ anchor, size, scale, fanCount, bannerExtra, area }) {
     window: { x: frame.x, y: frame.y, width: frame.width, height: frame.height },
     renderer: {
       contentX: (side === 'right' ? frame.contentX + banner - size : frame.contentX) / scale,
-      contentY:
-        (frame.contentY + (column.bounds.height - size) * (direction === 'up' ? 1 : 0)) / scale,
+      contentY: contentY / scale,
+      // How far the disc's foot sits above the window's bottom edge: what the page anchors the
+      // column by when it grows up. Sent, not worked out from the page's own height, which lags
+      // a resize — a fold measured with the open stack's height drew the disc above the window.
+      contentBottom: (frame.height - contentY - size) / scale,
       edge: side,
       direction,
       base: BASE,

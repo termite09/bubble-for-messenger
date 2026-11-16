@@ -236,7 +236,7 @@ function setLayout(l) {
   // The column is anchored at the disc: bottom-aligned when growing up, top-aligned when down.
   if (l.direction === 'up') {
     content.style.top = '';
-    content.style.bottom = innerHeight - l.contentY - l.base + 'px';
+    content.style.bottom = l.contentBottom + 'px'; // from main: the page's own height can lag
   } else {
     content.style.bottom = '';
     content.style.top = l.contentY + 'px';

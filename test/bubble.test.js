@@ -181,3 +181,64 @@ test('a drag tells the page its layout only when that layout changes', async () 
   assert.ok(win.getBounds().x < 1300); // the window did follow
   assert.equal(sends(), before);
 });
+
+// ---- When the bubble goes missing -------------------------------------------------------------
+// A report (Nov 2026): the bubble vanished now and then, and only quitting brought it back; the
+// log said nothing about the bubble's window. It now says when the bubble stops showing, and
+// what it found; and opening Bubble again puts it back.
+const recorder = () => {
+  const lines = [];
+  const at = (level) => (msg, data) => lines.push({ level, msg, ...data });
+  return {
+    lines,
+    log: { debug: at('debug'), info: at('info'), warn: at('warn'), error: at('error') },
+  };
+};
+
+test('the check logs a bubble that stopped showing, with what it found, and puts it back', async () => {
+  const { lines, log } = recorder();
+  const { bubble, win } = makeBubble({ log });
+  await bubble.check();
+  assert.equal(lines.length, 0); // all well: nothing to say
+  win.hide();
+  await bubble.check();
+  const gone = lines.filter((l) => l.msg === 'bubble not showing');
+  assert.equal(gone.length, 1);
+  assert.equal(gone[0].level, 'warn');
+  assert.equal(gone[0].visible, false);
+  assert.equal(win.visible, true); // recovered on the spot
+  assert.equal(lines.filter((l) => l.msg === 'bubble recovered' && l.by === 'check').length, 1);
+  await bubble.check();
+  assert.equal(lines.filter((l) => l.msg === 'bubble not showing').length, 1);
+});
+
+test('a disc drawn outside its window counts as not showing', async () => {
+  const { lines, log } = recorder();
+  const { bubble, win } = makeBubble({ log });
+  win.webContents.executeJavaScript = async () => ({
+    innerWidth: 314,
+    innerHeight: 108,
+    disc: { left: 238, top: -400, width: 44, height: 44 },
+  });
+  await bubble.check();
+  const [gone] = lines.filter((l) => l.msg === 'bubble not showing');
+  assert.ok(gone);
+  assert.deepEqual(gone.page.disc, { left: 238, top: -400, width: 44, height: 44 });
+});
+
+test('recover logs what it found, then shows the bubble on this desktop and re-lays it out', async () => {
+  const { lines, log } = recorder();
+  const { bubble, win } = makeBubble({ log, overFullscreen: false });
+  win.hide();
+  const sent = sentOn(win, CHANNELS.BUBBLE_LAYOUT).length;
+  const calls = [];
+  const set = win.setVisibleOnAllWorkspaces.bind(win);
+  win.setVisibleOnAllWorkspaces = (on, o) => (calls.push(on), set(on, o));
+  await bubble.recover('second-launch');
+  assert.equal(win.visible, true);
+  assert.deepEqual(calls, [true, false]); // joins this desktop, then keeps to it
+  assert.equal(sentOn(win, CHANNELS.BUBBLE_LAYOUT).length, sent + 1); // told again
+  const [line] = lines.filter((l) => l.msg === 'bubble recovered');
+  assert.equal(line.by, 'second-launch');
+  assert.equal(line.before.visible, false);
+});

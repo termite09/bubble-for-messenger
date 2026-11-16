@@ -12,6 +12,33 @@ const { createFloatingWindow, ipcFor } = require('./floating-window');
 const { createShield } = require('./shield');
 
 const COLLAPSE_MS = 240; // the fold transition is 220ms
+const CHECK_MS = 60 * 1000; // how often the bubble checks that it is still on screen
+const PAGE_ANSWER_MS = 2000;
+const noLog = { debug() {}, info() {}, warn() {}, error() {} };
+
+// Where the page draws the disc, and how big the page is: whether the disc is on screen.
+const PAGE_PROBE = `(() => {
+  const r = document.getElementById('disc').getBoundingClientRect();
+  return {
+    innerWidth, innerHeight,
+    disc: { left: Math.round(r.left), top: Math.round(r.top), width: Math.round(r.width), height: Math.round(r.height) },
+    classes: document.body.className,
+    visibility: document.visibilityState,
+  };
+})()`;
+// A disc with no part inside the page's viewport is not on screen. A page that could not be
+// asked says nothing either way.
+const discInside = (page) => {
+  if (!page || !page.disc) return true;
+  const { left, top, width, height } = page.disc;
+  return (
+    width > 0 &&
+    left < page.innerWidth &&
+    left + width > 0 &&
+    top < page.innerHeight &&
+    top + height > 0
+  );
+};
 
 // Reduce Motion: the disc goes to its edge without travelling there.
 const reducedMotion = () => {
@@ -54,7 +81,9 @@ function createBubble({
   overFullscreen = true,
   size = BASE,
   caps = CAPS,
+  log = noLog,
 }) {
+  let over = overFullscreen;
   let SIZE = size; // the disc, on screen
   let scale = SIZE / BASE; // page zoom: the page is drawn for a BASE-px disc
   const start = position || defaultPosition(SIZE);
@@ -342,8 +371,55 @@ function createBubble({
   screen.on('display-removed', reclamp);
   screen.on('display-metrics-changed', reclamp);
 
+  // ---- Still on screen? ------------------------------------------------------------------------
+  // A report (Nov 2026) of the bubble vanishing until a relaunch, with nothing in the log. Once a
+  // minute the bubble looks at itself — its own window and page, nothing of Messenger's — and
+  // when it is not showing (the window hidden, or the disc drawn outside it) logs what it found
+  // and recovers it. Opening Bubble again (main.js second-instance) recovers it too.
+  async function snapshot() {
+    let timer;
+    const page = await Promise.race([
+      win.webContents.executeJavaScript(PAGE_PROBE).catch(() => null),
+      new Promise((resolve) => (timer = setTimeout(resolve, PAGE_ANSWER_MS, 'no answer'))),
+    ]).finally(() => clearTimeout(timer));
+    return {
+      visible: win.isVisible(),
+      bounds: win.getBounds(),
+      anchor: { ...anchor },
+      expanded,
+      page,
+    };
+  }
+  // Not showing: say what was found, and put it back — whatever the cause, the bubble is not
+  // left gone until a relaunch.
+  async function check() {
+    if (win.isDestroyed()) return;
+    const state = await snapshot();
+    if (state.visible && discInside(state.page)) return;
+    log.warn('bubble not showing', state);
+    await recover('check');
+  }
+  const checkTimer = setInterval(() => check().catch(() => {}), CHECK_MS);
+  if (checkTimer.unref) checkTimer.unref();
+  win.on('closed', () => clearInterval(checkTimer));
+
+  async function recover(by) {
+    if (win.isDestroyed()) return;
+    const before = await snapshot();
+    // Onto the desktop in front (joining every Space for a moment does that), then the setting.
+    joinAllSpaces(win, true, caps);
+    joinAllSpaces(win, over, caps);
+    win.setAlwaysOnTop(true, 'screen-saver');
+    win.showInactive();
+    sentLayout = ''; // the page is told where the disc is, whatever it was told before
+    applyBounds();
+    log.info('bubble recovered', { by, before });
+  }
+
   return {
     win,
+    check,
+    recover,
     expand,
     collapse,
     isExpanded: () => expanded,
@@ -378,6 +454,7 @@ function createBubble({
     replyResult: (ok) => send(CHANNELS.BUBBLE_REPLY_RESULT, Boolean(ok)),
     // Whether the disc (and the shield beneath an open stack) float over full-screen apps.
     setOverFullscreen: (on) => {
+      over = on;
       joinAllSpaces(win, on, caps);
       shield.setOverFullscreen(on);
     },

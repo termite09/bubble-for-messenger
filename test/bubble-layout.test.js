@@ -87,3 +87,30 @@ test('resizeAnchor keeps the centre, or the edge it rests on, and re-snaps to th
   assert.equal(edgeOf({ x: 1000, y: 0 }, 44, area), 'right');
   assert.equal(edgeOf({ x: 100, y: 0 }, 44, area), 'left');
 });
+
+// The page anchored its column with `innerHeight - contentY - base`. A layout that arrives before
+// the page has seen its window shrink (the stack folding as another app is clicked) used the old
+// height, and drew the disc above the window: invisible, unclickable, until a relaunch (Nov 2026,
+// measured on a live bubble: bottom 344px in a 108px window). Main sends the distance itself.
+test('the page is told how far the disc sits above the window bottom, at any size and with the stack up', () => {
+  for (const scale of [1, 56 / 44, 68 / 44])
+    for (const fanCount of [0, 3, 6])
+      for (const bannerExtra of [0, 60]) {
+        const size = 44 * scale;
+        const anchor = { x: 1440 - size - EDGE_MARGIN, y: 800 };
+        const l = bubbleLayout({ anchor, size, scale, fanCount, bannerExtra, area });
+        const height = l.window.height / scale;
+        assert.ok(
+          Math.abs(l.renderer.contentBottom - (height - l.renderer.contentY - BASE)) < 1e-9,
+          `${scale} ${fanCount} ${bannerExtra}`,
+        );
+      }
+});
+
+test('the bubble page never anchors the disc from its own idea of its height', () => {
+  const page = require('node:fs').readFileSync(
+    require('node:path').join(__dirname, '..', 'src', 'renderer', 'bubble-renderer.js'),
+    'utf8',
+  );
+  assert.equal(/innerHeight/.test(page), false);
+});

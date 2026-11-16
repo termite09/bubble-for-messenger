@@ -1,5 +1,19 @@
 # Changelog
 
+## v3.1.1 (2026-11-16) — Bubble for Messenger
+
+### Fixed
+- **The bubble could vanish until you quit and reopened it.** Clicking another app while a chat
+  was open folds the stack and shrinks the bubble's window; when the page placed the disc
+  before it had seen the smaller window, it drew it above the window, out of sight and out of
+  reach. The page is now told where the disc goes rather than working it out from its own
+  height.
+
+### Added
+- **The bubble checks that it is on screen**, once a minute, and puts itself back if it is not,
+  logging what it found (`bubble not showing` in the log). Opening Bubble again does the same
+  straight away. The log also notes each launch (`app started`).
+
 ## v3.1.0 (2026-11-11) — Bubble for Messenger
 
 ### Fixed
