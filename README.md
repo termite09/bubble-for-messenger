@@ -81,7 +81,9 @@ please [open an issue](https://github.com/termite09/bubble-for-messenger/issues)
 - **Click the bubble** and your five most recent chats fan out as round heads (a blue dot means
   unread), with an Inbox head last. Pick one and it opens in a compact panel beside the stack.
   With something unread, a click opens the newest message directly. Click anywhere else to put
-  it all away.
+  it all away — unless you have typed in the chat, in which case it stays until you press `Esc`,
+  click ✕ on it, or click the bubble. Its pin keeps it open across chats; ↗ opens the chat in
+  your browser.
 - **Hover a head** for its name; the pin badge pins it to the top of the stack (up to five).
   Chats can also be pinned from a row in the Inbox.
 - **Right-click the bubble** for *Open Messenger*, *Reload Messenger*, *Check for Updates…*

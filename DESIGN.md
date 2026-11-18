@@ -284,8 +284,10 @@ Up to five recent heads, up to five pinned ones, and the Inbox head, opened as o
 ### Panel frame
 The conversation sheet: messenger.com framed, not restyled.
 - **Shape:** an opaque window in Messenger's own wash for the theme, with the system's rounded corners and shadow (a transparent window with a shadow is recomposited every frame); inside it a fixed, pointer-transparent overlay draws a 1px hairline at the same radius (about 10px) on top of everything — white at 12% on the dark wash, black at 12% on the light one, both from tokens.css.
-- **Size:** 420×640 for the inbox, 420×560 for a single thread; 8px beyond the bubble layer, top-aligned.
-- **Compact mode:** hides Messenger's inbox switcher rail, call/info buttons and Back arrow; removes the thread's inset margin and radius so the conversation fills the sheet; hides scrollbars. Messenger's message bubbles, purple own-message fill, and controls are its own and are not part of this system.
+- **Size:** 420×640 for the inbox, 420×560 for a single thread (or, Tall, the work area's height less 16px); 8px beyond the bubble layer, top-aligned.
+- **Compact mode:** hides Messenger's inbox switcher rail and Back arrow (the stack is the way between chats); removes the thread's inset margin and radius so the conversation fills the sheet. Messenger's own controls — the chat's information, the call buttons, its scrollbars — stay. Messenger's message bubbles, purple own-message fill, and controls are its own and are not part of this system.
+- **Controls:** on a chat, while the pointer is over the sheet, a Graphite pill (hairline, Lift, 16px radius) hangs 10px under Messenger's header, right-aligned: ↗ open in browser, the keep-open pin (Paper when on), ✕. Ash glyphs, Paper on hover. Esc is ✕.
+- **Staying:** a peek goes away when the sheet loses focus; once the user has typed, pasted or dropped something in it, or while the pin is on, it stays until put away (the disc, ✕, Esc).
 - **Switching chats:** with the sheet on screen, the picture it shows is held over the page (a pointer-transparent image under the hairline) while the page moves to the next chat underneath, then faded over 120ms linear — a crossfade, never the window blinking out. Removed at once under Reduce Motion. A hidden sheet is staged out of sight at opacity 0 instead.
 
 ### Settings tabs

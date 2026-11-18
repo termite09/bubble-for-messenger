@@ -144,3 +144,16 @@ test("pickUnread: nothing landed yet → the top unread, never the user's own", 
   recent[1].unread = false;
   assert.equal(pickUnread({ recent, landed: null }), null);
 });
+
+// With the panel on one chat, a message in another is not something the user saw: it lands
+// (and so gets its banner once the stack is put away). On the inbox, or on that chat, it was seen.
+test('with the panel on one chat, a message landing in another still lands', () => {
+  const seed = reduceRecent(initialState(), [row('/t/1/'), row('/t/2/')], hidden).state;
+  const onChat1 = { ...seed, activeHref: '/t/1/' };
+  const next = [row('/t/2/', { unread: true, preview: 'hey' }), row('/t/1/')];
+  assert.equal(reduceRecent(onChat1, next, { visible: true }).landed.href, '/t/2/');
+  const onInbox = { ...seed, activeHref: null };
+  assert.equal(reduceRecent(onInbox, next, { visible: true }).landed, null);
+  const onChat2 = { ...seed, activeHref: '/t/2/' };
+  assert.equal(reduceRecent(onChat2, next, { visible: true }).landed, null);
+});

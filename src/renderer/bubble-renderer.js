@@ -149,9 +149,7 @@ function headEl(item) {
   pin.addEventListener('mouseenter', () => {
     caption.textContent = el.classList.contains('pinned') ? 'Unpin' : 'Pin';
   });
-  pin.addEventListener('mouseleave', () => {
-    caption.textContent = el.title;
-  });
+  pin.addEventListener('mouseleave', () => fillCaption(el));
   // The ring goes on and the head dims at once; the panel takes a moment to show.
   el.addEventListener('click', () => {
     setActive(item.href);
@@ -166,13 +164,17 @@ function headEl(item) {
   return updateHead(el, item);
 }
 
+// A head's chip: its name (the pin badge borrows it for "Pin" / "Unpin" while hovered).
+function fillCaption(el) {
+  el.querySelector('.caption').textContent = el.headItem.name;
+}
+
 function updateHead(el, item) {
   el.classList.toggle('unread', Boolean(item.unread));
   el.classList.toggle('pinned', Boolean(item.pinned));
-  if (el.title !== item.name) {
-    el.title = item.name;
-    el.querySelector('.caption').textContent = item.name;
-  }
+  el.headItem = item;
+  el.title = item.name;
+  fillCaption(el);
   el.querySelector('.pin').title = item.pinned ? 'Unpin' : 'Pin';
   el.setAttribute(
     'aria-label',
@@ -215,7 +217,10 @@ function inboxEl() {
   hiddenCount.className = 'hidden-count';
   caption.append(label, hiddenCount);
   el.appendChild(caption);
-  el.addEventListener('click', () => window.bubbleApi.openInbox());
+  el.addEventListener('click', () => {
+    waiting.clear(); // the whole list is about to be on screen
+    window.bubbleApi.openInbox();
+  });
   return el;
 }
 
@@ -268,12 +273,15 @@ window.bubbleApi.onFan((data) => {
   if (!data || data.animate === 'clear') {
     fan.replaceChildren();
     body.classList.remove('open');
+    stackUp = false;
+    pump(); // banners that waited for the stack to go
     return;
   }
   if (data.animate === 'out') {
     body.classList.remove('open');
     return;
   }
+  stackUp = true;
   const wasOpen = body.classList.contains('open');
   // items arrive pinned-first, then the recent ones newest-first, and read top-down; the inbox
   // closes the list.
@@ -307,6 +315,7 @@ window.bubbleApi.onFan((data) => {
 function setActive(href) {
   activeHref = href;
   markActive();
+  if (href) waiting.drop(href); // its banner is moot: the chat is open
 }
 window.bubbleApi.onActive(setActive);
 const clearBusy = () => {
@@ -340,15 +349,33 @@ new MutationObserver(reportBanner).observe(landed, {
   subtree: true,
 });
 
+// A message that lands while the bubble is busy — the stack up (a chat open beside it, say), a
+// reply being typed or sent — waits (banner-queue.js) and gets its banner once the bubble is
+// free, one after another. It used to get none at all.
+const waiting = createBannerQueue();
+let stackUp = false; // from the deploy until the folded stack is cleared
+const busy = () => stackUp || replying() || sending;
+function pump() {
+  if (busy() || body.classList.contains('landed')) return;
+  const next = waiting.next();
+  if (next) showBanner(next);
+}
+
 const fold = (after) => {
   clearTimeout(landedTimer);
-  landedTimer = setTimeout(() => body.classList.remove('landed'), after);
+  landedTimer = setTimeout(() => {
+    body.classList.remove('landed');
+    setTimeout(pump, 400); // the next one waiting, a beat after this one has folded
+  }, after);
 };
 
 // A banner with no chat behind it (the first-run welcome) has nothing to open or reply to;
 // a click folds it.
 window.bubbleApi.onLanded((item) => {
-  if (replying() || sending) return; // don't yank a reply out from under the user
+  if (busy()) return waiting.add(item); // don't yank a reply out from under the user
+  showBanner(item);
+});
+function showBanner(item) {
   landedHref = item.href || null;
   fillAvatar(landedAv, item);
   landedName.textContent = item.name;
@@ -359,7 +386,7 @@ window.bubbleApi.onLanded((item) => {
   landedInput.setAttribute('aria-label', 'Reply to ' + item.name);
   body.classList.add('landed');
   fold(item.hold || 4000);
-});
+}
 // Clicking the banner opens that conversation. It lives inside the disc, so stop the press
 // from starting a drag and the release from counting as a disc click.
 landed.addEventListener('mousedown', (e) => e.stopPropagation());
@@ -444,9 +471,12 @@ function replyResult(ok) {
   sending = false;
   body.classList.remove('sending');
   body.classList.add(ok ? 'sent' : 'failed');
-  // A tick for a moment; a failure stays long enough to read, and says where the text went.
-  landedSub.textContent = ok ? 'Sent' : 'Couldn’t send — your text is in the chat';
-  fold(ok ? 1200 : 4000);
+  // A tick, and where the reply went (a click opens it); a failure stays long enough to read,
+  // and says where the text went.
+  landedSub.textContent = ok
+    ? 'Sent — click to see it in the chat'
+    : 'Couldn’t send — your text is in the chat';
+  fold(ok ? 2500 : 4000);
 }
 window.bubbleApi.onReplyResult(replyResult);
 

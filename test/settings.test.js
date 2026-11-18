@@ -27,6 +27,7 @@ test('defaults are what the spec says', () => {
     blockTelemetry: false, // opt-in; see docs/COMPLIANCE-PLAN.md
     reopenLast: 30,
     checkUpdates: true,
+    panelHeight: 'standard',
   });
   assert.deepEqual(REOPEN_SECONDS, [0, 15, 30, 60, 300]);
   assert.deepEqual(THEMES, ['system', 'light', 'dark']);
@@ -197,4 +198,9 @@ test('the bubble page is sent every setting it reads, Glass included', () => {
   const read = [...body.matchAll(/\bs\.(\w+)/g)].map((m) => m[1]);
   assert.ok(read.length > 0);
   for (const key of read) assert.ok(BUBBLE_PAGE_KEYS.includes(key), `${key} is never sent`);
+});
+
+test('the panel height is standard or tall, standard by default', () => {
+  assert.equal(normalizeSettings({ panelHeight: 'tall' }).panelHeight, 'tall');
+  assert.equal(normalizeSettings({ panelHeight: 'huge' }).panelHeight, 'standard');
 });

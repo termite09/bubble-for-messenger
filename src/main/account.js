@@ -20,6 +20,8 @@ function createAccount({
   onBlurred = () => {},
   onHidden = () => {},
   onPin = () => {},
+  onCloseRequest = () => {},
+  panelHeight = () => 'standard',
   createPanel = createRealPanel,
   fetchAvatar = fetchRealAvatar,
 }) {
@@ -51,7 +53,9 @@ function createAccount({
       onBlurred();
     },
     onHidden,
-    onNavigated: () => refreshShowing(),
+    onNavigated: (url) => navigated(url),
+    onCloseRequest,
+    panelHeight,
     // The panel's pin button on an inbox row: that row as the page read it (a handle of
     // this site's, a name). Main keeps the pins.
     onPin: (row) => {
@@ -64,6 +68,24 @@ function createAccount({
   // What the panel's pin buttons show on the inbox's rows: which chats are pinned.
   function syncPin() {
     panel.setPinState({ pins: ownPins().map((p) => p.href) });
+  }
+
+  // The user went back to the list in the panel (Back is shown there): no chat is active, and
+  // its head loses the ring. Not a step of an open the app is staging, which passes the list.
+  function navigated(url) {
+    let onList = false;
+    try {
+      onList = new URL(url).pathname === '/';
+    } catch (e) {}
+    const opening = typeof panel.isOpening === 'function' && panel.isOpening();
+    if (onList && !opening && panel.isVisible() && chats.activeHref) {
+      chats = chatsLib.openChat(chats, null);
+      showing = null;
+      syncPin();
+      onChanged({ displayChanged: false });
+      return undefined;
+    }
+    return refreshShowing();
   }
 
   // Where the panel went, while the user is looking at it: the chat it shows becomes the

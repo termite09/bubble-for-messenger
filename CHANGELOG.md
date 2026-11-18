@@ -1,5 +1,28 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+- **A chat you are in stays open.** Once you have typed (or pasted, or dropped a file) in the
+  panel, a click on another app no longer puts it away — so you can drag a photo in from Finder,
+  copy something from another app, or glance away mid-conversation. A quick look still goes
+  away on a click elsewhere. The panel's new pin keeps it open across chats until you unpin it.
+- **The panel has its own controls**: on a chat, while the pointer is over it, a small pill
+  under the header — ↗ open the chat on messenger.com in your browser, the keep-open pin, and
+  ✕ to put it away. **Esc** puts it away too (unless one of Messenger's menus or dialogs is open).
+- **More of Messenger in the panel**: the chat's information (search, mute, shared photos and
+  files), the call buttons and the scrollbars are no longer hidden.
+- **Messages in other chats get their banner.** One that lands while you are in another chat,
+  while the stack is open, or while you type or send a quick reply, now waits and is shown once
+  the bubble is free — the newest message per chat, a few chats at most.
+- **After a quick reply** the banner says *Sent — click to see it in the chat* for a little
+  longer.
+
+### Added
+- **Tall panel** (Settings → Panel → Height): the panel fills the screen's height, for long
+  chats.
+- **Open in Browser** on a head's right-click menu.
+
 ## v3.1.1 (2026-11-16) — Bubble for Messenger
 
 ### Fixed

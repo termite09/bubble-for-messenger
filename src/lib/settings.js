@@ -6,6 +6,7 @@ const THEMES = ['system', 'light', 'dark'];
 const BADGES = ['off', 'steady', 'pulse']; // the unread count on the disc
 const BUBBLE_SIZES = Object.freeze({ small: 44, medium: 56, large: 68 }); // the disc, in px
 const REOPEN_SECONDS = [0, 15, 30, 60, 300]; // how long a chat closed by clicking away stays one click away
+const PANEL_HEIGHTS = ['standard', 'tall']; // tall: the screen's height, for long chats
 
 const DEFAULTS = Object.freeze({
   overFullscreen: true, // the bubble floats over full-screen apps
@@ -27,6 +28,7 @@ const DEFAULTS = Object.freeze({
   blockTelemetry: false,
   reopenLast: 30, // seconds; 0 is off
   checkUpdates: true, // ask GitHub once a day whether there is a newer release
+  panelHeight: 'standard', // the conversation panel: 560px, or the screen's height
 });
 
 // Keys whose value is one of a list rather than a boolean.
@@ -35,6 +37,7 @@ const CHOICES = {
   badge: BADGES,
   bubbleSize: Object.keys(BUBBLE_SIZES),
   reopenLast: REOPEN_SECONDS,
+  panelHeight: PANEL_HEIGHTS,
 };
 
 const GRANTED_PERMISSIONS = new Set([

@@ -31,6 +31,13 @@ const CHANNELS = Object.freeze({
   // panel preload → main: the pin button was pressed; main → preload: what it shows
   PANEL_PIN: 'panel:pin',
   PANEL_PIN_STATE: 'panel:pin-state',
+  // panel preload → main: the user typed in the chat (it stays on a click elsewhere), the
+  // panel's own controls (✕ and Esc, keep open, open in the browser); main → preload: kept?
+  PANEL_ENGAGED: 'panel:engaged',
+  PANEL_CLOSE: 'panel:close',
+  PANEL_KEEP: 'panel:keep',
+  PANEL_KEEP_STATE: 'panel:keep-state',
+  PANEL_BROWSER: 'panel:browser',
   // shield, dismiss target
   SHIELD_CLICK: 'shield:click',
   DISMISS_HOT: 'dismiss:hot',

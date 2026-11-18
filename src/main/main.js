@@ -164,8 +164,10 @@ function createPlatform(site) {
     onStatus: (status) => {
       if (bubble) bubble.setStatus(status);
     },
+    // Every landing goes to the page: one that arrives while the stack is up waits there and
+    // gets its banner once the stack is put away.
     onLanded: (item) => {
-      if (!bubble || !settings.banner || bubble.isExpanded()) return;
+      if (!bubble || !settings.banner) return;
       bubble.landed(settings.bannerPreview ? item : { ...item, preview: '' });
     },
     onChanged: ({ displayChanged }) => {
@@ -196,9 +198,25 @@ function createPlatform(site) {
     },
     // The panel's own pin button on a row of the inbox.
     onPin: (row) => togglePin(row.href, row),
+    // The panel's ✕ (or Esc in it): everything put away, as a press on the disc does.
+    onCloseRequest: () => {
+      if (!bubble) return;
+      bubble.collapse();
+      putAway('panel');
+    },
+    panelHeight: () => settings.panelHeight,
   });
   account = made;
   return made;
+}
+
+// The stack is folding (or folded): the open chat is remembered for a while and put away.
+function putAway(by) {
+  log.debug('stack closed', { by });
+  current().close();
+  syncActive();
+  current().hide();
+  syncSound();
 }
 
 async function showStack(animate = true) {
@@ -245,6 +263,12 @@ function headMenu(href) {
           enabled: !full,
           click: () => togglePin(href),
         },
+    { type: 'separator' },
+    // The same chat on messenger.com, when the website is what you want.
+    {
+      label: 'Open in Browser',
+      click: () => shell.openExternal('https://www.messenger.com' + href),
+    },
   ]).popup({ window: bubble.win });
 }
 
@@ -570,13 +594,7 @@ app.whenReady().then(() => {
     },
     // Pressing the disc while the stack is open, or anywhere outside it (the shield), puts it
     // all away — and remembers the open chat for a while.
-    onClose: (by) => {
-      log.debug('stack closed', { by });
-      current().close();
-      syncActive();
-      current().hide();
-      syncSound();
-    },
+    onClose: (by) => putAway(by),
     onContextMenu: bubbleContextMenu,
     onHeadMenu: headMenu,
     onPinToggle: togglePin,

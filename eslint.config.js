@@ -21,12 +21,13 @@ module.exports = [
         shieldApi: 'readonly',
         dismissApi: 'readonly',
         createDrafts: 'readonly', // drafts.js, loaded before bubble-renderer.js
+        createBannerQueue: 'readonly', // banner-queue.js, likewise
       },
     },
   },
   {
     // A plain script the bubble page loads, which the tests also require.
-    files: ['src/renderer/drafts.js'],
+    files: ['src/renderer/drafts.js', 'src/renderer/banner-queue.js'],
     languageOptions: {
       ecmaVersion: 2023,
       sourceType: 'script',

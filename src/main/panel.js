@@ -64,6 +64,8 @@ function createPanel({
   onHidden = () => {},
   onNavigated = () => {},
   onPin = () => {},
+  onCloseRequest = () => {},
+  panelHeight = () => 'standard',
   overFullscreen = true,
   log = noLog,
   scrape = require('./scrape'),
@@ -97,16 +99,40 @@ function createPanel({
 
   // Put away, and say so if it was showing (a staged panel at opacity 0 is not "showing").
   let showing = false;
+  // A chat you are in stays: once you have typed in the panel (`engaged`, until it is put
+  // away), or while the keep-open pin is on (`keep`, until it is unpinned), a click elsewhere
+  // leaves it up — to drag a file in, paste from another app, or glance away mid-conversation.
+  // A peek still goes away on a click elsewhere. The disc, Esc and ✕ always put it away.
+  let engaged = false;
+  let keep = false;
   function hide() {
     win.hide();
+    engaged = false;
     if (!showing) return;
     showing = false;
     onHidden();
   }
   win.on('blur', () => {
-    log.debug('panel blur', { showing });
+    log.debug('panel blur', { showing, engaged, keep });
+    if (showing && (engaged || keep)) return;
     hide();
     onBlurred();
+  });
+  const sendKeep = () => {
+    if (!win.isDestroyed()) win.webContents.send(CHANNELS.PANEL_KEEP_STATE, { keep });
+  };
+  ipcFor(win).on(CHANNELS.PANEL_ENGAGED, () => {
+    if (showing) engaged = true;
+  });
+  ipcFor(win).on(CHANNELS.PANEL_KEEP, () => {
+    keep = !keep;
+    sendKeep();
+  });
+  ipcFor(win).on(CHANNELS.PANEL_CLOSE, () => onCloseRequest());
+  // ↗: the chat (or the inbox) on messenger.com, in the browser.
+  ipcFor(win).on(CHANNELS.PANEL_BROWSER, () => {
+    const url = win.webContents.getURL();
+    if (isInternal(url, site.domain)) shell.openExternal(url);
   });
   // Diagnostics for the open path (a Windows report of the list showing where a thread
   // landed): where the page goes, and how big it is, as it happens.
@@ -232,7 +258,8 @@ function createPanel({
       loadFailed = false;
       return;
     }
-    sendPinState(); // a fresh preload knows no pins
+    sendPinState(); // a fresh preload knows no pins, nor whether the panel is kept open
+    sendKeep();
     scrape.setFrame(win.webContents, true);
     scrape.setCompact(win.webContents, compact);
     applyTheme();
@@ -313,11 +340,14 @@ function createPanel({
   // A single open thread is shorter than the full inbox. It is kept the same width, though:
   // below ~400px Messenger drops into a single-column layout that shows the chat list instead
   // of the conversation, so a narrower panel would render the wrong thing.
+  // Tall (a setting): the height of the screen it opens on, less a margin, for long chats.
   const SIZES = { full: [420, 640], compact: [420, 560] };
+  const TALL_MARGIN = 16;
 
-  function resize(mode) {
+  function resize(mode, bubbleBounds) {
     const [w, h] = SIZES[mode];
-    win.setSize(w, h);
+    const area = screen.getDisplayMatching(bubbleBounds).workArea;
+    win.setSize(w, panelHeight() === 'tall' ? Math.max(h, area.height - TALL_MARGIN) : h);
   }
 
   function place(bubbleBounds) {
@@ -356,10 +386,21 @@ function createPanel({
 
   // Opens are serialised: a second fan click while one is still staging would otherwise
   // interleave its reload / row-click with the first. The chain never rejects.
+  // `opening` while one runs: the page passes through the list on its way to a chat, which is
+  // not the user going back to it (account.js).
   let queue = Promise.resolve();
+  let opening = false;
   const enqueue = (fn) =>
     (queue = queue
-      .then(() => (win.isDestroyed() ? undefined : fn())) // a destroyed panel has nothing left to do
+      .then(async () => {
+        if (win.isDestroyed()) return undefined; // a destroyed panel has nothing left to do
+        opening = true;
+        try {
+          return await fn();
+        } finally {
+          opening = false;
+        }
+      })
       .catch((err) => log.warn('panel action failed', { err })));
 
   // The picture the panel shows, held over its page (scrape.cover). False when none can be had
@@ -391,7 +432,7 @@ function createPanel({
     // the list are staged out of sight instead (opacity 0 but rendered, so the click still
     // dispatches). Either way the list is never seen.
     const covered = showing && (await holdPicture());
-    resize('compact');
+    resize('compact', bubbleBounds);
     place(bubbleBounds);
     if (!covered) stage();
     try {
@@ -425,7 +466,7 @@ function createPanel({
     log.debug('inbox open', { visible: win.isVisible() });
     compact = false;
     await scrape.setCompact(win.webContents, false);
-    resize('full');
+    resize('full', bubbleBounds);
     place(bubbleBounds);
     // A hidden window dispatches no input, and openInbox presses Messenger's Back control for
     // real — so a hidden panel is rendered at opacity 0 for the press. One already on screen
@@ -470,6 +511,7 @@ function createPanel({
     isVisible: () => win.isVisible(),
     // On screen to the user — not merely staged at opacity 0.
     isShowing: () => showing,
+    isOpening: () => opening,
     isLoading: () => win.webContents.isLoading(),
     liveness: () => live,
     status: () => JSON.parse(lastStatus || '{}'),

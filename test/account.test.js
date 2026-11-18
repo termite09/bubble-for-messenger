@@ -272,3 +272,14 @@ test('pinned chats near the top of the list do not crowd the recent ones out of 
     ],
   );
 });
+
+// Back is shown in the panel again: going to the list there takes the ring off the chat's head.
+test('going back to the list in the panel leaves no chat active', async () => {
+  const { account, events, page } = make({ showing: null });
+  await account.open('/t/1/', { x: 0, y: 0, width: 44, height: 44 });
+  account.panel.visible = true;
+  const before = events.changed;
+  await page().onNavigated('https://www.messenger.com/');
+  assert.equal(account.chats().activeHref, null);
+  assert.equal(events.changed, before + 1);
+});

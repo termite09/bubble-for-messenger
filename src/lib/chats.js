@@ -21,8 +21,8 @@ const unchanged = (state) => ({ state, landed: null, changed: false, displayChan
 // A new read of the list. `rows` is null when the list could not be trusted (scrolled), and an
 // empty list is not trusted over a non-empty one either: it is what a page mid-reload says.
 // `landed` is the chat that just turned unread with someone else's message — never the user's
-// own (Messenger's "You: …", or a thread bolded for another reason),
-// never while the panel shows.
+// own (Messenger's "You: …", or a thread bolded for another reason), and never one the user
+// can see: the panel showing the inbox, or that chat. With the panel on another chat it lands.
 const OWN_MESSAGE = /^You\b/;
 function reduceRecent(state, rows, { visible }) {
   if (!rows) return unchanged(state);
@@ -32,14 +32,14 @@ function reduceRecent(state, rows, { visible }) {
   const key = fullKey(rows);
   if (key === state.recentKey) return unchanged(state);
   const before = new Map(state.recent.map((r) => [r.href, r]));
-  const landed =
-    state.seeded && !visible
-      ? rows.find((r, i) => {
-          const old = before.get(r.href);
-          if (!r.unread || OWN_MESSAGE.test(r.preview)) return false;
-          return old ? !old.unread || old.preview !== r.preview : i === 0;
-        }) || null
-      : null;
+  const seen = (r) => visible && (state.activeHref === null || state.activeHref === r.href);
+  const landed = state.seeded
+    ? rows.find((r, i) => {
+        const old = before.get(r.href);
+        if (!r.unread || OWN_MESSAGE.test(r.preview) || seen(r)) return false;
+        return old ? !old.unread || old.preview !== r.preview : i === 0;
+      }) || null
+    : null;
   const displayKey = displayKeyOf(rows);
   return {
     state: { ...state, recent: rows, recentKey: key, displayKey, seeded: true },

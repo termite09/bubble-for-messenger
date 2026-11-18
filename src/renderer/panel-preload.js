@@ -249,14 +249,129 @@ new MutationObserver(() => {
     observe(document);
     schedule();
   }
-  if (!hoverRow || pinTimer !== null) return;
+  // Hidden, there is nothing to draw: the page's constant class changes cost nothing then.
+  if (pinTimer !== null || document.hidden) return;
   pinTimer = setTimeout(() => {
     pinTimer = null;
-    drawPin();
+    if (hoverRow) drawPin();
+    drawControls(); // the chat header comes and goes as the page moves between views
   }, DEBOUNCE_MS);
 }).observe(document.documentElement, {
   childList: true,
   subtree: true,
   attributes: true,
   attributeFilter: ['class', 'hidden'],
+});
+
+// ---- The panel's own controls -----------------------------------------------------------------
+// On a chat, while the pointer is over the panel: ↗ the chat on messenger.com in the browser,
+// the pin that keeps the panel up when you click elsewhere, and ✕ to put it away (Esc too,
+// unless one of Messenger's own menus or dialogs is open — Esc is theirs then). Drawn by the app
+// like the row pin button above, in its colours; hung just under Messenger's chat header, found
+// by its information button, so it never covers the header's own controls.
+const CTRL_ID = 'mb-controls';
+const CTRL_CSS =
+  '#mb-controls{position:fixed;z-index:2147483646;right:10px;display:none;gap:2px;padding:2px;' +
+  'border-radius:16px;border:1px solid rgba(255, 255, 255, 0.12);background:#1c1c1e;' +
+  'box-shadow:0 8px 24px rgba(0, 0, 0, 0.45);opacity:0;transition:opacity 120ms linear}' +
+  '#mb-controls.show{display:flex}html:hover #mb-controls{opacity:1}' +
+  '#mb-controls button{width:26px;height:26px;border:0;border-radius:13px;padding:0;margin:0;' +
+  'background:transparent;color:#98989d;display:flex;align-items:center;justify-content:center;cursor:default}' +
+  '#mb-controls button:hover{background:#2c2c2e;color:#f5f5f7}' +
+  '#mb-controls button.on{background:#f5f5f7;color:#1c1c1e}' +
+  '#mb-controls svg{width:12px;height:12px;display:block}' +
+  '@media (prefers-reduced-motion: reduce){#mb-controls{transition:none}}';
+const STROKE =
+  'fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"';
+const CTRL_BUTTONS = [
+  [
+    'browser',
+    'Open in browser',
+    `<svg viewBox="0 0 12 12" aria-hidden="true"><path ${STROKE} d="M5 2.5H2.5v7h7V7M7 2.5h2.5V5M9.5 2.5 5.5 6.5"/></svg>`,
+  ],
+  [
+    'keep',
+    'Keep open when you click elsewhere',
+    PIN_SVG.replace('<svg', '<svg fill="currentColor"'),
+  ],
+  [
+    'close',
+    'Close (Esc)',
+    `<svg viewBox="0 0 12 12" aria-hidden="true"><path ${STROKE} d="M3 3l6 6M9 3l-6 6"/></svg>`,
+  ],
+];
+let kept = false;
+
+function controls() {
+  let box = document.getElementById(CTRL_ID);
+  if (box) return box;
+  if (!document.body) return null;
+  const style = document.createElement('style');
+  style.id = CTRL_ID + '-css';
+  style.textContent = CTRL_CSS;
+  document.head.appendChild(style);
+  box = document.createElement('div');
+  box.id = CTRL_ID;
+  for (const [name, label, svg] of CTRL_BUTTONS) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.dataset.control = name;
+    btn.title = label;
+    btn.setAttribute('aria-label', label);
+    btn.innerHTML = svg;
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      ipcRenderer.send(
+        { browser: 'panel:browser', keep: 'panel:keep', close: 'panel:close' }[name],
+      );
+    });
+    box.appendChild(btn);
+  }
+  document.body.appendChild(box);
+  return box;
+}
+// Shown on a chat (its information button is there to hang from), just under that button's row.
+function drawControls() {
+  const box = controls();
+  if (!box) return;
+  const info = document.querySelector('[role="main"] [aria-label="Conversation information"]');
+  const r = info && info.getBoundingClientRect();
+  const on = Boolean(r && r.height > 0 && r.bottom > 0);
+  box.classList.toggle('show', on);
+  if (on) box.style.top = Math.round(r.bottom + 10) + 'px';
+  const keepBtn = box.querySelector('[data-control="keep"]');
+  keepBtn.classList.toggle('on', kept);
+  keepBtn.setAttribute('aria-pressed', String(kept));
+}
+ipcRenderer.on('panel:keep-state', (_event, state) => {
+  kept = Boolean(state && state.keep);
+  drawControls();
+});
+document.addEventListener('mouseover', () => drawControls(), true);
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) drawControls();
+});
+
+// Typing, pasting or dropping something into the chat makes it one you are in: main keeps the
+// panel up on a click elsewhere until it is put away. Said at most every two seconds.
+let engagedAt = 0;
+function engaged() {
+  const now = Date.now();
+  if (now - engagedAt < 2000) return;
+  engagedAt = now;
+  ipcRenderer.send('panel:engaged');
+}
+document.addEventListener(
+  'keydown',
+  (e) => {
+    if (e.target && e.target.isContentEditable) engaged();
+  },
+  true,
+);
+document.addEventListener('paste', engaged, true);
+document.addEventListener('drop', engaged, true);
+window.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape' || e.defaultPrevented) return;
+  if (document.querySelector('[role="dialog"], [role="menu"], [role="listbox"]')) return;
+  ipcRenderer.send('panel:close');
 });

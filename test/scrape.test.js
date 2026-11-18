@@ -399,3 +399,16 @@ test('the page is asked for as many rows as the caller needs (five, plus one per
   assert.match(codes[0], /\)\(8, function spanText\(/);
   assert.match(codes[1], /\)\(5, function spanText\(/);
 });
+
+// The panel shows Messenger's chat with its own controls: the chat's information (search, mute,
+// shared media), the call buttons and the page's own scrollbars. Left out: the inbox switcher
+// rail, which does not fit beside a chat at this width, and Back — the stack is the way between
+// chats (the user's call, Nov 2026).
+const { FRAME_CSS, COMPACT_CSS } = require('../src/main/scrape');
+test('compact mode hides only the inbox switcher and Back, and leaves the scrollbars alone', () => {
+  assert.match(COMPACT_CSS, /Inbox switcher/);
+  assert.match(COMPACT_CSS, /\[aria-label="Back"\]\{display:none!important\}/);
+  for (const label of ['Conversation information', 'Start a voice call', 'Start a video call'])
+    assert.equal(COMPACT_CSS.includes(`"${label}"`), false, label);
+  for (const css of [COMPACT_CSS, FRAME_CSS]) assert.equal(/scrollbar/.test(css), false);
+});

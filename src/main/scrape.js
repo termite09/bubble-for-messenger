@@ -441,20 +441,21 @@ async function sendReply(wc, href, text) {
   return deliverReply(wc, href, text);
 }
 
-// Compact mode strips Messenger down to just the open thread: hide the left icon rail, the
-// per-thread voice/video/info buttons, and the Back arrow (navigation is via the fan, and the
-// list it returns to is not part of this view). The conversation-list column is deliberately
+// Compact mode fits Messenger's chat to the panel: the inbox switcher rail is hidden (it does
+// not fit beside a chat at this width), so is Back (the stack is the way between chats), and the
+// thread takes the full height. Everything else of Messenger's own stays — the chat's
+// information (search, mute, shared media),
+// the call buttons, the scrollbars — so nothing sends you to the website for a missing control
+// (Nov 2026; they were hidden before). The conversation-list column is deliberately
 // NOT hidden — at this width Messenger sizes the thread through that container, so removing it
 // collapses the message area. A <style> tag is toggled (not removed) so it survives the SPA's
 // re-renders while compact mode is on.
 const COMPACT_CSS = [
   '[role="navigation"][aria-label="Inbox switcher"]{display:none!important}',
-  '[aria-label="Start a voice call"],[aria-label="Start a video call"],[aria-label="Conversation information"],[aria-label="Back"]{display:none!important}',
+  // Back is left out: the stack is the way between chats (the user's call, Nov 2026).
+  '[aria-label="Back"]{display:none!important}',
   // Messenger sizes the thread row to the viewport minus a 32px allowance; take the full height.
   'div:has(> [role="main"]),[role="main"],[role="main"]>div{padding:0!important;margin:0!important;height:100vh!important;max-height:100vh!important}',
-  // No scrollbar gutter — it reserved 15px on the right and read as a fixed bar.
-  '::-webkit-scrollbar{width:0!important;height:0!important}',
-  '*{scrollbar-width:none!important}',
 ].join('');
 
 // The thread card, flush and full-height: lib/fit finds it and writes the rule. Runs again on
@@ -497,8 +498,6 @@ const FRAME_CSS = [
     'border:1px solid var(--mb-hairline,' +
     tokens.rule +
     ')}',
-  // Overlay scrollbars would otherwise ride the sheet's edge over the hairline.
-  '::-webkit-scrollbar,::-webkit-scrollbar-thumb{display:none!important;width:0!important;background:transparent!important}',
 ].join('');
 
 function setFrame(wc, on) {
@@ -583,4 +582,5 @@ module.exports = {
   replyActions,
   RECENT_CHATS_SCRIPT,
   FRAME_CSS,
+  COMPACT_CSS,
 };

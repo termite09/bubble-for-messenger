@@ -245,9 +245,9 @@ function fakeScrape({ openThread } = {}) {
     },
   };
 }
-function panelWith(scrape, caps = capabilities('darwin')) {
+function panelWith(scrape, caps = capabilities('darwin'), opts = {}) {
   electron.shell.openExternal = async () => {};
-  const panel = createPanel({ onUnread() {}, scrape: scrape.api, caps });
+  const panel = createPanel({ onUnread() {}, scrape: scrape.api, caps, ...opts });
   const win = electron.windows[electron.windows.length - 1];
   return { panel, win };
 }
@@ -369,4 +369,78 @@ test('a wake settled by the socket coming back is logged, and no reload is owed'
   assert.equal(panel.liveness().resumePending, false);
   assert.ok(lines.includes('wake settled without a reload'));
   panel.destroy();
+});
+
+// ---- A chat you are in stays ------------------------------------------------------------------
+// 300 of 496 chats in one log ended because a click elsewhere hid the panel — mid-conversation
+// too, and with no way to drag a file in from Finder or paste from another app. A peek still
+// goes away on a click elsewhere; a chat you have typed in stays until you put it away.
+test('a peek goes away on a click elsewhere; a chat you typed in stays', async () => {
+  const blurred = [];
+  const { panel, win } = panelWith(fakeScrape(), capabilities('darwin'), {
+    onBlurred: () => blurred.push(1),
+  });
+  await panel.openThread('/t/1/', BOUNDS);
+  win.emit('blur');
+  assert.equal(win.visible, false); // a peek
+  assert.deepEqual(blurred, [1]);
+  await panel.openThread('/t/1/', BOUNDS);
+  electron.ipcMain.emit(CHANNELS.PANEL_ENGAGED, from(win));
+  win.emit('blur');
+  assert.equal(win.visible, true); // you were typing: it stays
+  assert.equal(panel.isShowing(), true);
+  assert.deepEqual(blurred, [1]);
+  panel.hide(); // put away (the disc, Esc, ✕): the next open starts as a peek again
+  await panel.openThread('/t/2/', BOUNDS);
+  win.emit('blur');
+  assert.equal(win.visible, false);
+});
+
+test('the keep-open pin holds the panel up across chats until it is unpinned', async () => {
+  const { panel, win } = panelWith(fakeScrape());
+  await panel.openThread('/t/1/', BOUNDS);
+  electron.ipcMain.emit(CHANNELS.PANEL_KEEP, from(win));
+  const told = () => win.webContents.sent.filter(([c]) => c === CHANNELS.PANEL_KEEP_STATE).pop();
+  assert.deepEqual(told()[1], { keep: true });
+  win.emit('blur');
+  assert.equal(win.visible, true);
+  panel.hide();
+  await panel.openThread('/t/2/', BOUNDS);
+  win.emit('blur');
+  assert.equal(win.visible, true); // still pinned
+  electron.ipcMain.emit(CHANNELS.PANEL_KEEP, from(win));
+  assert.deepEqual(told()[1], { keep: false });
+  win.emit('blur');
+  assert.equal(win.visible, false);
+});
+
+// The panel's own controls: ✕ (and Esc) put it away the way the disc does; ↗ opens the chat
+// on messenger.com in the browser.
+test("the panel's close and open-in-browser controls are heard from its own page only", async () => {
+  const closes = [];
+  const opened = [];
+  const { panel, win } = panelWith(fakeScrape(), capabilities('darwin'), {
+    onCloseRequest: () => closes.push(1),
+  });
+  electron.shell.openExternal = async (u) => opened.push(u);
+  await panel.openThread('/t/5/', BOUNDS);
+  win.webContents.url = 'https://www.messenger.com/t/5/';
+  electron.ipcMain.emit(CHANNELS.PANEL_CLOSE, { sender: {} });
+  electron.ipcMain.emit(CHANNELS.PANEL_CLOSE, from(win));
+  assert.deepEqual(closes, [1]);
+  electron.ipcMain.emit(CHANNELS.PANEL_BROWSER, from(win));
+  assert.deepEqual(opened, ['https://www.messenger.com/t/5/']);
+});
+
+// Tall (a setting): the panel takes the work area's height, less a margin, for long chats.
+test('a tall panel takes the height of the screen it opens on', async () => {
+  const { panel, win } = panelWith(fakeScrape(), capabilities('darwin'), {
+    panelHeight: () => 'tall',
+  });
+  await panel.openThread('/t/1/', BOUNDS);
+  const { workArea } = electron.screen.getPrimaryDisplay();
+  assert.deepEqual(win.getSize(), [420, workArea.height - 16]);
+  const standard = panelWith(fakeScrape());
+  await standard.panel.openThread('/t/1/', BOUNDS);
+  assert.deepEqual(standard.win.getSize(), [420, 560]);
 });
